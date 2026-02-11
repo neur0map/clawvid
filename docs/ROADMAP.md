@@ -1,6 +1,17 @@
 # ClawVid Roadmap to Production-Ready
 
-Status: **Compiles + unit tests pass. Not end-to-end tested.**
+Status: **Compiles + unit tests pass (42/42). Models updated. Sound/music/analysis added. Not end-to-end tested.**
+
+### Recent Changes (2026-02-11)
+
+- Replaced all fal.ai models: kling-image/v3, kandinsky5-pro, qwen-3-tts
+- Added sound effect generation (beatoven/sound-effect-generation)
+- Added music generation (beatoven/music-generation)
+- Added image/video analysis (got-ocr/v2, video-understanding)
+- Implemented audio-visual sync via FFmpeg adelay
+- Added 5-phase workflow runner (images, videos, TTS, SFX, music)
+- Rewrote audio mixer for multi-track mixing (narration + music + positioned SFX)
+- 42 tests passing, 0 failures
 
 ---
 
@@ -10,13 +21,16 @@ The client layer (`src/fal/`) calls fal.ai but has never received a real respons
 
 ### 1.1 Validate fal.ai response shapes
 
-- [ ] Run a single `fal-ai/flux/dev` image generation call
-- [ ] Capture the actual response JSON and compare to what `fal/image.ts` expects
-- [ ] Fix `generateImage()` to extract the image URL from the real response
-- [ ] Run a single `fal-ai/kling-video/v1.5/pro/image-to-video` call
-- [ ] Fix `generateVideo()` to extract the video URL from the real response
-- [ ] Run a single `fal-ai/f5-tts` TTS call
-- [ ] Fix `generateSpeech()` to extract the audio URL from the real response
+- [ ] Run a single `fal-ai/kling-image/v3/text-to-image` image generation call
+- [ ] Capture the actual response JSON and compare to what `fal/image.ts` expects (`{ images: [{ url, width, height }] }`)
+- [ ] Run a single `fal-ai/kandinsky5-pro/image-to-video` call
+- [ ] Confirm response matches `{ video: { url } }`
+- [ ] Run a single `fal-ai/qwen-3-tts/voice-design/1.7b` TTS call
+- [ ] Confirm response matches `{ audio: { url, duration } }`
+- [ ] Run a single `beatoven/sound-effect-generation` call
+- [ ] Confirm response matches `{ audio: { url }, metadata: { duration } }`
+- [ ] Run a single `beatoven/music-generation` call
+- [ ] Confirm response matches `{ audio: { url }, metadata: { duration } }`
 - [ ] Run a single `fal-ai/whisper` transcription call
 - [ ] Fix `transcribe()` to extract word-level timing from the real response
 
@@ -34,21 +48,23 @@ The client layer (`src/fal/`) calls fal.ai but has never received a real respons
 
 **Test command:**
 ```bash
-# Create a minimal 1-scene workflow to isolate fal.ai calls
-clawvid generate --workflow tests/fixtures/single-scene.json
+# Use the minimal 2-scene test workflow to isolate fal.ai calls
+clawvid generate --workflow workflows/test-minimal.json
 ```
 
 ---
 
 ## Phase 2: Pipeline Data Flow (Critical)
 
-The pipeline chains 9 stages. Data handoff between stages hasn't been exercised.
+The pipeline chains multiple stages. Data handoff between stages hasn't been exercised.
 
 ### 2.1 Workflow execution -> asset files
 
-- [ ] Verify `workflow-runner.ts` correctly iterates scenes
+- [ ] Verify `workflow-runner.ts` correctly iterates scenes (5 phases)
 - [ ] Confirm images are saved to `output/{run}/assets/` with correct names
 - [ ] Confirm videos are saved alongside their source images
+- [ ] Verify sound effects are saved as `sfx-{sceneId}-{index}.wav`
+- [ ] Verify generated music is saved as `music-generated.wav`
 - [ ] Verify cache hash calculation and hit/miss behavior on second run
 
 ### 2.2 Audio processing chain
@@ -58,6 +74,8 @@ The pipeline chains 9 stages. Data handoff between stages hasn't been exercised.
 - [ ] Test `normalize.ts` — does `loudnorm` two-pass work correctly?
 - [ ] Test `mixer.ts` concatenation — does the concat filter produce valid audio?
 - [ ] Test `mixer.ts` music mixing — does background music loop and fade correctly?
+- [ ] Test `mixer.ts` SFX positioning — does `adelay` place SFX at correct timestamps?
+- [ ] Test multi-track mix: narration + music + N positioned SFX via `amix`
 - [ ] Verify the final mixed audio file path is passed to the render stage
 
 ### 2.3 Subtitle generation
@@ -138,47 +156,49 @@ Remotion programmatic rendering is complex. Multiple things can break.
 
 ## Phase 5: End-to-End Test
 
-Run the full pipeline with the example workflow.
+Run the full pipeline with the test workflow first, then the full example.
 
 ```bash
 # Set up
 cp .env.example .env
 # Add real FAL_KEY
 
-# Run full pipeline
+# Minimal test (2 scenes, ~10s, 1 SFX, generated music)
+clawvid generate --workflow workflows/test-minimal.json
+
+# Full test (7 scenes, 60s, 4 SFX, generated music)
 clawvid generate --workflow workflows/horror-story-example.json
 
 # Expected output structure:
-# output/2026-XX-XX-haunted-library-horror-video/
+# output/2026-XX-XX-minimal-test-2-scenes/
 #   assets/
 #     scene_1.png
-#     scene_1.mp4
 #     scene_2.png
-#     ...
-#   youtube/
-#     haunted-library-horror-video.mp4
+#     narration-scene_1.mp3
+#     narration-scene_2.mp3
+#     sfx-scene_1-0.wav
+#     music-generated.wav
+#     audio-mixed.mp3
 #   tiktok/
-#     haunted-library-horror-video.mp4
-#   instagram/
-#     haunted-library-horror-video.mp4
-#   subtitles/
-#     narration.srt
-#     narration.vtt
-#   cost-summary.json
+#     final.mp4
+#     thumbnail.jpg
+#     subtitles.srt
+#   cost.json
+#   workflow.json
 ```
 
 ### Validation checklist
 
-- [ ] All 7 scene images generated and saved
-- [ ] 3 video clips generated (scenes 1, 4, 6)
+- [ ] All scene images generated and saved
+- [ ] Video clips generated for video-type scenes
 - [ ] TTS narration generated for scenes with text
-- [ ] Audio normalized and mixed with music
+- [ ] Sound effects generated and positioned at correct timestamps
+- [ ] Generated music plays as background throughout
+- [ ] Audio normalized and mixed (narration + music + SFX)
+- [ ] SFX audible at expected second marks in final audio
 - [ ] Subtitles generated with word timing
-- [ ] YouTube 16:9 video renders and plays correctly
-- [ ] TikTok 9:16 video renders and plays correctly
-- [ ] Instagram 9:16 video renders and plays correctly
+- [ ] Platform videos render and play correctly
 - [ ] All videos have audio track
-- [ ] Subtitles appear at correct times
 - [ ] Template color grading visible
 - [ ] Effects (vignette, grain, glitch) visible
 - [ ] Total cost summary generated
@@ -196,7 +216,7 @@ clawvid generate --workflow workflows/horror-story-example.json
 ### 6.2 Re-render from existing assets
 
 ```bash
-clawvid render --run output/2026-XX-XX-haunted-library/ --all-platforms
+clawvid render --run output/2026-XX-XX-minimal-test/ --all-platforms
 ```
 
 - [ ] Verify re-render uses existing assets (no fal.ai calls)
@@ -209,11 +229,13 @@ clawvid render --run output/2026-XX-XX-haunted-library/ --all-platforms
 
 - [ ] Workflow with no narration (all scenes `narration: null`)
 - [ ] Workflow with no music (no `audio.music` section)
+- [ ] Workflow with no sound effects (no `sound_effects` arrays)
 - [ ] Workflow with no video scenes (all `type: "image"`)
 - [ ] Workflow with only 1 scene
 - [ ] Workflow with no effects
 - [ ] Workflow with no subtitles (`subtitles.enabled: false`)
 - [ ] Workflow with text overlays on multiple scenes
+- [ ] Workflow with `music.generate: false` and `music.file` path
 - [ ] Invalid workflow JSON — verify clean error message
 - [ ] Missing FAL_KEY — verify clean error message
 - [ ] fal.ai rate limit hit — verify retry works
@@ -229,7 +251,7 @@ clawvid render --run output/2026-XX-XX-haunted-library/ --all-platforms
 - [ ] Cost tracking — verify per-model cost estimates are reasonable
 - [ ] Logging — verify pino structured logs are useful for debugging
 - [ ] Error messages — all failures should say what went wrong and how to fix it
-- [ ] Clean up 9 remaining `.todo()` test stubs with real integration tests
+- [ ] Complete remaining `.todo()` test stubs with real integration tests
 - [ ] Consider replacing deprecated `fluent-ffmpeg` if issues found
 
 ---
@@ -241,9 +263,9 @@ Based on typical integration testing:
 | Phase | Expected Issues | Effort |
 |-------|----------------|--------|
 | 1. fal.ai API | Response shape mismatches, URL handling | 1-2 rounds |
-| 2. Pipeline flow | Data handoff bugs, path issues | 1-2 rounds |
+| 2. Pipeline flow | Data handoff bugs, path issues, SFX timing | 1-2 rounds |
 | 3. Remotion | Bundler config, React compat, prop wiring | 2-3 rounds |
-| 4. FFmpeg | Filter syntax, encoding flags | 1 round |
+| 4. FFmpeg | Filter syntax, encoding flags, adelay | 1 round |
 | 5. End-to-end | Combination of above | 1-2 rounds |
 | 6. Cache/re-render | Minor path issues | 1 round |
 | 7. Edge cases | Null handling, missing fields | 1 round |
