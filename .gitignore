@@ -8,3 +8,4 @@ output/
 preview/
 .DS_Store
 *.log
+preferences.json

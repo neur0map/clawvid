@@ -2,6 +2,7 @@
   "name": "clawvid",
   "version": "0.1.0",
   "description": "AI-powered short-form video generation skill for OpenClaw",
+  "type": "module",
   "main": "dist/index.js",
   "bin": {
     "clawvid": "./dist/index.js"
@@ -10,7 +11,8 @@
     "build": "tsc",
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
-    "studio": "cd remotion && npm run studio",
+    "studio": "remotion studio src/render/root.tsx",
+    "preview": "remotion preview src/render/root.tsx",
     "test": "vitest"
   },
   "keywords": [
@@ -27,14 +29,36 @@
   "license": "MIT",
   "dependencies": {
     "@fal-ai/client": "^1.0.0",
+    "@remotion/cli": "^4.0.0",
+    "@remotion/renderer": "^4.0.0",
+    "chalk": "^5.3.0",
+    "cli-progress": "^3.12.0",
     "commander": "^12.0.0",
-    "zod": "^3.22.0",
-    "dotenv": "^16.0.0"
+    "dotenv": "^16.0.0",
+    "eventemitter3": "^5.0.0",
+    "execa": "^9.0.0",
+    "file-type": "^19.0.0",
+    "fluent-ffmpeg": "^2.1.0",
+    "fs-extra": "^11.2.0",
+    "get-video-duration": "^4.1.0",
+    "nanoid": "^5.0.0",
+    "ora": "^8.0.0",
+    "p-queue": "^8.0.0",
+    "p-retry": "^6.2.0",
+    "pino": "^9.0.0",
+    "probe-image-size": "^7.2.0",
+    "remotion": "^4.0.0",
+    "sharp": "^0.33.0",
+    "subtitle": "^4.0.0",
+    "zod": "^3.22.0"
   },
   "devDependencies": {
+    "@types/cli-progress": "^3.11.0",
+    "@types/fluent-ffmpeg": "^2.1.0",
+    "@types/fs-extra": "^11.0.0",
     "@types/node": "^20.0.0",
-    "typescript": "^5.3.0",
     "tsx": "^4.0.0",
+    "typescript": "^5.3.0",
     "vitest": "^1.0.0"
   }
 }

@@ -1,0 +1,124 @@
+{
+  "fal": {
+    "image": {
+      "default": "fal-ai/flux/dev",
+      "premium": "fal-ai/flux-pro/v1.1",
+      "stylized": "fal-ai/grok-imagine"
+    },
+    "video": {
+      "default": "fal-ai/kling-video/v1.5/pro/image-to-video",
+      "fast": "fal-ai/minimax-video/image-to-video",
+      "cinematic": "fal-ai/luma-dream-machine"
+    },
+    "audio": {
+      "tts": "fal-ai/f5-tts",
+      "transcription": "fal-ai/whisper"
+    }
+  },
+
+  "defaults": {
+    "aspect_ratio": "9:16",
+    "resolution": { "width": 1080, "height": 1920 },
+    "fps": 30,
+    "duration_seconds": 60,
+    "max_video_clips": 3,
+    "image_to_video_ratio": 0.75
+  },
+
+  "templates": {
+    "horror": {
+      "image_model": "premium",
+      "video_model": "default",
+      "color_mood": "dark_desaturated",
+      "effects": ["vignette", "grain", "flicker"],
+      "voice_style": "deep_slow",
+      "voice_pacing": 0.9,
+      "scenes_per_minute": 7
+    },
+    "motivation": {
+      "image_model": "default",
+      "video_model": "cinematic",
+      "color_mood": "warm_golden",
+      "effects": ["lens_flare", "fade"],
+      "voice_style": "warm_confident",
+      "voice_pacing": 1.0,
+      "scenes_per_minute": 5
+    },
+    "quiz": {
+      "image_model": "stylized",
+      "video_model": "fast",
+      "color_mood": "bright_vibrant",
+      "effects": ["timer", "reveal"],
+      "voice_style": "energetic_clear",
+      "voice_pacing": 1.1,
+      "scenes_per_minute": 8
+    },
+    "reddit": {
+      "image_model": "default",
+      "video_model": "fast",
+      "color_mood": "neutral",
+      "effects": ["post_card_overlay"],
+      "voice_style": "casual_conversational",
+      "voice_pacing": 1.0,
+      "scenes_per_minute": 6
+    }
+  },
+
+  "quality": {
+    "max_quality": {
+      "image_model": "premium",
+      "image_size": "landscape_16_9",
+      "video_clips": 3,
+      "inference_steps": 50
+    },
+    "balanced": {
+      "image_model": "default",
+      "image_size": "landscape_16_9",
+      "video_clips": 2,
+      "inference_steps": 28
+    },
+    "budget": {
+      "image_model": "default",
+      "image_size": "square",
+      "video_clips": 1,
+      "inference_steps": 20
+    }
+  },
+
+  "platforms": {
+    "youtube": {
+      "aspect_ratio": "16:9",
+      "resolution": { "width": 1920, "height": 1080 },
+      "max_duration_seconds": 60,
+      "codec": "h264",
+      "audio_codec": "aac",
+      "bitrate": "8M",
+      "audio_bitrate": "192k"
+    },
+    "tiktok": {
+      "aspect_ratio": "9:16",
+      "resolution": { "width": 1080, "height": 1920 },
+      "max_duration_seconds": 60,
+      "codec": "h264",
+      "audio_codec": "aac",
+      "bitrate": "6M",
+      "audio_bitrate": "128k"
+    },
+    "instagram_reels": {
+      "aspect_ratio": "9:16",
+      "resolution": { "width": 1080, "height": 1920 },
+      "max_duration_seconds": 90,
+      "codec": "h264",
+      "audio_codec": "aac",
+      "bitrate": "6M",
+      "audio_bitrate": "128k"
+    }
+  },
+
+  "output": {
+    "directory": "output",
+    "format": "mp4",
+    "codec": "h264",
+    "naming": "{date}-{slug}"
+  }
+}
