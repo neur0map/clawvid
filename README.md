@@ -1,4 +1,4 @@
-# ShortGen
+# ClawVid
 
 AI-powered short-form video generation skill for OpenClaw.
 
@@ -6,13 +6,13 @@ Generate YouTube Shorts, TikToks, and Reels from text prompts. Fully automated p
 
 ## Overview
 
-ShortGen is an OpenClaw skill that turns prompts into finished short-form videos. It combines AI content generation with programmatic video editing.
+ClawVid is an OpenClaw skill that turns prompts into finished short-form videos. It combines AI content generation with programmatic video editing.
 
 ```
 "Make a scary story video about a haunted library"
                     ↓
         ┌─────────────────────┐
-        │      ShortGen       │
+        │       ClawVid       │
         │                     │
         │  Script → Images →  │
         │  Audio → Video      │
@@ -32,12 +32,12 @@ ShortGen is an OpenClaw skill that turns prompts into finished short-form videos
 │                         ↓                                       │
 │  Agent reads SKILL.md → understands capabilities                │
 │                         ↓                                       │
-│  Agent calls: clawvid generate --template horror --source ...  │
+│  Agent calls: clawvid generate --template horror --source ...   │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│                      ShortGen Pipeline                          │
+│                       ClawVid Pipeline                          │
 │                                                                 │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
 │  │ Content  │→ │  Image   │→ │  Audio   │→ │  Video   │        │
@@ -135,136 +135,7 @@ clawvid/
 
 ## SKILL.md
 
-```markdown
-# ShortGen
-
-Generate short-form videos (YouTube Shorts, TikTok, Reels) from text prompts.
-
-## Capabilities
-
-- Generate videos from Reddit posts (r/nosleep, r/AITA, r/AskReddit)
-- Create motivational quote videos
-- Make quiz/trivia videos
-- Horror/scary story videos with effects
-
-## Commands
-
-### Generate Video
-
-\`\`\`bash
-clawvid generate [options]
-\`\`\`
-
-Options:
-- `--template <name>` - Template: horror, motivation, quiz, reddit (default: reddit)
-- `--source <type>` - Source: reddit, text, url (default: reddit)
-- `--subreddit <name>` - Subreddit to fetch from (default: nosleep)
-- `--text <content>` - Direct text input (for source=text)
-- `--voice <id>` - ElevenLabs voice ID
-- `--duration <sec>` - Target duration in seconds (default: 60)
-- `--output <path>` - Output path (default: ./output/video.mp4)
-- `--preview` - Render preview frames only (no full video)
-
-### List Templates
-
-\`\`\`bash
-clawvid templates
-\`\`\`
-
-### Preview Frame
-
-\`\`\`bash
-clawvid preview --template horror --frame 30
-\`\`\`
-
-Renders a single frame for verification before full render.
-
-## Examples
-
-### Horror Story from Reddit
-
-\`\`\`bash
-clawvid generate --template horror --source reddit --subreddit nosleep
-\`\`\`
-
-### Motivational Quote
-
-\`\`\`bash
-clawvid generate --template motivation --source text --text "The only way to do great work is to love what you do."
-\`\`\`
-
-### Quiz Video
-
-\`\`\`bash
-clawvid generate --template quiz --source text --text "What is the capital of France? A) London B) Paris C) Berlin D) Madrid"
-\`\`\`
-
-## Templates
-
-### horror
-- Dark color grading
-- VHS/glitch effects
-- Creepy ambient audio
-- Slow Ken Burns on AI images
-- Typewriter text reveal
-
-### motivation
-- Clean typography
-- Stock footage background
-- Uplifting music
-- Fade transitions
-
-### quiz
-- Question → Timer → Reveal format
-- Sound effects
-- Bold text animations
-
-### reddit
-- Reddit post screenshot overlay
-- Background gameplay/satisfying footage
-- TTS reading the post
-
-## Configuration
-
-Create `.clawvid.json` in workspace or set environment variables:
-
-\`\`\`json
-{
-  "openai_api_key": "sk-...",
-  "elevenlabs_api_key": "...",
-  "replicate_api_token": "...",
-  "default_voice": "pNInz6obpgDQGcFmaJgB",
-  "default_template": "horror"
-}
-\`\`\`
-
-Or environment variables:
-- `OPENAI_API_KEY`
-- `ELEVENLABS_API_KEY`
-- `REPLICATE_API_TOKEN`
-
-## Output
-
-Videos are saved to `./output/` by default:
-- `video.mp4` - Final rendered video (1080x1920, 9:16)
-- `preview/` - Preview frames if --preview used
-- `assets/` - Generated images and audio (for debugging)
-
-## Verification
-
-Before full render, use `--preview` to check frames:
-
-\`\`\`bash
-clawvid generate --template horror --preview
-# Outputs: preview/frame_0.png, preview/frame_30.png, preview/frame_60.png
-\`\`\`
-
-Review the frames, then render full video:
-
-\`\`\`bash
-clawvid generate --template horror
-\`\`\`
-```
+The SKILL.md file tells OpenClaw how to use ClawVid. See [SKILL.md](./SKILL.md) for the full specification.
 
 ## Templates
 
@@ -373,6 +244,22 @@ You: The second image is too bright, make it darker
 Agent: [regenerates image, re-renders]
 
 Done. Video saved to output/video.mp4
+```
+
+## CLI Reference
+
+```bash
+# Generate a video
+clawvid generate --template horror --source reddit --subreddit nosleep
+
+# List available templates
+clawvid templates
+
+# Preview frames before full render
+clawvid preview --template horror --frame 30
+
+# Show help
+clawvid --help
 ```
 
 ## Development

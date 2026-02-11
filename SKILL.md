@@ -1,4 +1,4 @@
-# ShortGen
+# ClawVid
 
 Generate short-form videos (YouTube Shorts, TikTok, Reels) from text prompts.
 
