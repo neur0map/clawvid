@@ -1,6 +1,5 @@
-import probe from 'probe-image-size';
 import { fileTypeFromFile } from 'file-type';
-import { createReadStream } from 'node:fs';
+import sharp from 'sharp';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('validate-image');
@@ -25,20 +24,21 @@ export async function validateImage(
     return { valid: false, errors: ['File is not a valid image'] };
   }
 
-  const stream = createReadStream(filePath);
-  const dimensions = await probe(stream);
+  const metadata = await sharp(filePath).metadata();
+  const width = metadata.width;
+  const height = metadata.height;
 
-  if (expectedWidth && dimensions.width !== expectedWidth) {
-    errors.push(`Expected width ${expectedWidth}, got ${dimensions.width}`);
+  if (expectedWidth && width !== expectedWidth) {
+    errors.push(`Expected width ${expectedWidth}, got ${width}`);
   }
-  if (expectedHeight && dimensions.height !== expectedHeight) {
-    errors.push(`Expected height ${expectedHeight}, got ${dimensions.height}`);
+  if (expectedHeight && height !== expectedHeight) {
+    errors.push(`Expected height ${expectedHeight}, got ${height}`);
   }
 
   const result: ImageValidationResult = {
     valid: errors.length === 0,
-    width: dimensions.width,
-    height: dimensions.height,
+    width,
+    height,
     format: type.ext,
     errors,
   };

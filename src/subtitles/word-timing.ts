@@ -1,24 +1,26 @@
-import type { TranscriptionOutput } from '../fal/types.js';
 import type { TimedWord } from './generator.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('word-timing');
 
-export function extractWordTimings(transcription: TranscriptionOutput): TimedWord[] {
+export interface TranscriptionChunk {
+  text: string;
+  timestamp: [number, number];
+}
+
+export function extractWordTimings(chunks: TranscriptionChunk[]): TimedWord[] {
   const words: TimedWord[] = [];
 
-  for (const segment of transcription.segments) {
-    // Split segment text into words and distribute timing evenly
-    // TODO: Use word-level timestamps from Whisper when available
-    const segmentWords = segment.text.trim().split(/\s+/);
-    const segmentDuration = segment.end - segment.start;
-    const wordDuration = segmentDuration / segmentWords.length;
+  for (const chunk of chunks) {
+    const chunkWords = chunk.text.trim().split(/\s+/);
+    const chunkDuration = chunk.timestamp[1] - chunk.timestamp[0];
+    const wordDuration = chunkDuration / chunkWords.length;
 
-    segmentWords.forEach((word, i) => {
+    chunkWords.forEach((word: string, i: number) => {
       words.push({
         word,
-        start: segment.start + i * wordDuration,
-        end: segment.start + (i + 1) * wordDuration,
+        start: chunk.timestamp[0] + i * wordDuration,
+        end: chunk.timestamp[0] + (i + 1) * wordDuration,
       });
     });
   }

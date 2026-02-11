@@ -1,4 +1,5 @@
-import type { PlatformId, PlatformSpec } from './types.js';
+import { type PlatformId, type PlatformSpec } from './types.js';
+export type { PlatformId } from './types.js';
 import { youtube } from './youtube.js';
 import { tiktok } from './tiktok.js';
 import { instagramReels } from './instagram.js';

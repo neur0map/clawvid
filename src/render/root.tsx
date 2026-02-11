@@ -7,7 +7,7 @@ export const RemotionRoot: React.FC = () => {
     <>
       <Composition
         id="LandscapeVideo"
-        component={LandscapeVideo}
+        component={LandscapeVideo as unknown as React.FC<Record<string, unknown>>}
         durationInFrames={1800}
         fps={30}
         width={1920}
@@ -20,7 +20,7 @@ export const RemotionRoot: React.FC = () => {
       />
       <Composition
         id="PortraitVideo"
-        component={PortraitVideo}
+        component={PortraitVideo as unknown as React.FC<Record<string, unknown>>}
         durationInFrames={1800}
         fps={30}
         width={1080}

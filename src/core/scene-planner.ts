@@ -1,5 +1,8 @@
 import type { Scene } from '../schemas/scene.js';
 import type { AppConfig } from '../config/loader.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('scene-planner');
 
 export interface ScenePlan {
   scenes: Scene[];
@@ -8,28 +11,29 @@ export interface ScenePlan {
   imageCount: number;
 }
 
-export function planScenes(
-  content: string,
-  template: string,
-  config: AppConfig,
-): ScenePlan {
-  const templateConfig = config.templates[template];
-  const scenesPerMinute = templateConfig?.scenes_per_minute ?? 6;
-  const durationSeconds = config.defaults.duration_seconds;
-  const targetSceneCount = Math.round((scenesPerMinute / 60) * durationSeconds);
-  const maxVideoClips = config.defaults.max_video_clips;
+/**
+ * Validates and analyzes a scene plan from a workflow.
+ * The agent creates the scene plan via the workflow JSON —
+ * this function validates the plan is coherent and returns stats.
+ */
+export function analyzeScenePlan(scenes: Scene[], config: AppConfig): ScenePlan {
+  const videoClipCount = scenes.filter((s) => s.type === 'video').length;
+  const imageCount = scenes.filter((s) => s.type === 'image').length;
+  const totalDuration = scenes.reduce((sum, s) => Math.max(sum, s.timing.start + s.timing.duration), 0);
 
-  // TODO: Implement scene planning logic
-  // 1. Break content into narrative segments
-  // 2. Assign scene types (video vs image) based on template rules
-  // 3. Calculate per-scene timing
-  // 4. Assign models based on template config
-  // 5. Return scene plan
+  if (videoClipCount > config.defaults.max_video_clips) {
+    log.warn('Scene plan exceeds max video clips', {
+      count: videoClipCount,
+      max: config.defaults.max_video_clips,
+    });
+  }
 
-  return {
-    scenes: [],
-    totalDuration: durationSeconds,
-    videoClipCount: 0,
-    imageCount: 0,
-  };
+  log.info('Scene plan analysis', {
+    totalScenes: scenes.length,
+    videoClips: videoClipCount,
+    images: imageCount,
+    totalDuration: `${totalDuration}s`,
+  });
+
+  return { scenes, totalDuration, videoClipCount, imageCount };
 }
