@@ -2,11 +2,11 @@
 
 AI-powered short-form video generation skill for OpenClaw.
 
-Generate YouTube Shorts, TikToks, and Reels from text prompts. Fully automated pipeline: script, images, audio, and video composition.
+Generate YouTube Shorts, TikToks, and Reels from text prompts. Fully automated pipeline: script, images, video clips, audio, and composition.
 
 ## Overview
 
-ClawVid is an OpenClaw skill that turns prompts into finished short-form videos. It combines AI content generation with programmatic video editing.
+ClawVid is an OpenClaw skill that turns prompts into finished short-form videos. It combines AI content generation with programmatic video editing - all through a unified API.
 
 ```
 "Make a scary story video about a haunted library"
@@ -15,7 +15,8 @@ ClawVid is an OpenClaw skill that turns prompts into finished short-form videos.
         │       ClawVid       │
         │                     │
         │  Script → Images →  │
-        │  Audio → Video      │
+        │  Video → Audio →    │
+        │  Composition        │
         │                     │
         └─────────────────────┘
                     ↓
@@ -40,18 +41,38 @@ ClawVid is an OpenClaw skill that turns prompts into finished short-form videos.
 │                       ClawVid Pipeline                          │
 │                                                                 │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
-│  │ Content  │→ │  Image   │→ │  Audio   │→ │  Video   │        │
-│  │  Source  │  │   Gen    │  │   Gen    │  │  Render  │        │
+│  │ Content  │→ │  Image   │→ │  Video   │→ │  Audio   │        │
+│  │  Source  │  │   Gen    │  │   Gen    │  │   Gen    │        │
 │  └──────────┘  └──────────┘  └──────────┘  └──────────┘        │
 │       ↓             ↓             ↓             ↓               │
-│   - Reddit     - DALL-E      - ElevenLabs  - Remotion          │
-│   - RSS        - Replicate   - OpenAI TTS  - Templates         │
-│   - Manual     - Midjourney  - Local TTS   - Effects           │
+│   - Reddit      ┌────────────────────────────────┐             │
+│   - RSS         │          fal.ai API            │             │
+│   - Manual      │  - Flux 2 (images)             │             │
+│                 │  - Kling 3.0 (image→video)     │             │
+│                 │  - Grok Imagine (images)       │             │
+│                 │  - Whisper (transcription)     │             │
+│                 │  - F5-TTS (voice synthesis)    │             │
+│                 └────────────────────────────────┘             │
+│                              ↓                                  │
+│                    ┌──────────────────┐                        │
+│                    │     Remotion     │                        │
+│                    │   Composition    │                        │
+│                    └──────────────────┘                        │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
                               ↓
                     Output: video.mp4
 ```
+
+## Why fal.ai?
+
+Single API for everything:
+- **Images:** Flux 2, Grok Imagine, Nano Banana Pro
+- **Video:** Kling 3.0, Veo 3.1, LTX-2
+- **Audio:** F5-TTS, Whisper
+- **One API key**, one billing, one SDK
+
+No juggling Replicate + ElevenLabs + separate services.
 
 ## Language
 
@@ -61,19 +82,26 @@ Why:
 - OpenClaw runs on Node.js - native integration
 - Remotion is TypeScript/React - no language boundary
 - Type safety for complex video configs
-- Single ecosystem (no Python↔Node bridging)
+- fal.ai has official TypeScript SDK
 
 ## Tech Stack
 
 | Component | Tool | Purpose |
 |-----------|------|---------|
 | **Runtime** | Node.js 20+ | Execution environment |
+| **AI Platform** | fal.ai | Unified API for all AI generation |
 | **Video Rendering** | Remotion | Programmatic video composition |
 | **Script Generation** | OpenAI GPT-4 | Content writing, scene breakdowns |
-| **Image Generation** | Replicate (Flux) | AI images for scenes |
-| **Text-to-Speech** | ElevenLabs | High-quality voice narration |
-| **Subtitles** | Whisper / Assembly AI | Auto-generated captions |
 | **CLI Framework** | Commander.js | Command-line interface |
+
+### fal.ai Models Used
+
+| Task | Model | Why |
+|------|-------|-----|
+| **Image Generation** | `fal-ai/flux/dev` | Fast, high quality |
+| **Image to Video** | `fal-ai/kling-video/v1.5/pro/image-to-video` | Smooth motion |
+| **Text to Speech** | `fal-ai/f5-tts` | Natural voices |
+| **Transcription** | `fal-ai/whisper` | For subtitle sync |
 
 ## Directory Structure
 
@@ -92,10 +120,11 @@ clawvid/
 │   │   ├── rss.ts              # News feeds
 │   │   └── manual.ts           # Direct text input
 │   │
-│   ├── generators/             # AI generation
-│   │   ├── script.ts           # GPT script generation
-│   │   ├── images.ts           # Replicate/DALL-E
-│   │   └── audio.ts            # ElevenLabs TTS
+│   ├── fal/                    # fal.ai integrations
+│   │   ├── client.ts           # fal.ai SDK wrapper
+│   │   ├── images.ts           # Image generation
+│   │   ├── video.ts            # Image-to-video
+│   │   └── audio.ts            # TTS and transcription
 │   │
 │   ├── render/                 # Video composition
 │   │   ├── remotion.ts         # Remotion wrapper
@@ -137,6 +166,39 @@ clawvid/
 
 The SKILL.md file tells OpenClaw how to use ClawVid. See [SKILL.md](./SKILL.md) for the full specification.
 
+## Pipeline Flow
+
+```
+1. CONTENT
+   └── Fetch from Reddit / RSS / direct text input
+
+2. SCRIPT (OpenAI)
+   └── Break content into scenes
+   └── Generate image prompts for each scene
+   └── Determine timing and pacing
+
+3. IMAGES (fal.ai - Flux 2)
+   └── Generate AI images for each scene
+   └── Style-matched to template (horror, motivation, etc.)
+
+4. VIDEO CLIPS (fal.ai - Kling 3.0) [Optional]
+   └── Convert key images to short video clips
+   └── Add subtle motion (Ken Burns alternative)
+
+5. AUDIO (fal.ai - F5-TTS)
+   └── Generate voice narration
+   └── Match voice style to template
+
+6. COMPOSITION (Remotion)
+   └── Combine images/clips + audio
+   └── Apply effects (glitch, grain, vignette)
+   └── Add subtitles
+   └── Render final video
+
+7. OUTPUT
+   └── video.mp4 (1080x1920, 9:16)
+```
+
 ## Templates
 
 Each template defines:
@@ -144,6 +206,7 @@ Each template defines:
 - Audio style (music, voice settings)
 - Content structure (scenes, timing)
 - Remotion components
+- fal.ai model preferences
 
 ### Horror Template
 
@@ -158,6 +221,7 @@ export const HorrorTemplate: React.FC<HorrorProps> = ({ scenes, audio }) => {
         <Sequence from={scene.startFrame} durationInFrames={scene.duration}>
           <HorrorScene 
             image={scene.image}
+            video={scene.video} // Optional Kling-generated clip
             text={scene.text}
             effects={['vignette', 'grain', 'flicker']}
           />
@@ -187,9 +251,10 @@ export const HorrorTemplate: React.FC<HorrorProps> = ({ scenes, audio }) => {
 
 | Service | Required | Free Tier |
 |---------|----------|-----------|
-| OpenAI | Yes | $5 credit |
-| ElevenLabs | Yes | 10k chars/month |
-| Replicate | Yes | Some free models |
+| fal.ai | Yes | $10 free credits |
+| OpenAI | Yes (scripts only) | $5 credit |
+
+That's it. Two API keys.
 
 ## Installation
 
@@ -228,8 +293,8 @@ You: Make me a scary video about an abandoned hospital
 
 Agent: I'll create a horror video. Let me:
 1. Generate a script about an abandoned hospital
-2. Create AI images for each scene
-3. Generate creepy narration
+2. Create AI images for each scene (Flux 2)
+3. Generate creepy narration (F5-TTS)
 4. Render with horror effects
 
 [runs: clawvid generate --template horror --source text --text "..."]
@@ -281,12 +346,12 @@ npm test
 ## Roadmap
 
 - [ ] Core pipeline (script → images → audio → video)
+- [ ] fal.ai SDK integration
 - [ ] Horror template
 - [ ] Motivation template
 - [ ] Reddit source integration
-- [ ] ElevenLabs integration
-- [ ] Replicate (Flux) integration
 - [ ] Preview system
+- [ ] Image-to-video with Kling (optional enhancement)
 - [ ] Quiz template
 - [ ] Background music library
 - [ ] Auto-upload to YouTube/TikTok

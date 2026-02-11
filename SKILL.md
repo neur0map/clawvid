@@ -14,12 +14,24 @@ Use this skill when the user wants to:
 ## Capabilities
 
 - Generate videos from Reddit posts (r/nosleep, r/AITA, r/AskReddit)
-- Create motivational quote videos with stock footage
+- Create motivational quote videos with AI-generated visuals
 - Make quiz/trivia videos with reveal animations
 - Horror/scary story videos with VHS effects, glitch, grain
-- AI-generated images for scenes (via Replicate Flux)
-- High-quality TTS narration (via ElevenLabs)
-- Auto-generated subtitles
+- AI-generated images via fal.ai (Flux 2, Grok Imagine)
+- AI-generated video clips via fal.ai (Kling 3.0)
+- High-quality TTS narration via fal.ai (F5-TTS)
+- Auto-generated subtitles via fal.ai (Whisper)
+
+## AI Platform
+
+All AI generation uses **fal.ai** - one API for everything:
+
+| Task | Model |
+|------|-------|
+| Images | `fal-ai/flux/dev` or `fal-ai/grok-imagine` |
+| Image→Video | `fal-ai/kling-video/v1.5/pro/image-to-video` |
+| TTS | `fal-ai/f5-tts` |
+| Transcription | `fal-ai/whisper` |
 
 ## Commands
 
@@ -37,10 +49,11 @@ clawvid generate [options]
 | `--source <type>` | Source: reddit, text, url | reddit |
 | `--subreddit <name>` | Subreddit to fetch from | nosleep |
 | `--text <content>` | Direct text input (when source=text) | - |
-| `--voice <id>` | ElevenLabs voice ID | default |
+| `--voice <style>` | Voice style: creepy, warm, neutral, energetic | neutral |
 | `--duration <sec>` | Target duration in seconds | 60 |
 | `--output <path>` | Output file path | ./output/video.mp4 |
 | `--preview` | Render preview frames only, no full video | false |
+| `--with-video-clips` | Use Kling to animate images (slower, higher quality) | false |
 
 ### List Templates
 
@@ -68,19 +81,21 @@ clawvid generate --template horror --source reddit --subreddit nosleep
 
 Fetches a story from r/nosleep, generates creepy AI images, adds horror effects.
 
-### Custom Horror Story
+### Custom Horror Story with Video Clips
 
 ```bash
-clawvid generate --template horror --source text --text "The door to the basement was never supposed to open on its own. But every night at 3am, I hear it creak..."
+clawvid generate --template horror --source text --with-video-clips --text "The door to the basement was never supposed to open on its own..."
 ```
+
+Uses Kling 3.0 to animate images into short video clips for smoother motion.
 
 ### Motivational Quote Video
 
 ```bash
-clawvid generate --template motivation --source text --text "The only way to do great work is to love what you do. - Steve Jobs"
+clawvid generate --template motivation --source text --voice warm --text "The only way to do great work is to love what you do. - Steve Jobs"
 ```
 
-Creates a clean video with the quote over stock footage.
+Creates a clean video with the quote over AI-generated visuals.
 
 ### Quiz Video
 
@@ -101,9 +116,10 @@ Generates script, images, audio but only renders 3 preview frames. Use this to v
 ### horror
 - **Style:** Dark, creepy, unsettling
 - **Effects:** Vignette, film grain, flicker, VHS distortion
-- **Audio:** Ambient horror, creepy TTS voice
-- **Motion:** Slow Ken Burns on images
+- **Audio:** Ambient horror, creepy TTS voice (F5-TTS)
+- **Motion:** Slow Ken Burns or Kling video clips
 - **Text:** Typewriter reveal
+- **Image model:** Flux 2 with dark aesthetic prompts
 
 ### motivation
 - **Style:** Clean, uplifting, professional
@@ -111,6 +127,7 @@ Generates script, images, audio but only renders 3 preview frames. Use this to v
 - **Audio:** Inspiring background music, warm TTS voice
 - **Motion:** Smooth Ken Burns
 - **Text:** Bold centered typography
+- **Image model:** Grok Imagine for aesthetic shots
 
 ### quiz
 - **Style:** Engaging, game-show feel
@@ -123,18 +140,20 @@ Generates script, images, audio but only renders 3 preview frames. Use this to v
 - **Style:** Reddit post overlay on satisfying background
 - **Effects:** Post card animation
 - **Audio:** TTS reading the post
-- **Motion:** Static or looping background
+- **Motion:** Static or looping AI-generated background
 - **Text:** Reddit-style formatting
 
 ## Workflow
 
-1. **Content**: Fetch or receive text content
-2. **Script**: GPT breaks content into scenes with image prompts
-3. **Images**: Replicate Flux generates images for each scene
-4. **Audio**: ElevenLabs generates narration
-5. **Preview**: (Optional) Render key frames for verification
-6. **Render**: Remotion composites final video
-7. **Output**: MP4 file ready for upload
+```
+1. Content → Reddit API / RSS / Direct text
+2. Script  → OpenAI GPT-4 (scene breakdown + image prompts)
+3. Images  → fal.ai Flux 2 (one per scene)
+4. Video   → fal.ai Kling 3.0 (optional, image→video)
+5. Audio   → fal.ai F5-TTS (narration)
+6. Render  → Remotion (composition + effects)
+7. Output  → MP4 (1080x1920, 9:16)
+```
 
 ## Verification
 
@@ -152,10 +171,11 @@ Show these frames to the user. If they approve, render full video. If not, adjus
 Requires API keys in environment or `.clawvid.json`:
 
 ```
+FAL_KEY=...
 OPENAI_API_KEY=sk-...
-ELEVENLABS_API_KEY=...
-REPLICATE_API_TOKEN=...
 ```
+
+That's it. Two API keys for the entire pipeline.
 
 ## Output
 
@@ -167,12 +187,14 @@ REPLICATE_API_TOKEN=...
 ## Error Handling
 
 - If image generation fails, retry with simplified prompt
-- If TTS fails, fall back to OpenAI TTS
+- If TTS fails, retry with shorter text chunks
+- If Kling video fails, fall back to Ken Burns on static images
 - If render fails, check Remotion logs in `./output/render.log`
 
 ## Tips
 
 - Horror works best with 3-5 scenes, each 10-15 seconds
+- Use `--with-video-clips` for premium quality (costs more, slower)
 - Motivation works best with single powerful quote
 - Quiz needs clear question, 4 options, and answer
-- Always preview before full render to save time
+- Always preview before full render to save time and credits
