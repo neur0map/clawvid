@@ -1,0 +1,41 @@
+{
+  "name": "shortgen",
+  "version": "0.1.0",
+  "description": "AI-powered short-form video generation skill for OpenClaw",
+  "main": "dist/index.js",
+  "bin": {
+    "shortgen": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "studio": "cd remotion && npm run studio",
+    "test": "vitest"
+  },
+  "keywords": [
+    "openclaw",
+    "video",
+    "shorts",
+    "tiktok",
+    "youtube",
+    "remotion",
+    "ai"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^12.0.0",
+    "openai": "^4.0.0",
+    "replicate": "^0.25.0",
+    "elevenlabs": "^0.1.0",
+    "zod": "^3.22.0",
+    "dotenv": "^16.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0",
+    "tsx": "^4.0.0",
+    "vitest": "^1.0.0"
+  }
+}

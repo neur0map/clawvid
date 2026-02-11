@@ -1,0 +1,10 @@
+node_modules/
+dist/
+output/
+.env
+*.mp4
+*.mp3
+*.wav
+preview/
+.DS_Store
+*.log
