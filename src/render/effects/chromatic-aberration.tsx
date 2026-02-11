@@ -1,19 +1,39 @@
-import { AbsoluteFill, useCurrentFrame } from 'remotion';
+import { AbsoluteFill } from 'remotion';
 
 export interface ChromaticAberrationProps {
   offset?: number;
 }
 
 export const ChromaticAberration: React.FC<ChromaticAberrationProps> = ({ offset = 3 }) => {
-  // TODO: Implement chromatic aberration
-  // - Duplicate layer with red/blue channel shifts
-  // - Apply CSS filter offsets
-  // - Best used on climax frames
   return (
-    <AbsoluteFill
-      style={{
-        pointerEvents: 'none',
-      }}
-    />
+    <AbsoluteFill style={{ pointerEvents: 'none' }}>
+      {/* Red channel — shifted left */}
+      <AbsoluteFill
+        style={{
+          backgroundColor: 'red',
+          mixBlendMode: 'multiply',
+          opacity: 0.08,
+          transform: `translateX(-${offset}px)`,
+        }}
+      />
+      {/* Blue channel — shifted right */}
+      <AbsoluteFill
+        style={{
+          backgroundColor: 'blue',
+          mixBlendMode: 'multiply',
+          opacity: 0.08,
+          transform: `translateX(${offset}px)`,
+        }}
+      />
+      {/* Cyan fringe at edges */}
+      <AbsoluteFill
+        style={{
+          backgroundColor: 'cyan',
+          mixBlendMode: 'multiply',
+          opacity: 0.04,
+          transform: `translateY(${offset * 0.5}px)`,
+        }}
+      />
+    </AbsoluteFill>
   );
 };

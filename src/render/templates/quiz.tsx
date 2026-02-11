@@ -1,19 +1,11 @@
-import { AbsoluteFill } from 'remotion';
-import type { SceneProps } from '../compositions/types.js';
+import type { TemplateStyle } from '../compositions/types.js';
 
-export interface QuizSceneProps {
-  scene: SceneProps;
-}
-
-export const QuizScene: React.FC<QuizSceneProps> = ({ scene }) => {
-  // TODO: Quiz template style
-  // - Bright, vibrant colors
-  // - Game-show style animations
-  // - Timer countdown overlays
-  // - Reveal animations for answers
-  return (
-    <AbsoluteFill style={{ backgroundColor: '#0a0a2e' }}>
-      {/* Quiz-styled scene */}
-    </AbsoluteFill>
-  );
+export const quizTemplate: TemplateStyle = {
+  name: 'quiz',
+  // Bright, vibrant, slightly boosted colors
+  colorFilter: 'saturate(1.25) brightness(1.08) contrast(1.1)',
+  // No dark overlay — keep it bright
+  overlayColor: undefined,
+  overlayOpacity: 0,
+  defaultEffects: [],
 };

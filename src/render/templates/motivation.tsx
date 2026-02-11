@@ -1,19 +1,11 @@
-import { AbsoluteFill } from 'remotion';
-import type { SceneProps } from '../compositions/types.js';
+import type { TemplateStyle } from '../compositions/types.js';
 
-export interface MotivationSceneProps {
-  scene: SceneProps;
-}
-
-export const MotivationScene: React.FC<MotivationSceneProps> = ({ scene }) => {
-  // TODO: Motivation template style
-  // - Warm, golden hour color grading
-  // - Subtle lens flare effects
-  // - Smooth fade transitions
-  // - Uplifting, bright composition
-  return (
-    <AbsoluteFill style={{ backgroundColor: '#1a1205' }}>
-      {/* Motivation-styled scene */}
-    </AbsoluteFill>
-  );
+export const motivationTemplate: TemplateStyle = {
+  name: 'motivation',
+  // Warm golden hour grading
+  colorFilter: 'saturate(1.1) brightness(1.05) sepia(0.12) contrast(1.05)',
+  // Warm amber tint
+  overlayColor: '#3d2a00',
+  overlayOpacity: 0.08,
+  defaultEffects: [],
 };

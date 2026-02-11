@@ -1,20 +1,12 @@
-import { AbsoluteFill } from 'remotion';
-import type { SceneProps } from '../compositions/types.js';
+import type { TemplateStyle } from '../compositions/types.js';
 
-export interface HorrorSceneProps {
-  scene: SceneProps;
-}
-
-export const HorrorScene: React.FC<HorrorSceneProps> = ({ scene }) => {
-  // TODO: Horror template style
-  // - Dark, desaturated color grading
-  // - Vignette overlay
-  // - Film grain texture
-  // - Flicker effect on transitions
-  // - Chromatic aberration on climax scenes
-  return (
-    <AbsoluteFill style={{ backgroundColor: '#0a0a0a' }}>
-      {/* Horror-styled scene */}
-    </AbsoluteFill>
-  );
+export const horrorTemplate: TemplateStyle = {
+  name: 'horror',
+  // Desaturate + darken via CSS filter
+  colorFilter: 'saturate(0.6) brightness(0.85) contrast(1.15)',
+  // Cold blue-black tint overlay
+  overlayColor: '#0a0a1a',
+  overlayOpacity: 0.15,
+  // Every scene gets these by default (workflow can override per-scene)
+  defaultEffects: ['vignette', 'grain'],
 };
