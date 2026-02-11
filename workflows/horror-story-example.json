@@ -2,7 +2,7 @@
   "name": "Haunted Library Horror Video",
   "template": "horror",
   "duration_target_seconds": 60,
-  
+
   "scenes": [
     {
       "id": "scene_1",
@@ -10,188 +10,224 @@
       "type": "video",
       "timing": { "start": 0, "duration": 5 },
       "narration": null,
-      
+
       "image_generation": {
-        "model": "fal-ai/flux-pro/v1.1",
+        "model": "fal-ai/kling-image/v3/text-to-image",
         "input": {
           "prompt": "Ancient gothic library exterior at night, full moon behind clouds, dead trees, iron gate, horror atmosphere, cinematic lighting, 8k, photorealistic",
           "negative_prompt": "bright, daytime, people, modern, cartoon",
-          "image_size": "portrait_16_9",
-          "guidance_scale": 7.5
+          "aspect_ratio": "9:16",
+          "resolution": "2K"
         }
       },
-      
+
       "video_generation": {
-        "model": "fal-ai/kling-video/v1.5/pro/image-to-video",
+        "model": "fal-ai/kandinsky5-pro/image-to-video",
         "input": {
           "prompt": "Slow cinematic push toward library entrance, clouds moving past moon, leaves blowing, ominous atmosphere",
-          "duration": "5",
-          "aspect_ratio": "9:16"
+          "duration": "5s",
+          "resolution": "1024P"
         }
       },
-      
+
+      "sound_effects": [
+        {
+          "prompt": "Howling wind through dead trees, eerie atmosphere",
+          "timing_offset": 0,
+          "duration": 5,
+          "volume": 0.6
+        }
+      ],
+
       "effects": ["vignette", "grain"]
     },
-    
+
     {
       "id": "scene_2",
       "description": "Interior - Empty reading room",
       "type": "image",
       "timing": { "start": 5, "duration": 12 },
       "narration": "The Blackwood Library had been abandoned for thirty years. They say the last librarian never left.",
-      
+
       "image_generation": {
-        "model": "fal-ai/flux/dev",
+        "model": "fal-ai/kling-image/v3/text-to-image",
         "input": {
           "prompt": "Abandoned library interior, dust particles in moonlight beams, overturned chairs, scattered books, cobwebs, single flickering lamp, horror atmosphere, extremely dark, cinematic",
           "negative_prompt": "bright, clean, modern, people",
-          "image_size": "portrait_16_9",
-          "guidance_scale": 7.5
+          "aspect_ratio": "9:16"
         }
       },
-      
+
       "video_generation": null,
-      
+
       "effects": ["kenburns_slow_zoom", "flicker", "grain"]
     },
-    
+
     {
       "id": "scene_3",
       "description": "Close up - Old book with strange symbols",
       "type": "image",
       "timing": { "start": 17, "duration": 10 },
       "narration": "I found her journal hidden behind the forbidden section. The pages were filled with symbols I couldn't understand.",
-      
+
       "image_generation": {
-        "model": "fal-ai/flux/dev",
+        "model": "fal-ai/kling-image/v3/text-to-image",
         "input": {
           "prompt": "Ancient leather-bound book open on dusty table, strange occult symbols on yellowed pages, candlelight, dark atmosphere, horror, macro shot, detailed",
           "negative_prompt": "bright, modern book, clean",
-          "image_size": "portrait_16_9",
-          "guidance_scale": 8
+          "aspect_ratio": "9:16"
         }
       },
-      
+
+      "sound_effects": [
+        {
+          "prompt": "Old book pages turning slowly, paper rustling",
+          "timing_offset": 2,
+          "duration": 3,
+          "volume": 0.5
+        }
+      ],
+
       "effects": ["kenburns_slow_pan", "grain", "vignette"]
     },
-    
+
     {
       "id": "scene_4",
       "description": "Climax - Shadow figure between bookshelves",
       "type": "video",
       "timing": { "start": 27, "duration": 8 },
       "narration": "That's when I saw her. Between the shelves. Watching.",
-      
+
       "image_generation": {
-        "model": "fal-ai/flux-pro/v1.1",
+        "model": "fal-ai/kling-image/v3/text-to-image",
         "input": {
           "prompt": "Dark library aisle, menacing shadow figure silhouette between tall bookshelves, backlit, only outline visible, horror movie scene, extremely dark, terrifying",
           "negative_prompt": "bright, friendly, clear face, cartoon",
-          "image_size": "portrait_16_9",
-          "guidance_scale": 8
+          "aspect_ratio": "9:16",
+          "resolution": "2K"
         }
       },
-      
+
       "video_generation": {
-        "model": "fal-ai/kling-video/v1.5/pro/image-to-video",
+        "model": "fal-ai/kandinsky5-pro/image-to-video",
         "input": {
           "prompt": "Shadow figure slowly turns head toward camera, subtle creeping movement, horror atmosphere, lights flicker",
-          "duration": "5",
-          "aspect_ratio": "9:16"
+          "duration": "5s",
+          "resolution": "1024P"
         }
       },
-      
+
+      "sound_effects": [
+        {
+          "prompt": "Heavy door slam echoing in empty library, horror impact",
+          "timing_offset": 3,
+          "duration": 2,
+          "volume": 0.9
+        }
+      ],
+
       "effects": ["vignette", "glitch_subtle", "grain"]
     },
-    
+
     {
       "id": "scene_5",
       "description": "Discovery - Writing on the wall",
       "type": "image",
       "timing": { "start": 35, "duration": 12 },
       "narration": "On the wall behind her desk, written in something dark: 'The books remember. The books never forget.'",
-      
+
       "image_generation": {
-        "model": "fal-ai/flux/dev",
+        "model": "fal-ai/kling-image/v3/text-to-image",
         "input": {
           "prompt": "Dark writing on old library wall, ominous message in dried blood, peeling wallpaper, horror scene, single light source, extremely unsettling",
           "negative_prompt": "bright, clean wall, graffiti style",
-          "image_size": "portrait_16_9",
-          "guidance_scale": 7.5
+          "aspect_ratio": "9:16"
         }
       },
-      
+
       "effects": ["kenburns_slow_zoom", "flicker", "vhs_subtle"]
     },
-    
+
     {
       "id": "scene_6",
       "description": "Closing - Library doors slam shut",
       "type": "video",
       "timing": { "start": 47, "duration": 8 },
       "narration": "I ran for the exit. But the Blackwood Library wasn't done with me yet.",
-      
+
       "image_generation": {
-        "model": "fal-ai/flux-pro/v1.1",
+        "model": "fal-ai/kling-image/v3/text-to-image",
         "input": {
           "prompt": "Heavy wooden library doors from inside, sliver of moonlight, about to close, escape blocked, horror climax, desperate atmosphere",
           "negative_prompt": "bright, open doors, outside visible",
-          "image_size": "portrait_16_9",
-          "guidance_scale": 8
+          "aspect_ratio": "9:16",
+          "resolution": "2K"
         }
       },
-      
+
       "video_generation": {
-        "model": "fal-ai/kling-video/v1.5/pro/image-to-video",
+        "model": "fal-ai/kandinsky5-pro/image-to-video",
         "input": {
           "prompt": "Heavy doors slowly swing closed, moonlight disappearing, darkness consuming frame, final slam",
-          "duration": "5",
-          "aspect_ratio": "9:16"
+          "duration": "5s",
+          "resolution": "1024P"
         }
       },
-      
+
+      "sound_effects": [
+        {
+          "prompt": "Massive wooden doors slamming shut, deep reverberating boom",
+          "timing_offset": 5,
+          "duration": 3,
+          "volume": 1.0
+        }
+      ],
+
       "effects": ["vignette", "grain", "chromatic_aberration"]
     },
-    
+
     {
       "id": "scene_7",
       "description": "End card - Black with text",
       "type": "image",
       "timing": { "start": 55, "duration": 5 },
       "narration": null,
-      
+
       "image_generation": {
-        "model": "fal-ai/flux/dev",
+        "model": "fal-ai/kling-image/v3/text-to-image",
         "input": {
           "prompt": "Pure black background with subtle fog, horror movie end screen, dark atmospheric",
-          "image_size": "portrait_16_9"
+          "aspect_ratio": "9:16"
         }
       },
-      
+
       "text_overlay": {
         "text": "To be continued...",
         "style": "horror_typewriter",
         "position": "center"
       },
-      
+
       "effects": ["grain"]
     }
   ],
-  
+
   "audio": {
     "tts": {
-      "model": "fal-ai/f5-tts",
-      "voice_reference": "creepy_whisper_male.wav",
+      "model": "fal-ai/qwen-3-tts/voice-design/1.7b",
+      "voice_prompt": "A deep, slow, creepy male whispering voice with eerie undertones, suitable for horror narration",
+      "language": "en",
       "speed": 0.9
     },
     "music": {
-      "file": "ambient_horror_drone.mp3",
+      "generate": true,
+      "prompt": "Dark ambient horror drone, low rumbling bass, unsettling atmospheric tension, slow evolving textures, no melody, cinematic dread",
+      "duration": 60,
       "volume": 0.25,
       "fade_in": 2,
       "fade_out": 3
     }
   },
-  
+
   "subtitles": {
     "enabled": true,
     "style": {
@@ -203,7 +239,7 @@
       "animation": "word_by_word"
     }
   },
-  
+
   "output": {
     "filename": "haunted_library.mp4",
     "resolution": "1080x1920",

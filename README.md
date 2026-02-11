@@ -14,18 +14,21 @@ User: "Make a horror video about a haunted library"
       - Asks clarifying questions
       - Plans scenes with timing
       - Writes image/video prompts
+      - Plans sound effects + music
       - Creates workflow.json
       - Runs: clawvid generate --workflow workflow.json
                     |
                     v
-    ClawVid Pipeline
-      1. Generate images via fal.ai (flux/dev, flux-pro)
-      2. Generate video clips via fal.ai (kling-video, minimax)
-      3. Generate TTS narration via fal.ai (f5-tts)
-      4. Process audio (silence trim, normalize, mix music)
-      5. Generate subtitles (Whisper transcription -> SRT/VTT)
-      6. Render compositions (Remotion: 16:9 + 9:16)
-      7. Post-process (FFmpeg: encode, thumbnails)
+    ClawVid Pipeline (5 phases)
+      Phase 1. Generate images via fal.ai (kling-image/v3)
+      Phase 2. Generate video clips via fal.ai (kandinsky5-pro)
+      Phase 3. Generate TTS narration via fal.ai (qwen-3-tts)
+      Phase 4. Generate sound effects via fal.ai (beatoven)
+      Phase 5. Generate background music via fal.ai (beatoven)
+      + Process audio (trim, normalize, mix with adelay sync)
+      + Generate subtitles (Whisper transcription -> SRT/VTT)
+      + Render compositions (Remotion: 16:9 + 9:16)
+      + Post-process (FFmpeg: encode, thumbnails)
                     |
                     v
     output/2026-02-11-haunted-library/
@@ -82,7 +85,10 @@ Central settings file checked into git. Controls:
 
 | Section | What it configures |
 |---------|-------------------|
-| `fal` | Model IDs for image, video, and audio generation |
+| `fal.image` | Image generation model (kling-image/v3) |
+| `fal.video` | Video generation model (kandinsky5-pro) |
+| `fal.audio` | TTS (qwen-3-tts), transcription (whisper), sound effects (beatoven), music (beatoven) |
+| `fal.analysis` | Image/video analysis models for quality verification |
 | `defaults` | Aspect ratio, resolution, FPS, duration, max video clips |
 | `templates` | 4 built-in templates (horror, motivation, quiz, reddit) |
 | `quality` | 3 presets (max_quality, balanced, budget) |
@@ -121,7 +127,7 @@ clawvid setup --reset                       # Reset to defaults
 
 ## Workflow JSON
 
-The agent generates a workflow JSON file that describes every scene, prompt, model, timing, and effect. See [SKILL.md](SKILL.md) for the complete schema reference.
+The agent generates a workflow JSON file that describes every scene, prompt, model, timing, sound effects, and music. See [SKILL.md](SKILL.md) for the complete schema reference.
 
 Minimal example:
 
@@ -137,17 +143,35 @@ Minimal example:
       "timing": { "start": 0, "duration": 15 },
       "narration": "The door opened by itself.",
       "image_generation": {
-        "model": "fal-ai/flux/dev",
+        "model": "fal-ai/kling-image/v3/text-to-image",
         "input": {
           "prompt": "Dark hallway, door slightly ajar, light from behind, horror atmosphere",
-          "image_size": "portrait_16_9"
+          "aspect_ratio": "9:16"
         }
       },
+      "sound_effects": [
+        {
+          "prompt": "Creaky door opening slowly",
+          "timing_offset": 1,
+          "duration": 3,
+          "volume": 0.7
+        }
+      ],
       "effects": ["vignette", "kenburns_slow_zoom", "grain"]
     }
   ],
   "audio": {
-    "tts": { "model": "fal-ai/f5-tts", "speed": 0.9 }
+    "tts": {
+      "model": "fal-ai/qwen-3-tts/voice-design/1.7b",
+      "voice_prompt": "A deep male voice with creepy undertones",
+      "speed": 0.9
+    },
+    "music": {
+      "generate": true,
+      "prompt": "Dark ambient drone, horror atmosphere",
+      "duration": 30,
+      "volume": 0.2
+    }
   }
 }
 ```
@@ -164,6 +188,7 @@ clawvid/
   .env                           # FAL_KEY (gitignored)
   workflows/                     # Example workflow JSONs
     horror-story-example.json
+    test-minimal.json            # Minimal 2-scene test workflow
 
   src/
     index.ts                     # CLI entry point
@@ -177,18 +202,21 @@ clawvid/
 
     core/                        # Pipeline orchestration
       pipeline.ts                #   Main pipeline (generate/render/preview/studio/setup)
-      workflow-runner.ts          #   Execute workflow steps against fal.ai
+      workflow-runner.ts          #   Execute workflow steps (5 phases)
       scene-planner.ts           #   Validate scene plans
       asset-manager.ts           #   Track assets per run
 
     fal/                         # fal.ai API layer
       client.ts                  #   Shared client (auth, queue, retry)
-      image.ts                   #   Image generation
-      video.ts                   #   Image-to-video generation
-      audio.ts                   #   TTS and transcription
+      image.ts                   #   Image generation (kling-image/v3)
+      video.ts                   #   Image-to-video generation (kandinsky5-pro)
+      audio.ts                   #   TTS (qwen-3-tts) and transcription (whisper)
+      sound.ts                   #   Sound effect generation (beatoven)
+      music.ts                   #   Music generation (beatoven)
+      analysis.ts                #   Image/video analysis (got-ocr, video-understanding)
       cost.ts                    #   Cost tracking per run
       queue.ts                   #   Concurrency control (p-queue)
-      types.ts                   #   Shared types
+      types.ts                   #   Shared response types
 
     render/                      # Remotion video composition
       root.tsx                   #   Remotion entry point
@@ -221,7 +249,7 @@ clawvid/
         transition.tsx           #   Scene transitions
 
     audio/                       # Audio processing
-      mixer.ts                   #   Concatenate narration, mix with music
+      mixer.ts                   #   Multi-track mix: narration + music + positioned SFX (adelay)
       normalize.ts               #   LUFS normalization (-14 target)
       silence.ts                 #   Trim silence from TTS output
 
@@ -253,7 +281,7 @@ clawvid/
 
     schemas/                     # Zod validation schemas
       workflow.ts                #   Workflow JSON schema
-      scene.ts                   #   Scene schema
+      scene.ts                   #   Scene schema (+ sound effects)
       config.ts                  #   config.json schema
       preferences.ts             #   preferences.json schema
 
@@ -282,9 +310,15 @@ clawvid/
 | Layer | Technology |
 |-------|-----------|
 | CLI | Commander.js |
-| AI Generation | fal.ai (flux, kling-video, f5-tts, whisper) |
+| AI Image | fal.ai (kling-image/v3) |
+| AI Video | fal.ai (kandinsky5-pro) |
+| AI TTS | fal.ai (qwen-3-tts) |
+| AI Sound FX | fal.ai (beatoven/sound-effect-generation) |
+| AI Music | fal.ai (beatoven/music-generation) |
+| AI Transcription | fal.ai (whisper) |
 | Video Composition | Remotion (React-based) |
 | Post-Production | FFmpeg via fluent-ffmpeg |
+| Audio Sync | FFmpeg adelay filter for SFX positioning |
 | Image Processing | Sharp |
 | Schema Validation | Zod |
 | Concurrency | p-queue + p-retry |

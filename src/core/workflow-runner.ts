@@ -1,4 +1,3 @@
-import { join } from 'node:path';
 import type { Workflow } from '../schemas/workflow.js';
 import type { Scene } from '../schemas/scene.js';
 import type { AppConfig } from '../config/loader.js';
@@ -6,6 +5,8 @@ import { AssetManager } from './asset-manager.js';
 import { generateImage } from '../fal/image.js';
 import { generateVideo } from '../fal/video.js';
 import { generateSpeech, transcribe } from '../fal/audio.js';
+import { generateSoundEffect } from '../fal/sound.js';
+import { generateMusic } from '../fal/music.js';
 import { CacheStore } from '../cache/store.js';
 import { hashWorkflowStep } from '../cache/hash.js';
 import { CostTracker } from '../fal/cost.js';
@@ -31,11 +32,22 @@ export interface NarrationSegment {
   duration: number;
 }
 
+export interface SoundEffectAsset {
+  sceneId: string;
+  prompt: string;
+  audioPath: string;
+  absoluteTimestamp: number;
+  duration: number;
+  volume: number;
+}
+
 export interface WorkflowResult {
   sceneAssets: SceneAssets[];
   narrationSegments: NarrationSegment[];
   fullNarrationPath?: string;
   transcription?: { text: string; chunks: Array<{ text: string; timestamp: [number, number] }> };
+  soundEffects: SoundEffectAsset[];
+  generatedMusicPath?: string;
   costTracker: CostTracker;
 }
 
@@ -80,8 +92,6 @@ export async function executeWorkflow(
   if (narrationSegments.length > 0) {
     fullNarrationPath = assetManager.getAssetPath('narration-full.mp3');
 
-    // Transcribe using the first narration segment's URL for now
-    // Full concatenation happens in audio pipeline
     const firstUrl = narrationSegments[0].audioUrl;
     try {
       const whisperModel = config.fal.audio.transcription;
@@ -97,7 +107,34 @@ export async function executeWorkflow(
     }
   }
 
-  return { sceneAssets, narrationSegments, fullNarrationPath, transcription, costTracker };
+  // Phase 4: Generate sound effects per scene
+  const soundEffects = await generateSceneSoundEffects(
+    workflow,
+    config,
+    assetManager,
+    costTracker,
+  );
+
+  // Phase 5: Generate background music
+  let generatedMusicPath: string | undefined;
+  if (workflow.audio.music?.generate && workflow.audio.music.prompt) {
+    generatedMusicPath = await generateBackgroundMusic(
+      workflow,
+      config,
+      assetManager,
+      costTracker,
+    );
+  }
+
+  return {
+    sceneAssets,
+    narrationSegments,
+    fullNarrationPath,
+    transcription,
+    soundEffects,
+    generatedMusicPath,
+    costTracker,
+  };
 }
 
 async function generateSceneAssets(
@@ -119,7 +156,6 @@ async function generateSceneAssets(
 
     let imageUrl: string;
 
-    // Check cache for image
     if (!skipCache && cache.has(`${scene.id}-image`, imageHash)) {
       const cached = cache.get(`${scene.id}-image`)!;
       imageUrl = cached.outputPath;
@@ -134,7 +170,6 @@ async function generateSceneAssets(
 
     const sceneResult: SceneAssets = { sceneId: scene.id, imagePath, imageUrl };
 
-    // Generate video if scene type is 'video' and video_generation exists
     if (scene.type === 'video' && scene.video_generation) {
       spinner.text = `Scene ${scene.id}: generating video...`;
       const videoFilename = `${scene.id}.mp4`;
@@ -216,15 +251,97 @@ async function generateNarration(
   return segments;
 }
 
+async function generateSceneSoundEffects(
+  workflow: Workflow,
+  config: AppConfig,
+  assetManager: AssetManager,
+  costTracker: CostTracker,
+): Promise<SoundEffectAsset[]> {
+  const results: SoundEffectAsset[] = [];
+  const scenesWithSfx = workflow.scenes.filter(
+    (s) => s.sound_effects && s.sound_effects.length > 0,
+  );
+
+  if (scenesWithSfx.length === 0) {
+    return results;
+  }
+
+  const sfxModel = config.fal.audio.sound_effects ?? 'beatoven/sound-effect-generation';
+  const spinner = createSpinner('Generating sound effects...');
+  spinner.start();
+
+  for (const scene of scenesWithSfx) {
+    for (let i = 0; i < scene.sound_effects!.length; i++) {
+      const sfx = scene.sound_effects![i];
+      const sfxFilename = `sfx-${scene.id}-${i}.wav`;
+      const sfxPath = assetManager.getAssetPath(sfxFilename);
+
+      spinner.text = `SFX: ${sfx.prompt.slice(0, 40)}...`;
+
+      const result = await generateSoundEffect(
+        sfxModel,
+        { prompt: sfx.prompt, negative_prompt: sfx.negative_prompt, duration: sfx.duration },
+        sfxPath,
+      );
+
+      const absoluteTimestamp = scene.timing.start + sfx.timing_offset;
+
+      results.push({
+        sceneId: scene.id,
+        prompt: sfx.prompt,
+        audioPath: sfxPath,
+        absoluteTimestamp,
+        duration: result.duration,
+        volume: sfx.volume ?? 0.8,
+      });
+
+      costTracker.record(sfxModel, 0.02);
+    }
+  }
+
+  spinner.succeed(`Sound effects generated: ${results.length}`);
+  return results;
+}
+
+async function generateBackgroundMusic(
+  workflow: Workflow,
+  config: AppConfig,
+  assetManager: AssetManager,
+  costTracker: CostTracker,
+): Promise<string | undefined> {
+  const musicConfig = workflow.audio.music;
+  if (!musicConfig?.generate || !musicConfig.prompt) return undefined;
+
+  const musicModel = config.fal.audio.music_generation ?? 'beatoven/music-generation';
+  const duration = musicConfig.duration ?? workflow.duration_target_seconds;
+
+  const spinner = createSpinner('Generating background music...');
+  spinner.start();
+
+  const musicPath = assetManager.getAssetPath('music-generated.wav');
+
+  try {
+    await generateMusic(
+      musicModel,
+      { prompt: musicConfig.prompt, duration },
+      musicPath,
+    );
+    costTracker.record(musicModel, 0.05);
+    spinner.succeed('Background music generated');
+    return musicPath;
+  } catch (err) {
+    spinner.fail('Music generation failed');
+    log.warn('Music generation failed', { error: String(err) });
+    return undefined;
+  }
+}
+
 function estimateImageCost(model: string): number {
-  if (model.includes('pro')) return 0.05;
-  if (model.includes('grok')) return 0.03;
-  return 0.02;
+  if (model.includes('kling')) return 0.04;
+  return 0.03;
 }
 
 function estimateVideoCost(model: string): number {
-  if (model.includes('kling')) return 0.10;
-  if (model.includes('minimax')) return 0.06;
-  if (model.includes('luma')) return 0.08;
+  if (model.includes('kandinsky')) return 0.08;
   return 0.08;
 }

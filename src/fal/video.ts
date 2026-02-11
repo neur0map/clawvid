@@ -1,12 +1,9 @@
 import { falRequest, downloadFile } from './client.js';
 import type { VideoGeneration } from '../schemas/scene.js';
+import type { FalKandinskyVideoOutput } from './types.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('fal-video');
-
-interface FalVideoOutput {
-  video: { url: string };
-}
 
 export async function generateVideo(
   spec: VideoGeneration,
@@ -18,12 +15,23 @@ export async function generateVideo(
     duration: spec.input.duration,
   });
 
-  const input = {
-    ...spec.input,
+  const input: Record<string, unknown> = {
+    prompt: spec.input.prompt,
     image_url: imageUrl,
+    duration: spec.input.duration ?? '5s',
   };
 
-  const result = await falRequest<FalVideoOutput>(spec.model, input);
+  if (spec.input.resolution) {
+    input.resolution = spec.input.resolution;
+  }
+  if (spec.input.num_inference_steps !== undefined) {
+    input.num_inference_steps = spec.input.num_inference_steps;
+  }
+  if (spec.input.acceleration !== undefined) {
+    input.acceleration = spec.input.acceleration;
+  }
+
+  const result = await falRequest<FalKandinskyVideoOutput>(spec.model, input);
 
   if (!result.video?.url) {
     throw new Error('No video returned from fal.ai');

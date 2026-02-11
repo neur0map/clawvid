@@ -1,0 +1,88 @@
+{
+  "name": "Minimal Test - 2 Scenes",
+  "template": "horror",
+  "duration_target_seconds": 10,
+
+  "scenes": [
+    {
+      "id": "scene_1",
+      "description": "Dark hallway with flickering light",
+      "type": "image",
+      "timing": { "start": 0, "duration": 5 },
+      "narration": "The door opened by itself.",
+
+      "image_generation": {
+        "model": "fal-ai/kling-image/v3/text-to-image",
+        "input": {
+          "prompt": "Dark hallway with a single flickering light, door slightly ajar, horror atmosphere, cinematic",
+          "negative_prompt": "bright, cheerful, cartoon",
+          "aspect_ratio": "9:16"
+        }
+      },
+
+      "sound_effects": [
+        {
+          "prompt": "Creaky door slowly opening, wooden hinge squeaking",
+          "timing_offset": 1,
+          "duration": 3,
+          "volume": 0.7
+        }
+      ],
+
+      "effects": ["vignette", "grain"]
+    },
+    {
+      "id": "scene_2",
+      "description": "Shadow at end of hallway",
+      "type": "image",
+      "timing": { "start": 5, "duration": 5 },
+      "narration": "Something was waiting inside.",
+
+      "image_generation": {
+        "model": "fal-ai/kling-image/v3/text-to-image",
+        "input": {
+          "prompt": "Dark shadow figure at end of long hallway, backlit, horror, extremely dark, menacing",
+          "negative_prompt": "bright, friendly, cartoon",
+          "aspect_ratio": "9:16"
+        }
+      },
+
+      "effects": ["kenburns_slow_zoom", "grain", "vignette"]
+    }
+  ],
+
+  "audio": {
+    "tts": {
+      "model": "fal-ai/qwen-3-tts/voice-design/1.7b",
+      "voice_prompt": "A deep, slow male voice with creepy undertones for horror narration",
+      "language": "en",
+      "speed": 0.9
+    },
+    "music": {
+      "generate": true,
+      "prompt": "Dark ambient drone, low rumbling, unsettling horror atmosphere",
+      "duration": 10,
+      "volume": 0.2,
+      "fade_in": 1,
+      "fade_out": 1
+    }
+  },
+
+  "subtitles": {
+    "enabled": true,
+    "style": {
+      "font": "Impact",
+      "color": "#ffffff",
+      "stroke_color": "#000000",
+      "stroke_width": 2,
+      "position": "bottom"
+    }
+  },
+
+  "output": {
+    "filename": "test_minimal.mp4",
+    "fps": 30,
+    "format": "mp4",
+    "platforms": ["tiktok"]
+  }
+}

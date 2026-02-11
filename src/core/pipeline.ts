@@ -19,6 +19,7 @@ import { formatCostSummary } from '../utils/cost.js';
 import { writeJsonFile } from '../utils/files.js';
 import { createLogger } from '../utils/logger.js';
 import { createSpinner } from '../utils/progress.js';
+import type { PositionedSoundEffect } from '../audio/mixer.js';
 
 const log = createLogger('pipeline');
 
@@ -99,6 +100,12 @@ export async function runGenerate(options: GenerateOptions): Promise<void> {
   console.log(`  Output: ${assetManager.outputDir}`);
   console.log(`  Scenes: ${result.sceneAssets.length}`);
   console.log(`  Platforms: ${targetPlatforms.join(', ')}`);
+  if (result.soundEffects.length > 0) {
+    console.log(`  Sound Effects: ${result.soundEffects.length}`);
+  }
+  if (result.generatedMusicPath) {
+    console.log(`  Music: generated`);
+  }
   console.log('');
   console.log(formatCostSummary(costSummary.total, costSummary.breakdown));
 }
@@ -143,24 +150,45 @@ async function processAudio(
     );
   }
 
-  // Mix with background music if specified
-  if (workflow.audio.music && result.fullNarrationPath) {
-    const musicConfig = workflow.audio.music;
+  // Determine music source: generated music takes priority, then file/url
+  const musicConfig = workflow.audio.music;
+  let musicSource: string | undefined;
+  if (result.generatedMusicPath) {
+    musicSource = result.generatedMusicPath;
+  } else if (musicConfig?.file) {
+    musicSource = musicConfig.file;
+  } else if (musicConfig?.url) {
+    musicSource = musicConfig.url;
+  }
+
+  // Convert sound effects to PositionedSoundEffect (seconds -> ms)
+  const positionedSfx: PositionedSoundEffect[] = result.soundEffects.map((sfx) => ({
+    path: sfx.audioPath,
+    timestampMs: sfx.absoluteTimestamp * 1000,
+    volume: sfx.volume,
+  }));
+
+  // Mix narration + music + sound effects
+  if ((musicSource || positionedSfx.length > 0) && result.fullNarrationPath) {
     const mixedPath = assetManager.getAssetPath('audio-mixed.mp3');
     try {
       const { mixAudio } = await import('../audio/mixer.js');
       await mixAudio(
         {
           narration: result.fullNarrationPath,
-          music: musicConfig.file ?? musicConfig.url,
+          music: musicSource,
+          soundEffects: positionedSfx,
           narrationVolume: 1.0,
-          musicVolume: musicConfig.volume ?? 0.25,
+          musicVolume: musicConfig?.volume ?? 0.25,
+          musicFadeIn: musicConfig?.fade_in,
+          musicFadeOut: musicConfig?.fade_out,
+          totalDuration: workflow.duration_target_seconds,
         },
         mixedPath,
       );
       result.fullNarrationPath = mixedPath;
-    } catch {
-      log.warn('Music mixing failed, using narration only');
+    } catch (err) {
+      log.warn('Audio mixing failed, using narration only', { error: String(err) });
     }
   }
 
@@ -181,14 +209,12 @@ async function generateSubtitles(
   let words: TimedWord[];
 
   if (result.transcription?.chunks && result.transcription.chunks.length > 0) {
-    // Use Whisper word timings
     words = result.transcription.chunks.map((chunk) => ({
       word: chunk.text.trim(),
       start: chunk.timestamp[0],
       end: chunk.timestamp[1],
     }));
   } else {
-    // Fallback: distribute words evenly across scene timings
     words = [];
     for (const segment of result.narrationSegments) {
       const segmentWords = segment.text.split(/\s+/);
@@ -205,7 +231,6 @@ async function generateSubtitles(
 
   const subtitleSegments = buildSubtitleSegments(words, 6);
 
-  // Write SRT and VTT for all platform directories
   const srtPath = assetManager.getAssetPath('subtitles.srt');
   const vttPath = assetManager.getAssetPath('subtitles.vtt');
   await writeSRT(subtitleSegments, srtPath);
@@ -279,7 +304,6 @@ async function postProcess(
     const finalPath = assetManager.getPlatformPath(platform, 'final.mp4');
     const thumbnailPath = assetManager.getPlatformPath(platform, 'thumbnail.jpg');
 
-    // Platform-specific encoding
     try {
       const profile = getEncodingProfile(platform as PlatformId);
       await encode(rawPath, finalPath, profile);
@@ -289,14 +313,12 @@ async function postProcess(
       await copy(rawPath, finalPath);
     }
 
-    // Extract thumbnail
     try {
       await extractThumbnail(finalPath, thumbnailPath, 2);
     } catch {
       log.warn(`Thumbnail extraction failed for ${platform}`);
     }
 
-    // Copy subtitle files
     const { copy, pathExists } = await import('fs-extra');
     const srtSrc = assetManager.getAssetPath('subtitles.srt');
     if (await pathExists(srtSrc)) {
@@ -322,7 +344,6 @@ export async function runRender(options: RenderOptions): Promise<void> {
   const assetManager = new AssetManager(config.output.directory, '');
   Object.defineProperty(assetManager, 'outputDir', { value: runDir });
 
-  // Load workflow from run directory
   const workflow = workflowSchema.parse(await readJson(join(runDir, 'workflow.json')));
 
   const result: WorkflowResult = {
@@ -334,6 +355,7 @@ export async function runRender(options: RenderOptions): Promise<void> {
     })),
     narrationSegments: [],
     fullNarrationPath: join(runDir, 'assets', 'audio-mixed.mp3'),
+    soundEffects: [],
     costTracker: new (await import('../fal/cost.js')).CostTracker(),
   };
 
@@ -393,7 +415,6 @@ export async function runSetup(options: SetupOptions): Promise<void> {
     console.log(chalk.yellow('preferences.json already exists. Use --reset to overwrite.'));
   }
 
-  // Verify FAL_KEY
   if (process.env.FAL_KEY) {
     console.log(chalk.green('FAL_KEY: configured'));
   } else {

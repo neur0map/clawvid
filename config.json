@@ -1,18 +1,24 @@
 {
   "fal": {
     "image": {
-      "default": "fal-ai/flux/dev",
-      "premium": "fal-ai/flux-pro/v1.1",
-      "stylized": "fal-ai/grok-imagine"
+      "default": "fal-ai/kling-image/v3/text-to-image",
+      "premium": "fal-ai/kling-image/v3/text-to-image",
+      "stylized": "fal-ai/kling-image/v3/text-to-image"
     },
     "video": {
-      "default": "fal-ai/kling-video/v1.5/pro/image-to-video",
-      "fast": "fal-ai/minimax-video/image-to-video",
-      "cinematic": "fal-ai/luma-dream-machine"
+      "default": "fal-ai/kandinsky5-pro/image-to-video",
+      "fast": "fal-ai/kandinsky5-pro/image-to-video",
+      "cinematic": "fal-ai/kandinsky5-pro/image-to-video"
     },
     "audio": {
-      "tts": "fal-ai/f5-tts",
-      "transcription": "fal-ai/whisper"
+      "tts": "fal-ai/qwen-3-tts/voice-design/1.7b",
+      "transcription": "fal-ai/whisper",
+      "sound_effects": "beatoven/sound-effect-generation",
+      "music_generation": "beatoven/music-generation"
+    },
+    "analysis": {
+      "image": "fal-ai/got-ocr/v2",
+      "video": "fal-ai/video-understanding"
     }
   },
 
@@ -67,19 +73,19 @@
   "quality": {
     "max_quality": {
       "image_model": "premium",
-      "image_size": "landscape_16_9",
+      "image_size": "9:16",
       "video_clips": 3,
       "inference_steps": 50
     },
     "balanced": {
       "image_model": "default",
-      "image_size": "landscape_16_9",
+      "image_size": "9:16",
       "video_clips": 2,
       "inference_steps": 28
     },
     "budget": {
       "image_model": "default",
-      "image_size": "square",
+      "image_size": "9:16",
       "video_clips": 1,
       "inference_steps": 20
     }

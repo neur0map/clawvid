@@ -60,4 +60,38 @@ describe('Schema: config', () => {
     const result = configSchema.safeParse(invalid);
     expect(result.success).toBe(false);
   });
+
+  it('should validate config with sound_effects and music_generation models', () => {
+    const result = configSchema.safeParse(defaults);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.fal.audio.sound_effects).toBe('beatoven/sound-effect-generation');
+      expect(result.data.fal.audio.music_generation).toBe('beatoven/music-generation');
+    }
+  });
+
+  it('should validate config with analysis models', () => {
+    const result = configSchema.safeParse(defaults);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.fal.analysis?.image).toBe('fal-ai/got-ocr/v2');
+      expect(result.data.fal.analysis?.video).toBe('fal-ai/video-understanding');
+    }
+  });
+
+  it('should accept config without optional audio and analysis fields', () => {
+    const minimal = {
+      ...defaults,
+      fal: {
+        image: defaults.fal.image,
+        video: defaults.fal.video,
+        audio: {
+          tts: defaults.fal.audio.tts,
+          transcription: defaults.fal.audio.transcription,
+        },
+      },
+    };
+    const result = configSchema.safeParse(minimal);
+    expect(result.success).toBe(true);
+  });
 });

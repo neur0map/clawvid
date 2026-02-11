@@ -4,7 +4,12 @@ import { sceneSchema } from './scene.js';
 export const ttsConfigSchema = z.object({
   model: z.string(),
   voice_reference: z.string().optional(),
+  voice_prompt: z.string().optional(),
+  language: z.string().optional(),
   speed: z.number().optional(),
+  temperature: z.number().optional(),
+  top_k: z.number().int().optional(),
+  top_p: z.number().optional(),
 });
 
 export const musicConfigSchema = z.object({
@@ -13,11 +18,19 @@ export const musicConfigSchema = z.object({
   volume: z.number().min(0).max(1).optional(),
   fade_in: z.number().nonnegative().optional(),
   fade_out: z.number().nonnegative().optional(),
+  generate: z.boolean().optional(),
+  prompt: z.string().optional(),
+  duration: z.number().min(5).max(150).optional(),
 });
 
 export const audioConfigSchema = z.object({
   tts: ttsConfigSchema,
   music: musicConfigSchema.optional(),
+});
+
+export const analysisConfigSchema = z.object({
+  verify_images: z.boolean().optional(),
+  verify_videos: z.boolean().optional(),
 });
 
 export const subtitleStyleSchema = z.object({
@@ -51,11 +64,13 @@ export const workflowSchema = z.object({
   audio: audioConfigSchema,
   subtitles: subtitlesConfigSchema.optional(),
   output: outputConfigSchema.optional(),
+  analysis: analysisConfigSchema.optional(),
 });
 
 export type Workflow = z.infer<typeof workflowSchema>;
 export type TTSConfig = z.infer<typeof ttsConfigSchema>;
 export type MusicConfig = z.infer<typeof musicConfigSchema>;
 export type AudioConfig = z.infer<typeof audioConfigSchema>;
+export type AnalysisConfig = z.infer<typeof analysisConfigSchema>;
 export type SubtitlesConfig = z.infer<typeof subtitlesConfigSchema>;
 export type OutputConfig = z.infer<typeof outputConfigSchema>;

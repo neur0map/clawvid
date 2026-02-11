@@ -19,7 +19,13 @@ const falModelsSchema = z.object({
   audio: z.object({
     tts: z.string(),
     transcription: z.string(),
+    sound_effects: z.string().optional(),
+    music_generation: z.string().optional(),
   }),
+  analysis: z.object({
+    image: z.string(),
+    video: z.string(),
+  }).optional(),
 });
 
 const templateSchema = z.object({
