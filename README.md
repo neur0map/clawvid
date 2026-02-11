@@ -310,12 +310,7 @@ clawvid/
 | Layer | Technology |
 |-------|-----------|
 | CLI | Commander.js |
-| AI Image | fal.ai (kling-image/v3) |
-| AI Video | fal.ai (kandinsky5-pro) |
-| AI TTS | fal.ai (qwen-3-tts) |
-| AI Sound FX | fal.ai (beatoven/sound-effect-generation) |
-| AI Music | fal.ai (beatoven/music-generation) |
-| AI Transcription | fal.ai (whisper) |
+| AI Generation | fal.ai (see model reference below) |
 | Video Composition | Remotion (React-based) |
 | Post-Production | FFmpeg via fluent-ffmpeg |
 | Audio Sync | FFmpeg adelay filter for SFX positioning |
@@ -324,6 +319,21 @@ clawvid/
 | Concurrency | p-queue + p-retry |
 | Logging | Pino (structured JSON) |
 | Testing | Vitest |
+
+### Model Reference
+
+All AI generation uses fal.ai endpoints. Use full endpoint paths in workflow JSON.
+
+| Capability | Short Name | Full fal.ai Endpoint |
+|-----------|------------|---------------------|
+| Image Generation | kling-image/v3 | `fal-ai/kling-image/v3/text-to-image` |
+| Image-to-Video | kandinsky5-pro | `fal-ai/kandinsky5-pro/image-to-video` |
+| Text-to-Speech | qwen-3-tts | `fal-ai/qwen-3-tts/voice-design/1.7b` |
+| Sound Effects | beatoven SFX | `beatoven/sound-effect-generation` |
+| Music Generation | beatoven Music | `beatoven/music-generation` |
+| Transcription | whisper | `fal-ai/whisper` |
+| Image Analysis | got-ocr | `fal-ai/got-ocr/v2` |
+| Video Analysis | video-understanding | `fal-ai/video-understanding` |
 
 ## Scripts
 

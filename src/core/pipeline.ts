@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { readJson } from 'fs-extra';
-import { join, resolve } from 'node:path';
+import { join, resolve, parse as parsePath, format as formatPath } from 'node:path';
+import { unlink } from 'node:fs/promises';
 import chalk from 'chalk';
 import { loadConfig, type AppConfig } from '../config/loader.js';
 import { workflowSchema, type Workflow } from '../schemas/workflow.js';
@@ -121,10 +122,16 @@ async function processAudio(
 
   // Trim silence from each narration segment
   for (const segment of result.narrationSegments) {
-    const trimmedPath = segment.audioPath.replace('.mp3', '-trimmed.mp3');
+    const parsed = parsePath(segment.audioPath);
+    const trimmedPath = formatPath({ ...parsed, base: undefined, name: `${parsed.name}-trimmed` });
     try {
       await trimSilence(segment.audioPath, trimmedPath);
+      const previousPath = segment.audioPath;
       segment.audioPath = trimmedPath;
+      // Clean up original if trimming succeeded and paths differ
+      if (previousPath !== trimmedPath) {
+        await unlink(previousPath).catch(() => {});
+      }
     } catch (err) {
       log.warn('Silence trim failed, using original', { sceneId: segment.sceneId, error: String(err) });
     }
@@ -132,10 +139,16 @@ async function processAudio(
 
   // Normalize narration audio
   for (const segment of result.narrationSegments) {
-    const normalizedPath = segment.audioPath.replace('.mp3', '-norm.mp3');
+    const parsed = parsePath(segment.audioPath);
+    const normalizedPath = formatPath({ ...parsed, base: undefined, name: `${parsed.name}-norm` });
     try {
       await normalizeAudio(segment.audioPath, normalizedPath, { targetLUFS: -14 });
+      const previousPath = segment.audioPath;
       segment.audioPath = normalizedPath;
+      // Clean up pre-normalized file if paths differ
+      if (previousPath !== normalizedPath) {
+        await unlink(previousPath).catch(() => {});
+      }
     } catch (err) {
       log.warn('Normalization failed, using original', { sceneId: segment.sceneId, error: String(err) });
     }
@@ -157,7 +170,15 @@ async function processAudio(
   } else if (musicConfig?.file) {
     musicSource = musicConfig.file;
   } else if (musicConfig?.url) {
-    musicSource = musicConfig.url;
+    // Download remote music to local file to avoid SSRF via FFmpeg protocol handlers
+    const musicDownloadPath = assetManager.getAssetPath('music-downloaded.mp3');
+    try {
+      const { downloadFile } = await import('../fal/client.js');
+      await downloadFile(musicConfig.url, musicDownloadPath);
+      musicSource = musicDownloadPath;
+    } catch (err) {
+      log.warn('Music URL download failed, skipping music', { url: musicConfig.url, error: String(err) });
+    }
   }
 
   // Convert sound effects to PositionedSoundEffect (seconds -> ms)
@@ -239,14 +260,25 @@ async function generateSubtitles(
   spinner.succeed(`Subtitles generated (${subtitleSegments.length} segments)`);
 }
 
-function resolveTargetPlatforms(workflow: Workflow, config: AppConfig): string[] {
+function resolveTargetPlatforms(workflow: Workflow, config: AppConfig): PlatformId[] {
+  const knownPlatforms = new Set<string>(getAllPlatformIds());
+
+  const validatePlatforms = (platforms: string[]): PlatformId[] => {
+    const mapped = platforms.map((p) =>
+      p === 'youtube_shorts' ? 'youtube' : p,
+    );
+    const invalid = mapped.filter((p) => !knownPlatforms.has(p));
+    if (invalid.length > 0) {
+      log.warn('Unknown platform(s) ignored', { invalid, known: [...knownPlatforms] });
+    }
+    return mapped.filter((p) => knownPlatforms.has(p)) as PlatformId[];
+  };
+
   if (workflow.output?.platforms && workflow.output.platforms.length > 0) {
-    return workflow.output.platforms;
+    return validatePlatforms(workflow.output.platforms);
   }
   if (config.preferences?.platforms) {
-    return config.preferences.platforms.map((p) =>
-      p === 'youtube_shorts' ? 'youtube' : p === 'instagram_reels' ? 'instagram_reels' : p,
-    );
+    return validatePlatforms(config.preferences.platforms);
   }
   return ['youtube', 'tiktok'];
 }
@@ -256,7 +288,7 @@ async function renderAllPlatforms(
   result: WorkflowResult,
   assetManager: AssetManager,
   config: AppConfig,
-  platforms: string[],
+  platforms: PlatformId[],
 ): Promise<void> {
   for (const platform of platforms) {
     const spinner = createSpinner(`Rendering ${platform}...`);
@@ -294,7 +326,7 @@ async function renderAllPlatforms(
 
 async function postProcess(
   assetManager: AssetManager,
-  platforms: string[],
+  platforms: PlatformId[],
 ): Promise<void> {
   const spinner = createSpinner('Post-processing...');
   spinner.start();
@@ -305,7 +337,7 @@ async function postProcess(
     const thumbnailPath = assetManager.getPlatformPath(platform, 'thumbnail.jpg');
 
     try {
-      const profile = getEncodingProfile(platform as PlatformId);
+      const profile = getEncodingProfile(platform);
       await encode(rawPath, finalPath, profile);
     } catch (err) {
       log.warn(`Encoding failed for ${platform}, copying raw file`, { error: String(err) });
@@ -335,14 +367,21 @@ export async function runRender(options: RenderOptions): Promise<void> {
 
   console.log(chalk.blue('Re-rendering from existing run:'), runDir);
 
-  const platforms = options.allPlatforms
-    ? getAllPlatformIds()
-    : options.platform
-      ? [options.platform]
-      : getAllPlatformIds();
+  const knownIds = getAllPlatformIds();
+  let platforms: PlatformId[];
+  if (options.allPlatforms) {
+    platforms = knownIds;
+  } else if (options.platform) {
+    const id = options.platform as string;
+    if (!knownIds.includes(id as PlatformId)) {
+      throw new Error(`Unknown platform: "${id}". Valid: ${knownIds.join(', ')}`);
+    }
+    platforms = [id as PlatformId];
+  } else {
+    platforms = knownIds;
+  }
 
-  const assetManager = new AssetManager(config.output.directory, '');
-  Object.defineProperty(assetManager, 'outputDir', { value: runDir });
+  const assetManager = AssetManager.fromExistingRun(runDir);
 
   const workflow = workflowSchema.parse(await readJson(join(runDir, 'workflow.json')));
 
@@ -359,8 +398,8 @@ export async function runRender(options: RenderOptions): Promise<void> {
     costTracker: new (await import('../fal/cost.js')).CostTracker(),
   };
 
-  await renderAllPlatforms(workflow, result, assetManager, config, platforms as string[]);
-  await postProcess(assetManager, platforms as string[]);
+  await renderAllPlatforms(workflow, result, assetManager, config, platforms);
+  await postProcess(assetManager, platforms);
 
   console.log(chalk.green.bold('Re-render complete!'));
 }

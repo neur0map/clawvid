@@ -18,7 +18,7 @@ export async function normalizeAudio(
 
   log.info('Normalizing audio', { targetLUFS, truePeak });
 
-  // Two-pass loudness normalization using FFmpeg loudnorm filter
+  // Single-pass loudness normalization using FFmpeg loudnorm filter
   const command = getFFmpegCommand(inputPath)
     .audioFilters(`loudnorm=I=${targetLUFS}:TP=${truePeak}:LRA=11`)
     .output(outputPath);

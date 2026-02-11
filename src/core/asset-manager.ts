@@ -87,4 +87,15 @@ export class AssetManager {
     }
     return result;
   }
+
+  /**
+   * Create an AssetManager pointing to an existing run directory.
+   * Used for re-rendering without generating new assets.
+   */
+  static fromExistingRun(runDir: string): AssetManager {
+    const manager = Object.create(AssetManager.prototype) as AssetManager;
+    Object.defineProperty(manager, 'runId', { value: 'existing', writable: false });
+    Object.defineProperty(manager, 'outputDir', { value: runDir, writable: false });
+    return manager;
+  }
 }

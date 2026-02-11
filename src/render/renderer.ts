@@ -75,7 +75,13 @@ async function fallbackRender(input: RenderInput): Promise<string> {
   const runCmd = (cmd: string, args: string[]): Promise<void> =>
     new Promise((resolve, reject) => {
       const child = spawn(cmd, args, { stdio: 'pipe' });
-      child.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`${cmd} exited with code ${code}`))));
+      const stderrChunks: Buffer[] = [];
+      child.stderr?.on('data', (chunk: Buffer) => stderrChunks.push(chunk));
+      child.on('close', (code) => {
+        if (code === 0) return resolve();
+        const stderr = Buffer.concat(stderrChunks).toString().slice(-500);
+        reject(new Error(`${cmd} exited with code ${code}${stderr ? `: ${stderr}` : ''}`));
+      });
       child.on('error', reject);
     });
 

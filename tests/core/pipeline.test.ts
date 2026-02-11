@@ -59,15 +59,19 @@ vi.mock('../../src/config/loader.js', () => ({
   }),
 }));
 
-vi.mock('../../src/core/asset-manager.js', () => ({
-  AssetManager: vi.fn().mockImplementation(() => ({
-    outputDir: '/tmp/test-pipeline-output',
-    runId: 'test123',
-    getAssetPath: vi.fn((f: string) => `/tmp/test-pipeline-output/assets/${f}`),
-    getPlatformPath: vi.fn((p: string, f: string) => `/tmp/test-pipeline-output/${p}/${f}`),
-    initialize: vi.fn().mockResolvedValue(undefined),
-  })),
-}));
+const mockAssetManagerInstance = {
+  outputDir: '/tmp/test-pipeline-output',
+  runId: 'test123',
+  getAssetPath: vi.fn((f: string) => `/tmp/test-pipeline-output/assets/${f}`),
+  getPlatformPath: vi.fn((p: string, f: string) => `/tmp/test-pipeline-output/${p}/${f}`),
+  initialize: vi.fn().mockResolvedValue(undefined),
+};
+
+vi.mock('../../src/core/asset-manager.js', () => {
+  const MockAssetManager = vi.fn().mockImplementation(() => mockAssetManagerInstance);
+  MockAssetManager.fromExistingRun = vi.fn().mockReturnValue(mockAssetManagerInstance);
+  return { AssetManager: MockAssetManager };
+});
 
 vi.mock('../../src/core/workflow-runner.js', () => ({
   executeWorkflow: vi.fn().mockResolvedValue({

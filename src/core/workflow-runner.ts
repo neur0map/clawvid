@@ -15,6 +15,17 @@ import { createSpinner } from '../utils/progress.js';
 
 const log = createLogger('workflow-runner');
 
+/** Estimated cost per API call by model category. Update when pricing changes. */
+const COST_ESTIMATES = {
+  image_kling: 0.04,
+  image_default: 0.03,
+  video: 0.08,
+  tts: 0.015,
+  transcription: 0.01,
+  sound_effect: 0.02,
+  music: 0.05,
+} as const;
+
 export interface SceneAssets {
   sceneId: string;
   imagePath: string;
@@ -100,7 +111,7 @@ export async function executeWorkflow(
         text: result.text,
         chunks: result.chunks ?? [],
       };
-      costTracker.record(whisperModel, 0.01);
+      costTracker.record(whisperModel, COST_ESTIMATES.transcription);
       log.info('Transcription complete', { wordCount: result.text.split(' ').length });
     } catch (err) {
       log.warn('Transcription failed, subtitles will use narration text', { error: String(err) });
@@ -165,7 +176,7 @@ async function generateSceneAssets(
       const result = await generateImage(scene.image_generation, imagePath);
       imageUrl = result.url;
       await cache.set(`${scene.id}-image`, imageHash, result.url);
-      costTracker.record(scene.image_generation.model, estimateImageCost(scene.image_generation.model));
+      costTracker.record(scene.image_generation.model, estimateCost('image', scene.image_generation.model));
     }
 
     const sceneResult: SceneAssets = { sceneId: scene.id, imagePath, imageUrl };
@@ -186,7 +197,7 @@ async function generateSceneAssets(
         sceneResult.videoPath = videoPath;
         sceneResult.videoUrl = result.url;
         await cache.set(`${scene.id}-video`, videoHash, result.url);
-        costTracker.record(scene.video_generation.model, estimateVideoCost(scene.video_generation.model));
+        costTracker.record(scene.video_generation.model, COST_ESTIMATES.video);
       }
     }
 
@@ -235,7 +246,7 @@ async function generateNarration(
       const result = await generateSpeech(workflow.audio.tts, narrationText, audioPath);
       audioUrl = result.url;
       await cache.set(`${scene.id}-narration`, narrationHash, result.url);
-      costTracker.record(workflow.audio.tts.model, 0.015);
+      costTracker.record(workflow.audio.tts.model, COST_ESTIMATES.tts);
     }
 
     segments.push({
@@ -298,7 +309,7 @@ async function generateSceneSoundEffects(
           volume: sfx.volume ?? 0.8,
         });
 
-        costTracker.record(sfxModel, 0.02);
+        costTracker.record(sfxModel, COST_ESTIMATES.sound_effect);
       } catch (err) {
         log.warn('Sound effect generation failed, skipping', {
           sceneId: scene.id,
@@ -336,7 +347,7 @@ async function generateBackgroundMusic(
       { prompt: musicConfig.prompt, duration },
       musicPath,
     );
-    costTracker.record(musicModel, 0.05);
+    costTracker.record(musicModel, COST_ESTIMATES.music);
     spinner.succeed('Background music generated');
     return musicPath;
   } catch (err) {
@@ -346,11 +357,9 @@ async function generateBackgroundMusic(
   }
 }
 
-function estimateImageCost(model: string): number {
-  if (model.includes('kling')) return 0.04;
-  return 0.03;
-}
-
-function estimateVideoCost(_model: string): number {
-  return 0.08;
+function estimateCost(category: 'image' | 'video', model: string): number {
+  if (category === 'image') {
+    return model.includes('kling') ? COST_ESTIMATES.image_kling : COST_ESTIMATES.image_default;
+  }
+  return COST_ESTIMATES.video;
 }

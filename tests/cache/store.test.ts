@@ -72,9 +72,9 @@ describe('Cache: hash', () => {
     expect(hash1).not.toBe(hash2);
   });
 
-  it('should produce 16-char hex strings', () => {
+  it('should produce 32-char hex strings', () => {
     const hash = hashString('test');
-    expect(hash).toHaveLength(16);
+    expect(hash).toHaveLength(32);
     expect(hash).toMatch(/^[0-9a-f]+$/);
   });
 

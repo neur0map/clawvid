@@ -88,8 +88,8 @@ export async function mixAudio(input: MixInput, outputPath: string): Promise<voi
   const inputLabels: string[] = [];
   let inputCount = 1; // narration is always input 0
 
-  // Narration: volume adjust
-  filterParts.push(`[0:a]volume=${narrationVol}[narr]`);
+  // Narration: volume adjust + normalize sample rate
+  filterParts.push(`[0:a]aresample=44100,volume=${narrationVol}[narr]`);
   inputLabels.push('[narr]');
 
   // Music: volume, loop, fade
@@ -97,7 +97,7 @@ export async function mixAudio(input: MixInput, outputPath: string): Promise<voi
   if (input.music) {
     hasMusic = true;
     inputCount++;
-    let musicFilter = `[1:a]volume=${musicVol},aloop=-1:2e+09`;
+    let musicFilter = `[1:a]aresample=44100,volume=${musicVol},aloop=-1:size=0`;
     if (fadeIn > 0) {
       musicFilter += `,afade=t=in:st=0:d=${fadeIn}`;
     }
@@ -119,15 +119,16 @@ export async function mixAudio(input: MixInput, outputPath: string): Promise<voi
     const delayMs = Math.max(0, Math.round(sfx.timestampMs));
     const sfxVol = Math.max(0, sfx.volume);
     filterParts.push(
-      `[${inputIdx}:a]volume=${sfxVol},adelay=${delayMs}|${delayMs}[sfx${i}]`,
+      `[${inputIdx}:a]aresample=44100,volume=${sfxVol},adelay=${delayMs}|${delayMs}[sfx${i}]`,
     );
     inputLabels.push(`[sfx${i}]`);
   }
 
-  // Mix all tracks together
+  // Mix all tracks together (weights compensate for amix amplitude division)
   const mixLabel = inputLabels.join('');
+  const weights = inputLabels.map(() => '1').join(' ');
   filterParts.push(
-    `${mixLabel}amix=inputs=${inputLabels.length}:duration=first:dropout_transition=3[out]`,
+    `${mixLabel}amix=inputs=${inputLabels.length}:duration=first:dropout_transition=3:weights=${weights},dynaudnorm=p=0.9:s=5[out]`,
   );
 
   // Build command
