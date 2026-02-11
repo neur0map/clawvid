@@ -1,10 +1,10 @@
 {
-  "name": "shortgen",
+  "name": "clawvid",
   "version": "0.1.0",
   "description": "AI-powered short-form video generation skill for OpenClaw",
   "main": "dist/index.js",
   "bin": {
-    "shortgen": "./dist/index.js"
+    "clawvid": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc",

@@ -26,7 +26,7 @@ Use this skill when the user wants to:
 ### Generate Video
 
 ```bash
-shortgen generate [options]
+clawvid generate [options]
 ```
 
 **Options:**
@@ -45,7 +45,7 @@ shortgen generate [options]
 ### List Templates
 
 ```bash
-shortgen templates
+clawvid templates
 ```
 
 Shows available templates with descriptions.
@@ -53,7 +53,7 @@ Shows available templates with descriptions.
 ### Preview Frame
 
 ```bash
-shortgen preview --template horror --frame 30
+clawvid preview --template horror --frame 30
 ```
 
 Renders a single frame for visual verification before committing to full render.
@@ -63,7 +63,7 @@ Renders a single frame for visual verification before committing to full render.
 ### Horror Story from Reddit
 
 ```bash
-shortgen generate --template horror --source reddit --subreddit nosleep
+clawvid generate --template horror --source reddit --subreddit nosleep
 ```
 
 Fetches a story from r/nosleep, generates creepy AI images, adds horror effects.
@@ -71,13 +71,13 @@ Fetches a story from r/nosleep, generates creepy AI images, adds horror effects.
 ### Custom Horror Story
 
 ```bash
-shortgen generate --template horror --source text --text "The door to the basement was never supposed to open on its own. But every night at 3am, I hear it creak..."
+clawvid generate --template horror --source text --text "The door to the basement was never supposed to open on its own. But every night at 3am, I hear it creak..."
 ```
 
 ### Motivational Quote Video
 
 ```bash
-shortgen generate --template motivation --source text --text "The only way to do great work is to love what you do. - Steve Jobs"
+clawvid generate --template motivation --source text --text "The only way to do great work is to love what you do. - Steve Jobs"
 ```
 
 Creates a clean video with the quote over stock footage.
@@ -85,13 +85,13 @@ Creates a clean video with the quote over stock footage.
 ### Quiz Video
 
 ```bash
-shortgen generate --template quiz --source text --text "What is the largest planet in our solar system? A) Mars B) Jupiter C) Saturn D) Neptune | Answer: B"
+clawvid generate --template quiz --source text --text "What is the largest planet in our solar system? A) Mars B) Jupiter C) Saturn D) Neptune | Answer: B"
 ```
 
 ### Preview Before Render
 
 ```bash
-shortgen generate --template horror --source reddit --preview
+clawvid generate --template horror --source reddit --preview
 ```
 
 Generates script, images, audio but only renders 3 preview frames. Use this to verify the video will look good before full render.
@@ -141,7 +141,7 @@ Generates script, images, audio but only renders 3 preview frames. Use this to v
 Before full render, always offer to preview:
 
 ```bash
-shortgen generate --template horror --preview
+clawvid generate --template horror --preview
 # Creates: preview/frame_0.png, preview/frame_middle.png, preview/frame_end.png
 ```
 
@@ -149,7 +149,7 @@ Show these frames to the user. If they approve, render full video. If not, adjus
 
 ## Configuration
 
-Requires API keys in environment or `.shortgen.json`:
+Requires API keys in environment or `.clawvid.json`:
 
 ```
 OPENAI_API_KEY=sk-...

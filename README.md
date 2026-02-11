@@ -32,7 +32,7 @@ ShortGen is an OpenClaw skill that turns prompts into finished short-form videos
 │                         ↓                                       │
 │  Agent reads SKILL.md → understands capabilities                │
 │                         ↓                                       │
-│  Agent calls: shortgen generate --template horror --source ...  │
+│  Agent calls: clawvid generate --template horror --source ...  │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
                               ↓
@@ -78,7 +78,7 @@ Why:
 ## Directory Structure
 
 ```
-shortgen/
+clawvid/
 ├── SKILL.md                    # OpenClaw skill definition
 ├── package.json
 ├── tsconfig.json
@@ -152,7 +152,7 @@ Generate short-form videos (YouTube Shorts, TikTok, Reels) from text prompts.
 ### Generate Video
 
 \`\`\`bash
-shortgen generate [options]
+clawvid generate [options]
 \`\`\`
 
 Options:
@@ -168,13 +168,13 @@ Options:
 ### List Templates
 
 \`\`\`bash
-shortgen templates
+clawvid templates
 \`\`\`
 
 ### Preview Frame
 
 \`\`\`bash
-shortgen preview --template horror --frame 30
+clawvid preview --template horror --frame 30
 \`\`\`
 
 Renders a single frame for verification before full render.
@@ -184,19 +184,19 @@ Renders a single frame for verification before full render.
 ### Horror Story from Reddit
 
 \`\`\`bash
-shortgen generate --template horror --source reddit --subreddit nosleep
+clawvid generate --template horror --source reddit --subreddit nosleep
 \`\`\`
 
 ### Motivational Quote
 
 \`\`\`bash
-shortgen generate --template motivation --source text --text "The only way to do great work is to love what you do."
+clawvid generate --template motivation --source text --text "The only way to do great work is to love what you do."
 \`\`\`
 
 ### Quiz Video
 
 \`\`\`bash
-shortgen generate --template quiz --source text --text "What is the capital of France? A) London B) Paris C) Berlin D) Madrid"
+clawvid generate --template quiz --source text --text "What is the capital of France? A) London B) Paris C) Berlin D) Madrid"
 \`\`\`
 
 ## Templates
@@ -226,7 +226,7 @@ shortgen generate --template quiz --source text --text "What is the capital of F
 
 ## Configuration
 
-Create `.shortgen.json` in workspace or set environment variables:
+Create `.clawvid.json` in workspace or set environment variables:
 
 \`\`\`json
 {
@@ -255,14 +255,14 @@ Videos are saved to `./output/` by default:
 Before full render, use `--preview` to check frames:
 
 \`\`\`bash
-shortgen generate --template horror --preview
+clawvid generate --template horror --preview
 # Outputs: preview/frame_0.png, preview/frame_30.png, preview/frame_60.png
 \`\`\`
 
 Review the frames, then render full video:
 
 \`\`\`bash
-shortgen generate --template horror
+clawvid generate --template horror
 \`\`\`
 ```
 
@@ -324,8 +324,8 @@ export const HorrorTemplate: React.FC<HorrorProps> = ({ scenes, audio }) => {
 
 ```bash
 # Clone
-git clone https://github.com/neur0map/shortgen
-cd shortgen
+git clone https://github.com/neur0map/clawvid
+cd clawvid
 
 # Install dependencies
 npm install
@@ -361,7 +361,7 @@ Agent: I'll create a horror video. Let me:
 3. Generate creepy narration
 4. Render with horror effects
 
-[runs: shortgen generate --template horror --source text --text "..."]
+[runs: clawvid generate --template horror --source text --text "..."]
 
 Here are preview frames:
 [shows frame_0.png, frame_30.png, frame_60.png]
