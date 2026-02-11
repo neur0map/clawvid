@@ -344,22 +344,30 @@ export async function runRender(options: RenderOptions): Promise<void> {
 }
 
 export async function runPreview(options: PreviewOptions): Promise<void> {
-  const { execa } = await import('execa');
+  const { spawn } = await import('node:child_process');
   console.log(chalk.blue('Launching Remotion preview...'));
 
-  await execa('npx', ['remotion', 'preview', 'src/render/root.tsx'], {
-    stdio: 'inherit',
-    env: { ...process.env },
+  await new Promise<void>((resolve, reject) => {
+    const child = spawn('npx', ['remotion', 'preview', 'src/render/root.tsx'], {
+      stdio: 'inherit',
+      env: { ...process.env },
+    });
+    child.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`Preview exited with code ${code}`))));
+    child.on('error', reject);
   });
 }
 
 export async function runStudio(): Promise<void> {
-  const { execa } = await import('execa');
+  const { spawn } = await import('node:child_process');
   console.log(chalk.blue('Launching Remotion studio...'));
 
-  await execa('npx', ['remotion', 'studio', 'src/render/root.tsx'], {
-    stdio: 'inherit',
-    env: { ...process.env },
+  await new Promise<void>((resolve, reject) => {
+    const child = spawn('npx', ['remotion', 'studio', 'src/render/root.tsx'], {
+      stdio: 'inherit',
+      env: { ...process.env },
+    });
+    child.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`Studio exited with code ${code}`))));
+    child.on('error', reject);
   });
 }
 

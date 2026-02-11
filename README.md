@@ -1,276 +1,46 @@
 # ClawVid
 
-AI-powered short-form video generation skill for OpenClaw.
+AI-powered short-form video generation CLI for [OpenClaw](https://github.com/neur0map/openclaw).
 
-Generate YouTube Shorts, TikToks, and Reels from text prompts. The OpenClaw agent orchestrates the entire pipeline using fal.ai.
+Generate YouTube Shorts, TikToks, and Instagram Reels from text prompts. The OpenClaw agent orchestrates the entire pipeline — planning scenes, writing prompts, and generating a workflow JSON that ClawVid executes end-to-end.
 
-## Overview
-
-ClawVid is an OpenClaw skill where **the agent is the brain**. It:
-- Breaks content into scenes
-- Generates JSON instructions for each generation step
-- Decides when to use images vs video clips
-- Reviews outputs and iterates
-- Composes the final video
-
-All AI generation flows through **fal.ai** - one API, one key.
+## How It Works
 
 ```
-"Make a scary story video about a haunted library"
-                    ↓
-┌─────────────────────────────────────────────────────┐
-│              OpenClaw Agent (Orchestrator)          │
-│                                                     │
-│  1. Parse content → scene breakdown                 │
-│  2. Generate JSON instructions per scene            │
-│  3. Decide: image vs video clip per scene           │
-│  4. Call fal.ai for each asset                      │
-│  5. Review outputs, regenerate if needed            │
-│  6. Generate TTS narration                          │
-│  7. Compose with Remotion                           │
-│  8. Verify preview frames                           │
-│  9. Render final video                              │
-│                                                     │
-└─────────────────────────────────────────────────────┘
-                    ↓
-           finished_video.mp4
+User: "Make a horror video about a haunted library"
+                    |
+                    v
+    OpenClaw Agent (reads SKILL.md)
+      - Asks clarifying questions
+      - Plans scenes with timing
+      - Writes image/video prompts
+      - Creates workflow.json
+      - Runs: clawvid generate --workflow workflow.json
+                    |
+                    v
+    ClawVid Pipeline
+      1. Generate images via fal.ai (flux/dev, flux-pro)
+      2. Generate video clips via fal.ai (kling-video, minimax)
+      3. Generate TTS narration via fal.ai (f5-tts)
+      4. Process audio (silence trim, normalize, mix music)
+      5. Generate subtitles (Whisper transcription -> SRT/VTT)
+      6. Render compositions (Remotion: 16:9 + 9:16)
+      7. Post-process (FFmpeg: encode, thumbnails)
+                    |
+                    v
+    output/2026-02-11-haunted-library/
+      youtube/   haunted-library.mp4 (1920x1080)
+      tiktok/    haunted-library.mp4 (1080x1920)
+      instagram/ haunted-library.mp4 (1080x1920)
 ```
 
-## Architecture
+All AI generation flows through **fal.ai** — one API, one key.
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     OpenClaw Agent                              │
-│                                                                 │
-│  ┌───────────────────────────────────────────────────────────┐ │
-│  │                    SKILL.md                               │ │
-│  │  - Task breakdown instructions                            │ │
-│  │  - JSON schema for each step                              │ │
-│  │  - Decision criteria (image vs video)                     │ │
-│  │  - Quality checks and iteration rules                     │ │
-│  └───────────────────────────────────────────────────────────┘ │
-│                              ↓                                  │
-│  ┌───────────────────────────────────────────────────────────┐ │
-│  │              Agent-Generated JSON Workflows               │ │
-│  │                                                           │ │
-│  │  scene_1.json → { model, prompt, style, negative... }     │ │
-│  │  scene_2.json → { model, prompt, image_url, motion... }   │ │
-│  │  audio.json   → { text, voice_style, speed... }           │ │
-│  │  compose.json → { scenes, timing, effects, music... }     │ │
-│  │                                                           │ │
-│  └───────────────────────────────────────────────────────────┘ │
-│                              ↓                                  │
-└─────────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                        fal.ai API                               │
-│                                                                 │
-│  Images:     flux/dev, grok-imagine, flux-pro                   │
-│  Video:      kling-video, minimax-video, luma-dream-machine     │
-│  Audio:      f5-tts, whisper                                    │
-│  LLM:        meta-llama (for script if needed)                  │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                    Remotion Composition                         │
-│                                                                 │
-│  - Templates (horror, motivation, quiz, reddit)                 │
-│  - Effects (vignette, grain, glitch, vhs)                       │
-│  - Subtitles                                                    │
-│  - Final render                                                 │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
+## Prerequisites
 
-## Agent Responsibilities
-
-The OpenClaw agent handles ALL logic:
-
-| Task | Agent Does |
-|------|-----------|
-| **Script** | Breaks content into scenes with timing |
-| **Image Prompts** | Writes detailed prompts per scene |
-| **Model Selection** | Chooses flux vs grok-imagine based on style |
-| **Image vs Video** | Decides which scenes need motion |
-| **Quality Review** | Views generated assets, regenerates if bad |
-| **Iteration** | Adjusts prompts based on results |
-| **Composition** | Defines timing, transitions, effects |
-
-## JSON Workflow Format
-
-The agent generates JSON instructions that can also be used in fal.ai's web interface.
-
-### Scene Image Generation
-
-```json
-{
-  "model": "fal-ai/flux/dev",
-  "input": {
-    "prompt": "Dark abandoned hospital corridor, flickering lights, wheelchair in distance, horror atmosphere, cinematic lighting, 8k",
-    "negative_prompt": "bright, cheerful, people, cartoon",
-    "image_size": "portrait_16_9",
-    "num_images": 1,
-    "guidance_scale": 7.5,
-    "seed": 42
-  }
-}
-```
-
-### Image to Video (for key scenes)
-
-```json
-{
-  "model": "fal-ai/kling-video/v1.5/pro/image-to-video",
-  "input": {
-    "prompt": "Slow zoom into dark corridor, lights flicker ominously, dust particles float",
-    "image_url": "{{scene_1_image_url}}",
-    "duration": "5",
-    "aspect_ratio": "9:16"
-  }
-}
-```
-
-### TTS Narration
-
-```json
-{
-  "model": "fal-ai/f5-tts",
-  "input": {
-    "gen_text": "The hospital had been abandoned for thirty years. No one knew why the lights still flickered.",
-    "ref_audio_url": "https://example.com/creepy-voice-sample.wav",
-    "model_type": "F5-TTS"
-  }
-}
-```
-
-### Composition Manifest
-
-```json
-{
-  "template": "horror",
-  "duration_seconds": 60,
-  "scenes": [
-    {
-      "id": "scene_1",
-      "type": "video",
-      "asset": "{{scene_1_video_url}}",
-      "start": 0,
-      "duration": 5,
-      "effects": ["vignette", "grain"],
-      "text": null
-    },
-    {
-      "id": "scene_2", 
-      "type": "image",
-      "asset": "{{scene_2_image_url}}",
-      "start": 5,
-      "duration": 8,
-      "effects": ["kenburns", "flicker"],
-      "text": "The lights flickered..."
-    }
-  ],
-  "audio": {
-    "narration": "{{narration_url}}",
-    "music": "ambient_horror_loop.mp3",
-    "music_volume": 0.3
-  },
-  "subtitles": {
-    "enabled": true,
-    "style": "horror"
-  }
-}
-```
-
-## Decision Logic
-
-The agent follows these rules:
-
-### When to use VIDEO clips (Kling)
-- Opening scene (hook)
-- Climax/dramatic moment
-- Closing scene
-- Max 2-3 video clips per 60s video (cost/time)
-
-### When to use IMAGES with Ken Burns
-- Transitional scenes
-- Descriptive narration
-- Most of the video (70-80%)
-
-### When to use Image-to-Image
-- Need consistent style across scenes
-- Want to modify an existing generation
-- Creating variations
-
-## Directory Structure
-
-```
-clawvid/
-├── SKILL.md                    # Agent instructions
-├── package.json
-│
-├── src/
-│   ├── index.ts                # CLI entry
-│   │
-│   ├── fal/                    # fal.ai client
-│   │   ├── client.ts           
-│   │   ├── models.ts           # Model definitions
-│   │   └── types.ts            
-│   │
-│   ├── render/                 
-│   │   └── remotion.ts         
-│   │
-│   └── utils/
-│       └── config.ts           
-│
-├── remotion/                   # Video templates
-│   └── src/
-│       └── templates/
-│           ├── horror/
-│           ├── motivation/
-│           ├── quiz/
-│           └── reddit/
-│
-├── workflows/                  # Example JSON workflows
-│   ├── horror-story.json
-│   ├── motivation-quote.json
-│   └── reddit-post.json
-│
-└── output/
-```
-
-## fal.ai Models Reference
-
-### Image Generation
-
-| Model | Use Case | Speed |
-|-------|----------|-------|
-| `fal-ai/flux/dev` | General, fast | Fast |
-| `fal-ai/flux-pro/v1.1` | High quality | Medium |
-| `fal-ai/grok-imagine` | Aesthetic, stylized | Medium |
-
-### Image to Video
-
-| Model | Use Case | Duration |
-|-------|----------|----------|
-| `fal-ai/kling-video/v1.5/pro/image-to-video` | High quality motion | 5-10s |
-| `fal-ai/minimax-video/image-to-video` | Fast, good quality | 5s |
-| `fal-ai/luma-dream-machine` | Cinematic | 5s |
-
-### Audio
-
-| Model | Use Case |
-|-------|----------|
-| `fal-ai/f5-tts` | Voice cloning TTS |
-| `fal-ai/whisper` | Transcription for subtitles |
-
-## Configuration
-
-Single API key:
-
-```
-FAL_KEY=...
-```
+- **Node.js** >= 18
+- **FFmpeg** installed and on PATH (`brew install ffmpeg` on macOS)
+- **fal.ai API key** ([get one here](https://fal.ai/dashboard/keys))
 
 ## Installation
 
@@ -279,54 +49,257 @@ git clone https://github.com/neur0map/clawvid
 cd clawvid
 npm install
 cp .env.example .env
-# Add your FAL_KEY
+# Edit .env and add your FAL_KEY
+```
+
+### Link as global CLI (optional)
+
+```bash
+npm run build
 npm link
+# Now "clawvid" is available globally
 ```
 
-## Usage
+### Development mode
 
-The agent orchestrates everything. Example flow:
+```bash
+npm run dev -- generate --workflow workflow.json
+```
+
+## Configuration
+
+### Environment
 
 ```
-You: Make a 60 second horror video about a haunted library
+FAL_KEY=your_fal_ai_key_here
+```
 
-Agent: I'll create this video. Let me plan:
+That's the only required environment variable.
 
-**Scene Breakdown:**
-1. Opening (0-5s) - Exterior shot, old library at night [VIDEO]
-2. Scene 2 (5-15s) - Empty reading room, dust particles [IMAGE]
-3. Scene 3 (15-25s) - Close up of old book opening [IMAGE]
-4. Scene 4 (25-35s) - Shadow moves between shelves [VIDEO]
-5. Scene 5 (35-50s) - Protagonist discovers writing [IMAGE]
-6. Closing (50-60s) - Reveal shot [VIDEO]
+### config.json
 
-Generating assets...
+Central settings file checked into git. Controls:
 
-[Generates scene_1.json, calls fal.ai]
-[Reviews output - looks good]
-[Generates scene_2.json, calls fal.ai]
-[Reviews output - too bright, regenerating with darker prompt]
-...
+| Section | What it configures |
+|---------|-------------------|
+| `fal` | Model IDs for image, video, and audio generation |
+| `defaults` | Aspect ratio, resolution, FPS, duration, max video clips |
+| `templates` | 4 built-in templates (horror, motivation, quiz, reddit) |
+| `quality` | 3 presets (max_quality, balanced, budget) |
+| `platforms` | YouTube, TikTok, Instagram Reels specs |
+| `output` | Output directory, format, naming pattern |
 
-Preview frames ready. Here's frame 0, 30, and 55:
-[Shows images]
+### preferences.json
 
-Ready to render?
+Per-user defaults created by `clawvid setup`. Gitignored. Stores platform selection, default template, quality mode, voice, and visual style.
 
-You: Scene 4 needs more shadow, it's not scary enough
+## CLI Commands
 
-Agent: Regenerating scene 4 with enhanced prompt:
-"Dark library aisle, menacing shadow figure between bookshelves, 
-only silhouette visible, horror movie lighting, extremely dark..."
+```bash
+# Full pipeline: generate assets + render video
+clawvid generate --workflow <path>          # Required: workflow JSON
+                 --template <name>          # Override template
+                 --quality <mode>           # max_quality | balanced | budget
+                 --skip-cache               # Regenerate all assets
 
-[Regenerates, shows new preview]
+# Re-render from existing assets
+clawvid render --run <path>                 # Required: output run directory
+               --platform <name>            # youtube | tiktok | instagram_reels
+               --all-platforms              # Render all platforms
 
-Better?
+# Preview in Remotion
+clawvid preview --workflow <path>           # Required: workflow JSON
+                --platform <name>           # Preview as platform (default: tiktok)
 
-You: Yes, render it
+# Remotion visual editor
+clawvid studio
 
-Agent: Rendering final video...
-Done: output/haunted_library.mp4
+# User preferences
+clawvid setup                               # Interactive setup
+clawvid setup --reset                       # Reset to defaults
+```
+
+## Workflow JSON
+
+The agent generates a workflow JSON file that describes every scene, prompt, model, timing, and effect. See [SKILL.md](SKILL.md) for the complete schema reference.
+
+Minimal example:
+
+```json
+{
+  "name": "Quick Horror",
+  "template": "horror",
+  "duration_target_seconds": 30,
+  "scenes": [
+    {
+      "id": "scene_1",
+      "type": "image",
+      "timing": { "start": 0, "duration": 15 },
+      "narration": "The door opened by itself.",
+      "image_generation": {
+        "model": "fal-ai/flux/dev",
+        "input": {
+          "prompt": "Dark hallway, door slightly ajar, light from behind, horror atmosphere",
+          "image_size": "portrait_16_9"
+        }
+      },
+      "effects": ["vignette", "kenburns_slow_zoom", "grain"]
+    }
+  ],
+  "audio": {
+    "tts": { "model": "fal-ai/f5-tts", "speed": 0.9 }
+  }
+}
+```
+
+Full example: [workflows/horror-story-example.json](workflows/horror-story-example.json)
+
+## Project Structure
+
+```
+clawvid/
+  SKILL.md                       # Agent instructions (the brain)
+  config.json                    # All tuneable settings
+  preferences.json               # Per-user defaults (gitignored)
+  .env                           # FAL_KEY (gitignored)
+  workflows/                     # Example workflow JSONs
+    horror-story-example.json
+
+  src/
+    index.ts                     # CLI entry point
+    cli/                         # Command definitions
+      program.ts                 #   Commander setup (5 commands)
+      generate.ts                #   clawvid generate
+      render.ts                  #   clawvid render
+      preview.ts                 #   clawvid preview
+      studio.ts                  #   clawvid studio
+      setup.ts                   #   clawvid setup
+
+    core/                        # Pipeline orchestration
+      pipeline.ts                #   Main pipeline (generate/render/preview/studio/setup)
+      workflow-runner.ts          #   Execute workflow steps against fal.ai
+      scene-planner.ts           #   Validate scene plans
+      asset-manager.ts           #   Track assets per run
+
+    fal/                         # fal.ai API layer
+      client.ts                  #   Shared client (auth, queue, retry)
+      image.ts                   #   Image generation
+      video.ts                   #   Image-to-video generation
+      audio.ts                   #   TTS and transcription
+      cost.ts                    #   Cost tracking per run
+      queue.ts                   #   Concurrency control (p-queue)
+      types.ts                   #   Shared types
+
+    render/                      # Remotion video composition
+      root.tsx                   #   Remotion entry point
+      renderer.ts                #   Programmatic render (bundle + render)
+      compositions/
+        landscape.tsx            #   16:9 YouTube composition
+        portrait.tsx             #   9:16 social media composition
+        scene-renderer.tsx       #   Shared scene render logic
+        types.ts                 #   SceneProps, TemplateStyle, CompositionProps
+      templates/
+        horror.tsx               #   TemplateStyle: dark desaturated + vignette/grain
+        motivation.tsx           #   TemplateStyle: warm golden + sepia
+        quiz.tsx                 #   TemplateStyle: bright vibrant
+        reddit.tsx               #   TemplateStyle: neutral muted
+        index.ts                 #   Template resolver by name
+      effects/
+        vignette.tsx             #   Radial gradient darkening
+        grain.tsx                #   SVG feTurbulence film grain
+        ken-burns.tsx            #   Zoom/pan on still images
+        flicker.tsx              #   Light oscillation
+        glitch.tsx               #   RGB split + horizontal displacement
+        chromatic-aberration.tsx  #   Color fringing
+      layouts/
+        landscape-frame.tsx      #   5% action-safe padding
+        portrait-frame.tsx       #   Platform-aware safe zones (TikTok/Reels UI)
+      components/
+        scene-image.tsx          #   Image rendering
+        scene-video.tsx          #   Video rendering
+        subtitle.tsx             #   Subtitle overlay
+        transition.tsx           #   Scene transitions
+
+    audio/                       # Audio processing
+      mixer.ts                   #   Concatenate narration, mix with music
+      normalize.ts               #   LUFS normalization (-14 target)
+      silence.ts                 #   Trim silence from TTS output
+
+    subtitles/                   # Subtitle generation
+      generator.ts               #   Build SRT/VTT from word timings
+      word-timing.ts             #   Extract word-level timing from Whisper
+
+    post/                        # FFmpeg post-production
+      ffmpeg.ts                  #   fluent-ffmpeg wrapper
+      encoder.ts                 #   Platform-specific encoding profiles
+      thumbnail.ts               #   Frame extraction for thumbnails
+
+    validation/                  # Asset validation
+      image.ts                   #   Dimensions, format, integrity (sharp)
+      video.ts                   #   Duration, resolution, codec (ffprobe)
+      audio.ts                   #   Duration, sample rate, silence detection
+      consistency.ts             #   Color/brightness drift across scenes
+
+    cache/                       # Content-hash caching
+      store.ts                   #   JSON file-based cache
+      hash.ts                    #   SHA256 hashing (order-independent)
+
+    platforms/                   # Platform specs
+      types.ts                   #   PlatformId, PlatformSpec
+      youtube.ts                 #   16:9, 1920x1080, 8M bitrate
+      tiktok.ts                  #   9:16, 1080x1920, 6M bitrate
+      instagram.ts               #   9:16, 1080x1920, 6M bitrate
+      profiles.ts                #   Encoding profile resolver
+
+    schemas/                     # Zod validation schemas
+      workflow.ts                #   Workflow JSON schema
+      scene.ts                   #   Scene schema
+      config.ts                  #   config.json schema
+      preferences.ts             #   preferences.json schema
+
+    config/                      # Config loading
+      loader.ts                  #   Merge config.json + preferences.json
+      defaults.ts                #   Hardcoded fallback values
+
+    utils/                       # Utilities
+      logger.ts                  #   Pino structured logging
+      files.ts                   #   JSON read/write helpers
+      slug.ts                    #   String slugification
+      progress.ts                #   ora spinners + cli-progress bars
+      cost.ts                    #   Cost formatting
+
+  tests/                         # Vitest test suite
+    schemas/                     #   Schema validation tests
+    cache/                       #   Cache store + hash tests
+    cli/                         #   CLI command registration tests
+    core/                        #   Pipeline tests (stubs)
+    fal/                         #   fal.ai client tests (stubs)
+    validation/                  #   Validation tests (stubs)
+```
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| CLI | Commander.js |
+| AI Generation | fal.ai (flux, kling-video, f5-tts, whisper) |
+| Video Composition | Remotion (React-based) |
+| Post-Production | FFmpeg via fluent-ffmpeg |
+| Image Processing | Sharp |
+| Schema Validation | Zod |
+| Concurrency | p-queue + p-retry |
+| Logging | Pino (structured JSON) |
+| Testing | Vitest |
+
+## Scripts
+
+```bash
+npm run build     # Compile TypeScript to dist/
+npm run dev       # Run with tsx (no build needed)
+npm start         # Run compiled version
+npm run studio    # Launch Remotion studio
+npm run preview   # Remotion preview
+npm test          # Run test suite
 ```
 
 ## License

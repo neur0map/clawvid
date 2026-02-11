@@ -64,13 +64,20 @@ export async function renderComposition(input: RenderInput): Promise<string> {
 
 async function fallbackRender(input: RenderInput): Promise<string> {
   // FFmpeg-based fallback: create a simple slideshow from scene images
-  const { execa } = await import('execa');
+  const { spawn } = await import('node:child_process');
   const scenes = (input.props.scenes as Array<{ src: string; durationFrames: number }>) ?? [];
   const fps = input.fps ?? 30;
 
   if (scenes.length === 0) {
     throw new Error('No scenes to render');
   }
+
+  const runCmd = (cmd: string, args: string[]): Promise<void> =>
+    new Promise((resolve, reject) => {
+      const child = spawn(cmd, args, { stdio: 'pipe' });
+      child.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`${cmd} exited with code ${code}`))));
+      child.on('error', reject);
+    });
 
   // For each image scene, create a segment, then concatenate
   const segmentPaths: string[] = [];
@@ -86,7 +93,7 @@ async function fallbackRender(input: RenderInput): Promise<string> {
       segmentPaths.push(scene.src);
     } else if (await pathExists(scene.src)) {
       // Image scene — create video from still image
-      await execa('ffmpeg', [
+      await runCmd('ffmpeg', [
         '-loop', '1',
         '-i', scene.src,
         '-c:v', 'libx264',
@@ -113,7 +120,7 @@ async function fallbackRender(input: RenderInput): Promise<string> {
     ? ['-i', String(input.props.audioUrl), '-c:a', 'aac', '-shortest']
     : ['-an'];
 
-  await execa('ffmpeg', [
+  await runCmd('ffmpeg', [
     '-f', 'concat',
     '-safe', '0',
     '-i', concatList,
