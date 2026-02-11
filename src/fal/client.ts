@@ -2,9 +2,26 @@ import { fal } from '@fal-ai/client';
 import PQueue from 'p-queue';
 import pRetry from 'p-retry';
 import { createWriteStream } from 'node:fs';
+import { unlink } from 'node:fs/promises';
 import { pipeline } from 'node:stream/promises';
 import { Readable } from 'node:stream';
 import { createLogger } from '../utils/logger.js';
+
+function validateDownloadUrl(url: string): void {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new Error(`Invalid download URL: ${url}`);
+  }
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+    throw new Error(`Unsupported URL protocol: ${parsed.protocol}. Only http(s) allowed.`);
+  }
+  const hostname = parsed.hostname;
+  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname.startsWith('169.254.') || hostname.startsWith('10.') || hostname.startsWith('192.168.')) {
+    throw new Error(`Download from private/internal network blocked: ${hostname}`);
+  }
+}
 
 const log = createLogger('fal-client');
 
@@ -60,6 +77,7 @@ export async function falRequest<TOutput>(
 }
 
 export async function downloadFile(url: string, destPath: string): Promise<void> {
+  validateDownloadUrl(url);
   log.info('Downloading asset', { url: url.slice(0, 80), dest: destPath });
   const response = await fetch(url);
   if (!response.ok) {
@@ -70,6 +88,11 @@ export async function downloadFile(url: string, destPath: string): Promise<void>
   }
   const readableStream = Readable.fromWeb(response.body as import('node:stream/web').ReadableStream);
   const fileStream = createWriteStream(destPath);
-  await pipeline(readableStream, fileStream);
+  try {
+    await pipeline(readableStream, fileStream);
+  } catch (err) {
+    await unlink(destPath).catch(() => {});
+    throw err;
+  }
   log.info('Asset downloaded', { dest: destPath });
 }

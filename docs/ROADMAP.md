@@ -216,7 +216,7 @@ clawvid generate --workflow workflows/horror-story-example.json
 ### 6.2 Re-render from existing assets
 
 ```bash
-clawvid render --run output/2026-XX-XX-minimal-test/ --all-platforms
+clawvid render --run output/2026-XX-XX-minimal-test-2-scenes/ --all-platforms
 ```
 
 - [ ] Verify re-render uses existing assets (no fal.ai calls)

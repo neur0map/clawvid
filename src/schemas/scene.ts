@@ -19,7 +19,7 @@ export const videoGenerationSchema = z.object({
     prompt: z.string(),
     duration: z.string().optional(),
     resolution: z.string().optional(),
-    num_inference_steps: z.number().int().optional(),
+    num_inference_steps: z.number().int().positive().optional(),
     acceleration: z.boolean().optional(),
   }),
 });

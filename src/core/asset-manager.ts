@@ -1,8 +1,19 @@
 import { ensureDir } from 'fs-extra';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { nanoid } from 'nanoid';
 import { createSlug } from '../utils/slug.js';
 import { createLogger } from '../utils/logger.js';
+
+const VALID_NAME_PATTERN = /^[\w.\-]+$/;
+
+function validatePathComponent(name: string, label: string): void {
+  if (!name || !VALID_NAME_PATTERN.test(name)) {
+    throw new Error(`Invalid ${label}: "${name}". Only alphanumeric, dash, underscore, and dot allowed.`);
+  }
+  if (name.includes('..')) {
+    throw new Error(`Path traversal detected in ${label}: "${name}"`);
+  }
+}
 
 const log = createLogger('asset-manager');
 
@@ -59,10 +70,21 @@ export class AssetManager {
   }
 
   getAssetPath(filename: string): string {
-    return join(this.outputDir, 'assets', filename);
+    validatePathComponent(filename, 'filename');
+    const result = resolve(this.outputDir, 'assets', filename);
+    if (!result.startsWith(resolve(this.outputDir))) {
+      throw new Error(`Path traversal detected: ${filename}`);
+    }
+    return result;
   }
 
   getPlatformPath(platform: string, filename: string): string {
-    return join(this.outputDir, platform, filename);
+    validatePathComponent(platform, 'platform');
+    validatePathComponent(filename, 'filename');
+    const result = resolve(this.outputDir, platform, filename);
+    if (!result.startsWith(resolve(this.outputDir))) {
+      throw new Error(`Path traversal detected: ${platform}/${filename}`);
+    }
+    return result;
   }
 }

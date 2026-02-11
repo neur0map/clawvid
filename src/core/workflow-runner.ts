@@ -218,7 +218,8 @@ async function generateNarration(
   spinner.start();
 
   for (const scene of scenesWithNarration) {
-    const narrationText = scene.narration!;
+    const narrationText = scene.narration ?? '';
+    if (!narrationText) continue;
     const audioFilename = `narration-${scene.id}.mp3`;
     const audioPath = assetManager.getAssetPath(audioFilename);
     const narrationHash = hashWorkflowStep({ text: narrationText, tts: workflow.audio.tts } as Record<string, unknown>);
@@ -271,31 +272,40 @@ async function generateSceneSoundEffects(
   spinner.start();
 
   for (const scene of scenesWithSfx) {
-    for (let i = 0; i < scene.sound_effects!.length; i++) {
-      const sfx = scene.sound_effects![i];
+    const sfxArray = scene.sound_effects ?? [];
+    for (let i = 0; i < sfxArray.length; i++) {
+      const sfx = sfxArray[i];
       const sfxFilename = `sfx-${scene.id}-${i}.wav`;
       const sfxPath = assetManager.getAssetPath(sfxFilename);
 
       spinner.text = `SFX: ${sfx.prompt.slice(0, 40)}...`;
 
-      const result = await generateSoundEffect(
-        sfxModel,
-        { prompt: sfx.prompt, negative_prompt: sfx.negative_prompt, duration: sfx.duration },
-        sfxPath,
-      );
+      try {
+        const result = await generateSoundEffect(
+          sfxModel,
+          { prompt: sfx.prompt, negative_prompt: sfx.negative_prompt, duration: sfx.duration },
+          sfxPath,
+        );
 
-      const absoluteTimestamp = scene.timing.start + sfx.timing_offset;
+        const absoluteTimestamp = scene.timing.start + sfx.timing_offset;
 
-      results.push({
-        sceneId: scene.id,
-        prompt: sfx.prompt,
-        audioPath: sfxPath,
-        absoluteTimestamp,
-        duration: result.duration,
-        volume: sfx.volume ?? 0.8,
-      });
+        results.push({
+          sceneId: scene.id,
+          prompt: sfx.prompt,
+          audioPath: sfxPath,
+          absoluteTimestamp,
+          duration: result.duration,
+          volume: sfx.volume ?? 0.8,
+        });
 
-      costTracker.record(sfxModel, 0.02);
+        costTracker.record(sfxModel, 0.02);
+      } catch (err) {
+        log.warn('Sound effect generation failed, skipping', {
+          sceneId: scene.id,
+          prompt: sfx.prompt,
+          error: String(err),
+        });
+      }
     }
   }
 
@@ -341,7 +351,6 @@ function estimateImageCost(model: string): number {
   return 0.03;
 }
 
-function estimateVideoCost(model: string): number {
-  if (model.includes('kandinsky')) return 0.08;
+function estimateVideoCost(_model: string): number {
   return 0.08;
 }

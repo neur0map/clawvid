@@ -10,7 +10,7 @@ export function getFFmpegCommand(inputPath: string): ffmpeg.FfmpegCommand {
 export async function runFFmpeg(command: ffmpeg.FfmpegCommand): Promise<void> {
   return new Promise((resolve, reject) => {
     command
-      .on('start', (cmd) => log.info('FFmpeg started', { command: cmd }))
+      .on('start', (cmd) => log.debug('FFmpeg started', { command: cmd }))
       .on('progress', (progress) => log.debug('FFmpeg progress', progress))
       .on('end', () => {
         log.info('FFmpeg completed');
@@ -27,8 +27,8 @@ export async function runFFmpeg(command: ffmpeg.FfmpegCommand): Promise<void> {
 export async function getMediaInfo(filePath: string): Promise<ffmpeg.FfprobeData> {
   return new Promise((resolve, reject) => {
     ffmpeg.ffprobe(filePath, (err, data) => {
-      if (err) reject(err);
-      else resolve(data);
+      if (err) return reject(err);
+      resolve(data);
     });
   });
 }

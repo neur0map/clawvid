@@ -3,9 +3,10 @@ import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('audio-silence');
 
+const THRESHOLD_PATTERN = /^-?\d+(\.\d+)?dB$/;
+
 export interface SilenceTrimOptions {
   threshold?: string;
-  minDuration?: number;
 }
 
 export async function trimSilence(
@@ -14,9 +15,12 @@ export async function trimSilence(
   options: SilenceTrimOptions = {},
 ): Promise<void> {
   const threshold = options.threshold ?? '-40dB';
-  const minDuration = options.minDuration ?? 0.5;
 
-  log.info('Trimming silence', { threshold, minDuration });
+  if (!THRESHOLD_PATTERN.test(threshold)) {
+    throw new Error(`Invalid silence threshold format: "${threshold}". Expected pattern like "-40dB".`);
+  }
+
+  log.info('Trimming silence', { threshold });
 
   // Remove leading/trailing silence from TTS output
   const command = getFFmpegCommand(inputPath)

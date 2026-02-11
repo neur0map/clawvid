@@ -8,7 +8,12 @@ export function registerRender(program: Command): void {
     .option('-p, --platform <name>', 'Target platform (youtube, tiktok, instagram_reels)')
     .option('--all-platforms', 'Render for all configured platforms')
     .action(async (options) => {
-      const { runRender } = await import('../core/pipeline.js');
-      await runRender(options);
+      try {
+        const { runRender } = await import('../core/pipeline.js');
+        await runRender(options);
+      } catch (err) {
+        console.error('Render failed:', err instanceof Error ? err.message : String(err));
+        process.exit(1);
+      }
     });
 }

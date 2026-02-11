@@ -7,7 +7,12 @@ export function registerPreview(program: Command): void {
     .requiredOption('-w, --workflow <path>', 'Path to workflow JSON file')
     .option('-p, --platform <name>', 'Preview as platform (youtube, tiktok)', 'tiktok')
     .action(async (options) => {
-      const { runPreview } = await import('../core/pipeline.js');
-      await runPreview(options);
+      try {
+        const { runPreview } = await import('../core/pipeline.js');
+        await runPreview(options);
+      } catch (err) {
+        console.error('Preview failed:', err instanceof Error ? err.message : String(err));
+        process.exit(1);
+      }
     });
 }

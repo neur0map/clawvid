@@ -112,25 +112,35 @@ async function fallbackRender(input: RenderInput): Promise<string> {
   }
 
   // Concatenate segments
-  const { writeFile } = await import('node:fs/promises');
+  const { writeFile, unlink } = await import('node:fs/promises');
   const concatList = join(outputDir, 'concat-list.txt');
-  await writeFile(concatList, segmentPaths.map((p) => `file '${p}'`).join('\n'));
+  const escapeForConcat = (p: string) => p.replace(/'/g, "'\\''");
+  await writeFile(concatList, segmentPaths.map((p) => `file '${escapeForConcat(p)}'`).join('\n'));
 
   const audioArgs = input.props.audioUrl
     ? ['-i', String(input.props.audioUrl), '-c:a', 'aac', '-shortest']
     : ['-an'];
 
-  await runCmd('ffmpeg', [
-    '-f', 'concat',
-    '-safe', '0',
-    '-i', concatList,
-    ...audioArgs,
-    '-c:v', 'libx264',
-    '-pix_fmt', 'yuv420p',
-    '-r', String(fps),
-    '-y',
-    input.outputPath,
-  ]);
+  try {
+    await runCmd('ffmpeg', [
+      '-f', 'concat',
+      '-safe', '0',
+      '-i', concatList,
+      ...audioArgs,
+      '-c:v', 'libx264',
+      '-pix_fmt', 'yuv420p',
+      '-r', String(fps),
+      '-y',
+      input.outputPath,
+    ]);
+  } finally {
+    // Clean up temporary files
+    await unlink(concatList).catch(() => {});
+    for (let i = 0; i < scenes.length; i++) {
+      const segmentPath = join(outputDir, `segment-${i}.mp4`);
+      await unlink(segmentPath).catch(() => {});
+    }
+  }
 
   log.info('Fallback render complete', { output: input.outputPath });
   return input.outputPath;

@@ -9,7 +9,12 @@ export function registerGenerate(program: Command): void {
     .option('-q, --quality <mode>', 'Quality mode (max_quality, balanced, budget)', 'balanced')
     .option('--skip-cache', 'Skip cache and regenerate all assets')
     .action(async (options) => {
-      const { runGenerate } = await import('../core/pipeline.js');
-      await runGenerate(options);
+      try {
+        const { runGenerate } = await import('../core/pipeline.js');
+        await runGenerate(options);
+      } catch (err) {
+        console.error('Generate failed:', err instanceof Error ? err.message : String(err));
+        process.exit(1);
+      }
     });
 }

@@ -25,7 +25,13 @@ export class CacheStore {
 
   async load(): Promise<void> {
     if (await pathExists(this.cacheFile)) {
-      this.data = await readJson(this.cacheFile);
+      const raw = await readJson(this.cacheFile);
+      if (raw && typeof raw === 'object' && raw.version === 1 && typeof raw.entries === 'object' && raw.entries !== null) {
+        this.data = raw as CacheData;
+      } else {
+        log.warn('Invalid cache file format, starting fresh');
+        this.data = { version: 1, entries: {} };
+      }
       log.info('Cache loaded', { entries: Object.keys(this.data.entries).length });
     }
   }

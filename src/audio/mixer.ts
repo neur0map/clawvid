@@ -1,6 +1,11 @@
-import { writeFile } from 'node:fs/promises';
+import { writeFile, unlink } from 'node:fs/promises';
 import { getFFmpegCommand, runFFmpeg } from '../post/ffmpeg.js';
 import { createLogger } from '../utils/logger.js';
+
+/** Escape a file path for FFmpeg concat list format (single-quote wrapping). */
+function escapeForConcatList(filePath: string): string {
+  return filePath.replace(/'/g, "'\\''");
+}
 
 const log = createLogger('audio-mixer');
 
@@ -36,17 +41,21 @@ export async function concatenateNarration(
   log.info('Concatenating narration', { segments: audioPaths.length });
 
   const listPath = outputPath.replace('.mp3', '-concat-list.txt');
-  const listContent = audioPaths.map((p) => `file '${p}'`).join('\n');
+  const listContent = audioPaths.map((p) => `file '${escapeForConcatList(p)}'`).join('\n');
   await writeFile(listPath, listContent, 'utf-8');
 
-  const command = getFFmpegCommand(listPath)
-    .inputOptions(['-f', 'concat', '-safe', '0'])
-    .audioCodec('libmp3lame')
-    .audioBitrate('192k')
-    .output(outputPath);
+  try {
+    const command = getFFmpegCommand(listPath)
+      .inputOptions(['-f', 'concat', '-safe', '0'])
+      .audioCodec('libmp3lame')
+      .audioBitrate('192k')
+      .output(outputPath);
 
-  await runFFmpeg(command);
-  log.info('Narration concatenated', { output: outputPath });
+    await runFFmpeg(command);
+    log.info('Narration concatenated', { output: outputPath });
+  } finally {
+    await unlink(listPath).catch(() => {});
+  }
 }
 
 export async function mixAudio(input: MixInput, outputPath: string): Promise<void> {
@@ -63,10 +72,10 @@ export async function mixAudio(input: MixInput, outputPath: string): Promise<voi
     return;
   }
 
-  const narrationVol = input.narrationVolume ?? 1.0;
-  const musicVol = input.musicVolume ?? 0.25;
-  const fadeIn = input.musicFadeIn ?? 0;
-  const fadeOut = input.musicFadeOut ?? 0;
+  const narrationVol = Math.max(0, input.narrationVolume ?? 1.0);
+  const musicVol = Math.max(0, input.musicVolume ?? 0.25);
+  const fadeIn = Math.max(0, input.musicFadeIn ?? 0);
+  const fadeOut = Math.max(0, input.musicFadeOut ?? 0);
   const totalDuration = input.totalDuration;
 
   // Build FFmpeg complex filter graph:
@@ -93,8 +102,9 @@ export async function mixAudio(input: MixInput, outputPath: string): Promise<voi
       musicFilter += `,afade=t=in:st=0:d=${fadeIn}`;
     }
     if (fadeOut > 0 && totalDuration) {
-      const fadeStart = totalDuration - fadeOut;
-      musicFilter += `,afade=t=out:st=${fadeStart}:d=${fadeOut}`;
+      const effectiveFade = Math.min(fadeOut, totalDuration);
+      const fadeStart = Math.max(0, totalDuration - effectiveFade);
+      musicFilter += `,afade=t=out:st=${fadeStart}:d=${effectiveFade}`;
     }
     musicFilter += '[music]';
     filterParts.push(musicFilter);
@@ -106,9 +116,10 @@ export async function mixAudio(input: MixInput, outputPath: string): Promise<voi
     const sfx = sfxList[i];
     const inputIdx = hasMusic ? i + 2 : i + 1;
     inputCount++;
-    const delayMs = Math.round(sfx.timestampMs);
+    const delayMs = Math.max(0, Math.round(sfx.timestampMs));
+    const sfxVol = Math.max(0, sfx.volume);
     filterParts.push(
-      `[${inputIdx}:a]volume=${sfx.volume},adelay=${delayMs}|${delayMs}[sfx${i}]`,
+      `[${inputIdx}:a]volume=${sfxVol},adelay=${delayMs}|${delayMs}[sfx${i}]`,
     );
     inputLabels.push(`[sfx${i}]`);
   }

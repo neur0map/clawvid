@@ -10,7 +10,6 @@ import { concatenateNarration } from '../audio/mixer.js';
 import { normalizeAudio } from '../audio/normalize.js';
 import { trimSilence } from '../audio/silence.js';
 import { buildSubtitleSegments, writeSRT, writeVTT, type TimedWord } from '../subtitles/generator.js';
-import { extractWordTimings } from '../subtitles/word-timing.js';
 import { renderComposition } from '../render/renderer.js';
 import { encode } from '../post/encoder.js';
 import { extractThumbnail } from '../post/thumbnail.js';
@@ -126,8 +125,8 @@ async function processAudio(
     try {
       await trimSilence(segment.audioPath, trimmedPath);
       segment.audioPath = trimmedPath;
-    } catch {
-      log.warn('Silence trim failed, using original', { sceneId: segment.sceneId });
+    } catch (err) {
+      log.warn('Silence trim failed, using original', { sceneId: segment.sceneId, error: String(err) });
     }
   }
 
@@ -137,8 +136,8 @@ async function processAudio(
     try {
       await normalizeAudio(segment.audioPath, normalizedPath, { targetLUFS: -14 });
       segment.audioPath = normalizedPath;
-    } catch {
-      log.warn('Normalization failed, using original', { sceneId: segment.sceneId });
+    } catch (err) {
+      log.warn('Normalization failed, using original', { sceneId: segment.sceneId, error: String(err) });
     }
   }
 
@@ -151,7 +150,7 @@ async function processAudio(
   }
 
   // Determine music source: generated music takes priority, then file/url
-  const musicConfig = workflow.audio.music;
+  const musicConfig = workflow.audio?.music;
   let musicSource: string | undefined;
   if (result.generatedMusicPath) {
     musicSource = result.generatedMusicPath;
@@ -217,7 +216,8 @@ async function generateSubtitles(
   } else {
     words = [];
     for (const segment of result.narrationSegments) {
-      const segmentWords = segment.text.split(/\s+/);
+      const segmentWords = segment.text.split(/\s+/).filter(Boolean);
+      if (segmentWords.length === 0) continue;
       const wordDuration = segment.duration / segmentWords.length;
       segmentWords.forEach((word, i) => {
         words.push({
@@ -307,16 +307,16 @@ async function postProcess(
     try {
       const profile = getEncodingProfile(platform as PlatformId);
       await encode(rawPath, finalPath, profile);
-    } catch {
-      log.warn(`Encoding failed for ${platform}, copying raw file`);
+    } catch (err) {
+      log.warn(`Encoding failed for ${platform}, copying raw file`, { error: String(err) });
       const { copy } = await import('fs-extra');
       await copy(rawPath, finalPath);
     }
 
     try {
       await extractThumbnail(finalPath, thumbnailPath, 2);
-    } catch {
-      log.warn(`Thumbnail extraction failed for ${platform}`);
+    } catch (err) {
+      log.warn(`Thumbnail extraction failed for ${platform}`, { error: String(err) });
     }
 
     const { copy, pathExists } = await import('fs-extra');
