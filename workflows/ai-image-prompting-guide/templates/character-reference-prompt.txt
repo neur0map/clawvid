@@ -1,0 +1,35 @@
+CHARACTER REFERENCE PROMPT TEMPLATE
+====================================
+
+Use with: Nano Banana Pro, GPT Image, Flux
+Requires: Attach your character reference sheet image
+
+
+PROMPT:
+-------
+
+Use the attached reference sheet as the absolute ground truth for the subject's facial features, skin texture, and body proportions. The output must be a 1:1 match of the character provided.
+
+The subject is the [woman/man] from the reference image.
+
+[CUSTOMIZE BELOW]
+
+Outfit: [Describe clothing - e.g., "She is wearing a white ribbed tank top and light blue jeans"]
+
+Scene: [Describe the setting - e.g., "Standing in a modern coffee shop with warm ambient lighting"]
+
+Pose: [Describe the pose - e.g., "Casual stance, one hand holding a coffee cup, looking slightly off-camera with a soft smile"]
+
+Technical: [Optional - e.g., "Photorealistic, 8K resolution, shot on Sony A7IV, 85mm lens, f/1.8"]
+
+
+EXAMPLE FILLED IN:
+------------------
+
+Use the attached reference sheet as the absolute ground truth for the subject's facial features, skin texture, and body proportions. The output must be a 1:1 match of the character provided.
+
+The subject is the woman from the reference image. She is wearing a white ribbed tank top and distressed denim shorts.
+
+She is taking a casual mirror selfie in a well-lit bathroom. Natural morning light streams through a frosted window. She has a relaxed, genuine smile.
+
+Photorealistic, 8K, iPhone 15 Pro aesthetic, natural skin texture with visible pores.

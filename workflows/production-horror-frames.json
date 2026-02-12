@@ -1,43 +1,46 @@
 {
   "name": "The Watchers - Horror Production",
   "template": "horror",
-  "duration_target_seconds": 30,
+  "timing_mode": "tts_driven",
+  "scene_padding_seconds": 0.5,
+  "min_scene_duration_seconds": 5,
 
   "consistency": {
-    "reference_prompt": "A dark animated horror character, a tall gaunt shadow creature with glowing white eyes and elongated limbs, standing in a decrepit Victorian mansion, dark cel-shaded animation style, high contrast shadows, deep blacks and crimson accents, horror anime aesthetic",
-    "seed": 666
+    "reference_prompt": "Full-body character design of a dark animated horror entity: a tall gaunt shadow creature standing at 8 feet tall with elongated skeletal limbs that extend past its knees, glowing white pupil-less eyes set in a featureless void-black face, wisps of dark smoke constantly rising from its silhouette edges, its body semi-translucent like living shadow with faint crimson veins of light pulsing beneath the surface, standing in a decrepit Victorian mansion hallway with peeling damask wallpaper, dark cel-shaded animation style with high-contrast ink-black shadows, color palette restricted to deep blacks and crimson accents, horror anime aesthetic inspired by Junji Ito and Berserk, 8K detail, sharp linework",
+    "seed": 666,
+    "resolution": "2K"
   },
 
   "scenes": [
     {
       "id": "frame_1",
-      "description": "Exterior - Abandoned mansion at night",
+      "description": "Exterior - Abandoned mansion at night, establishing shot",
       "type": "video",
-      "timing": { "start": 0, "duration": 5 },
+      "timing": {},
       "narration": "They say the mansion on Ashwood Lane has been empty for forty years. But every night, the lights flicker on.",
 
       "image_generation": {
         "model": "fal-ai/nano-banana-pro/edit",
         "input": {
-          "prompt": "Wide establishing shot of a massive decrepit Victorian mansion at night, dark animated style, dead twisted trees in foreground, a single window glowing faint crimson, thick fog rolling across an overgrown path, moonlight casting long shadows, high contrast cel-shaded horror anime aesthetic, deep blacks and muted blues",
+          "prompt": "Wide establishing shot looking up at a massive three-story Victorian Gothic mansion at night, shot from a low worm's-eye angle on an overgrown cobblestone path. Foreground: dead twisted oak branches in sharp silhouette framing the composition, overgrown iron gate with rusted spikes slightly ajar. Mid-ground: the mansion facade with crumbling ornate cornices, broken shutters hanging at angles, ivy consuming the left wall, a single second-floor window glowing faint pulsing crimson from deep within. Background: full moon partially obscured by ragged storm clouds casting long blue-grey shadows across the facade, dead leafless canopy. Thick ground fog rolling across the path at ankle height, moonlight creating volumetric god rays through the tree branches. Dark cel-shaded horror anime aesthetic with ink-black shadows, color palette of deep indigo blues, muted greys, and a single crimson accent from the window. High contrast chiaroscuro lighting from the moonlight above-right. 8K detail, sharp architectural linework, visible wood grain texture on the decaying porch",
           "aspect_ratio": "9:16"
         }
       },
 
       "video_generation": {
-        "model": "fal-ai/kling-video/v2.6/pro/image-to-video",
+        "model": "fal-ai/vidu/q3/image-to-video",
         "input": {
-          "prompt": "Slow dolly push toward the mansion, fog drifting across frame, the crimson window light pulses gently, dead tree branches sway in wind, cinematic horror atmosphere, dark animated style",
-          "duration": "5",
-          "negative_prompt": "blur, distort, low quality, bright colors, cheerful"
+          "prompt": "Slow steady dolly push toward the mansion entrance from the gate, camera height at chest level. Thick ground fog drifts left to right across the cobblestone path, individual wisps curling around dead vegetation. The crimson window light pulses with slow increasing intensity like a heartbeat. Dead oak branches sway and creak in gusting wind, scattered dead leaves tumble across the path. Moonlight flickers as clouds drift past. Low-key horror atmosphere, dark cel-shaded animated style, smooth cinematic motion",
+          "duration": "8",
+          "resolution": "720p"
         }
       },
 
       "sound_effects": [
         {
-          "prompt": "Howling wind through dead trees at night, distant creaking wood",
+          "prompt": "Howling wind gusting through dead tree branches at night with distant wood creaking and groaning, atmospheric outdoor horror ambience",
           "timing_offset": 0,
-          "duration": 5,
+          "duration": 8,
           "volume": 0.6
         }
       ],
@@ -46,33 +49,40 @@
     },
     {
       "id": "frame_2",
-      "description": "Interior - Dark entrance hall",
+      "description": "Interior - Dark entrance hall with creature at top of stairs",
       "type": "video",
-      "timing": { "start": 5, "duration": 5 },
+      "timing": {},
       "narration": "The door was open. It was always open. As if something inside wanted you to enter.",
 
       "image_generation": {
         "model": "fal-ai/nano-banana-pro/edit",
         "input": {
-          "prompt": "Interior of a ruined Victorian entrance hall, massive staircase disappearing into darkness above, the dark animated shadow creature barely visible at the top of the stairs with glowing white eyes, dust particles floating in a shaft of moonlight from a broken window, peeling wallpaper, shattered chandelier, dark cel-shaded horror anime style, deep blacks crimson accents",
+          "prompt": "Interior medium-wide shot of a ruined Victorian entrance hall, camera positioned at the threshold looking inward. Foreground: the heavy oak front door frame with corroded brass hinges, fragments of broken glass on the floor catching moonlight, muddy footprints leading inside. Mid-ground: a grand sweeping staircase with a carved mahogany banister, several balusters missing like rotted teeth, a tattered crimson carpet runner with moth-eaten holes covering the steps, dust particles floating in a shaft of blue moonlight streaming through a shattered stained-glass window camera-right. Background: at the very top of the staircase, the dark shadow creature is barely visible — only its twin glowing white eyes pierce the absolute darkness above, its elongated silhouette merging with the shadows of the upper landing. Peeling damask wallpaper revealing crumbling plaster beneath, a shattered crystal chandelier hanging at a precarious angle from a cracked ceiling rose. Lighting: single moonlight source from broken window casting hard diagonal shadows across the stairs. Dark cel-shaded horror anime style, deep blacks with muted teal and crimson accents, chiaroscuro contrast, 8K detail, visible dust motes and cobweb textures",
           "aspect_ratio": "9:16"
         }
       },
 
+      "transition": {
+        "model": "fal-ai/pixverse/v5.6/transition",
+        "duration": "5",
+        "prompt": "Dark cinematic transition from mansion exterior through the heavy front door into the dark interior, fog rolls inward as the perspective crosses the threshold, horror atmosphere",
+        "style": "anime"
+      },
+
       "video_generation": {
-        "model": "fal-ai/kling-video/v2.6/pro/image-to-video",
+        "model": "fal-ai/vidu/q3/image-to-video",
         "input": {
-          "prompt": "Camera slowly tilts upward from the entrance floor to the top of the staircase, dust particles drift through moonlight beam, the shadow creature's eyes flicker, subtle movement in the darkness above, cinematic horror",
-          "duration": "5",
-          "negative_prompt": "blur, distort, low quality, bright, happy"
+          "prompt": "Camera slowly tilts upward from the entrance floor tiles along the staircase to the top landing, smooth crane-like vertical movement. Dense dust particles drift lazily through the diagonal moonlight beam, each mote catching the light. The shadow creature's glowing white eyes at the top of the stairs flicker with subtle pulsing intensity. A piece of wallpaper peels further from the wall. The chandelier sways almost imperceptibly. Deep shadows shift as the viewing angle changes. Cinematic horror atmosphere, dark animated style",
+          "duration": "8",
+          "resolution": "720p"
         }
       },
 
       "sound_effects": [
         {
-          "prompt": "Heavy wooden door creaking open slowly, echoing in large empty room",
+          "prompt": "Heavy old wooden door slowly creaking open on rusty hinges, the sound echoing through a large empty stone hall with reverb",
           "timing_offset": 0,
-          "duration": 3,
+          "duration": 4,
           "volume": 0.7
         }
       ],
@@ -81,33 +91,40 @@
     },
     {
       "id": "frame_3",
-      "description": "The hallway of portraits",
+      "description": "The hallway of portraits with watching eyes",
       "type": "video",
-      "timing": { "start": 10, "duration": 5 },
+      "timing": {},
       "narration": "The portraits watched you. Their painted eyes followed every step. And one of them was breathing.",
 
       "image_generation": {
         "model": "fal-ai/nano-banana-pro/edit",
         "input": {
-          "prompt": "Long dark hallway lined with old oil paintings in ornate gold frames, the portraits show pale figures with unnaturally wide eyes that seem to follow the viewer, one portrait at the end shows the shadow creature with glowing white eyes, flickering candlelight casting dancing shadows on the walls, dark cel-shaded horror anime aesthetic, deep blacks and warm amber candlelight",
+          "prompt": "Long narrow hallway shot in dramatic one-point perspective, vanishing point at center-frame. The corridor is lined floor-to-ceiling with old oil paintings in ornate tarnished gold frames of varying sizes. Foreground: closest portraits show pale Victorian figures with unnaturally wide dark eyes and frozen half-smiles, cracked oil paint with visible brushstrokes and aged yellowing varnish. Mid-ground: deeper into the hallway the portraits grow older and more deteriorated, frames tilted at unsettling angles, one portrait has a handprint smeared across the canvas. Background: at the far end of the corridor, the largest portrait in an elaborate baroque frame shows the shadow creature — glowing white eyes staring directly at the viewer, its dark form seemingly pushing outward from the canvas surface. Lighting: three brass wall sconces with flickering candlelight casting dancing warm amber shadows that make the painted eyes appear to shift, alternating pools of warm candlelight and cold shadow down the corridor. Dark cel-shaded horror anime aesthetic, color palette of warm amber candlelight against deep indigo shadows, crimson in the creature portrait, 8K detail, visible canvas texture and paint cracking on every portrait",
           "aspect_ratio": "9:16"
         }
       },
 
+      "transition": {
+        "model": "fal-ai/pixverse/v5.6/transition",
+        "duration": "5",
+        "prompt": "Moving from the grand staircase entrance hall deeper into a narrow portrait-lined corridor, the light shifts from blue moonlight to warm flickering candlelight, horror atmosphere transition",
+        "style": "anime"
+      },
+
       "video_generation": {
-        "model": "fal-ai/kling-video/v2.6/pro/image-to-video",
+        "model": "fal-ai/vidu/q3/image-to-video",
         "input": {
-          "prompt": "Slow tracking shot moving through the hallway past the portraits, candlelight flickers making shadows dance, the painted eyes seem to shift and follow, the portrait at the end pulses with an eerie glow, horror atmosphere",
-          "duration": "5",
-          "negative_prompt": "blur, distort, low quality, bright colors, modern"
+          "prompt": "Slow smooth tracking shot moving forward through the portrait hallway toward the creature painting at the far end, steady dolly movement at eye level. Brass sconce candlelight flickers and dances, casting shifting warm shadows that make the painted eyes in each portrait appear to track the camera as it passes. Dust motes drift through the candlelight beams. The creature portrait at the far end grows larger in frame, its glowing eyes pulsing brighter as the camera approaches. One candle flame gutters and nearly dies. Atmospheric horror tension building throughout, dark animated style",
+          "duration": "8",
+          "resolution": "720p"
         }
       },
 
       "sound_effects": [
         {
-          "prompt": "Slow heavy footsteps on old wooden floorboards, creaking and groaning",
+          "prompt": "Slow deliberate heavy footsteps on old creaking wooden floorboards, each step producing a groan from the aged timber, with subtle distant whispers layered underneath",
           "timing_offset": 1,
-          "duration": 4,
+          "duration": 6,
           "volume": 0.5
         }
       ],
@@ -116,33 +133,33 @@
     },
     {
       "id": "frame_4",
-      "description": "The creature reveals itself",
+      "description": "The creature reveals itself fully in a narrow corridor",
       "type": "video",
-      "timing": { "start": 15, "duration": 5 },
+      "timing": {},
       "narration": "Then you see it. Standing at the end of the corridor. Impossibly tall. Its arms hanging past its knees.",
 
       "image_generation": {
         "model": "fal-ai/nano-banana-pro/edit",
         "input": {
-          "prompt": "The dark animated shadow creature fully revealed at the end of a narrow corridor, impossibly tall and gaunt with elongated arms reaching past its knees, glowing white eyes piercing through darkness, its body slightly translucent like living shadow, the corridor walls seem to warp and bend around it, deep crimson light emanating from behind the creature, dark cel-shaded horror anime style with high contrast",
+          "prompt": "Medium shot down a narrow claustrophobic Victorian corridor, the dark shadow creature fully revealed at the far end filling the height of the doorframe. The creature stands impossibly tall at 8 feet, its gaunt skeletal torso slightly hunched to fit beneath the ceiling, elongated arms with clawed fingers dangling past its knees, wisps of dark smoke rising from its silhouette edges. Its glowing white pupil-less eyes are the brightest element in the frame, casting faint white light on the surrounding walls. The corridor walls warp and bow inward subtly around the creature's presence, wallpaper peeling away from the wall in real-time revealing black void beneath. Foreground: dusty floor with scratch marks leading toward the creature. Lighting: deep crimson bioluminescent glow emanating from behind and beneath the creature, casting its long shadow toward the camera along the floor, the rest of the corridor in near-total darkness with only faint ambient bounce. Dark cel-shaded horror anime style with maximum contrast, ink-black shadows consuming the edges, crimson and white the only colors, 8K detail, visible smoke wisps and wall texture degradation",
           "aspect_ratio": "9:16"
         }
       },
 
       "video_generation": {
-        "model": "fal-ai/kling-video/v2.6/pro/image-to-video",
+        "model": "fal-ai/vidu/q3/image-to-video",
         "input": {
-          "prompt": "The shadow creature tilts its head slowly and unnaturally, its elongated fingers twitch, the crimson light behind it pulses, the corridor walls seem to breathe and contract, extreme horror tension, dark animated style",
-          "duration": "5",
-          "negative_prompt": "blur, distort, low quality, cute, friendly, bright"
+          "prompt": "The camera holds perfectly still in a locked-off shot as the shadow creature tilts its head slowly and unnaturally to one side. Its elongated fingers twitch and curl individually with insect-like micro-movements. The crimson light behind the creature pulses faster like an accelerating heartbeat. Dark smoke wisps rise more intensely from its silhouette edges. The corridor walls seem to breathe, subtly contracting inward then expanding. The creature takes one sudden lurching step forward, its movement unnatural and jerky. Dust falls from the ceiling. Extreme horror tension, dark cel-shaded animated style",
+          "duration": "8",
+          "resolution": "720p"
         }
       },
 
       "sound_effects": [
         {
-          "prompt": "Low rumbling bass drone with sudden sharp violin screech, horror sting",
+          "prompt": "Deep rumbling sub-bass drone building in intensity with a sudden sharp dissonant violin screech, horror sting, bone cracking sound",
           "timing_offset": 2,
-          "duration": 3,
+          "duration": 5,
           "volume": 0.8
         }
       ],
@@ -151,33 +168,40 @@
     },
     {
       "id": "frame_5",
-      "description": "The chase",
+      "description": "The chase through the mansion",
       "type": "video",
-      "timing": { "start": 20, "duration": 5 },
+      "timing": {},
       "narration": "It moved. Not like anything human. It folded through space, appearing closer each time you blinked.",
 
       "image_generation": {
         "model": "fal-ai/nano-banana-pro/edit",
         "input": {
-          "prompt": "Motion blur shot of running through the dark Victorian mansion, the shadow creature appearing in multiple positions simultaneously like a glitch in reality, its glowing white eyes leaving trails of light, broken furniture and debris flying, walls cracking, extreme dynamic angle from low ground looking up, dark cel-shaded horror anime style, heavy motion blur and chromatic aberration, crimson and black color palette",
+          "prompt": "Dynamic dutch-angle shot from low ground looking up while running through the dark Victorian mansion. Extreme motion energy — the shadow creature appears simultaneously in three positions down the corridor like a temporal glitch, each instance at a different distance, all three sets of glowing white eyes creating trailing light streaks. Foreground: the viewer's outstretched hand in sharp focus pushing off a wall, knuckles white with terror, broken plaster crumbling at the touch. Mid-ground: overturned furniture and shattered debris scattered across the floor, a toppled grandfather clock, a broken mirror reflecting fractured glimpses of the creature. Background: the corridor fragments and distorts around the closest creature instance, reality warping like heat shimmer, the walls cracking with veins of crimson light bleeding through. Heavy radial motion blur at the edges suggesting desperate speed. Dark cel-shaded horror anime style with extreme chromatic aberration, color palette of crimson streaks against absolute black, white eye-glow leaving phosphorescent trails, 8K detail on the foreground hand and nearest creature instance",
           "aspect_ratio": "9:16"
         }
       },
 
+      "transition": {
+        "model": "fal-ai/pixverse/v5.6/transition",
+        "duration": "5",
+        "prompt": "Frantic jarring transition from still corridor confrontation to desperate running through the mansion, sudden burst of motion energy and chaos, horror escape sequence",
+        "style": "anime"
+      },
+
       "video_generation": {
-        "model": "fal-ai/kling-video/v2.6/pro/image-to-video",
+        "model": "fal-ai/vidu/q3/image-to-video",
         "input": {
-          "prompt": "Fast shaky camera running through dark corridors, the shadow creature teleporting closer in flashes, walls crumbling, lights exploding, frantic escape sequence, found footage horror energy, dark animated style",
-          "duration": "5",
-          "negative_prompt": "blur, low quality, static, calm, peaceful"
+          "prompt": "Fast shaky handheld camera sprinting through dark mansion corridors, shoulder-cam POV with desperate sway and bounce. The shadow creature teleport-glitches closer in stroboscopic flashes — appearing far away then suddenly near. Walls crumble and crack as the entity passes through them. Overhead lights explode in showers of sparks. The camera whips around a corner revealing the creature already waiting ahead. Frantic escape energy with escalating chaos, dark animated style",
+          "duration": "8",
+          "resolution": "720p"
         }
       },
 
       "sound_effects": [
         {
-          "prompt": "Rapid heartbeat pounding with heavy breathing, running footsteps on wood",
+          "prompt": "Rapid pounding heartbeat at 140bpm layered with heavy panicked breathing and running footsteps on creaking wood, glass shattering, furniture crashing",
           "timing_offset": 0,
-          "duration": 5,
+          "duration": 8,
           "volume": 0.7
         }
       ],
@@ -186,33 +210,40 @@
     },
     {
       "id": "frame_6",
-      "description": "The final confrontation",
+      "description": "The final confrontation - creature face fills frame",
       "type": "video",
-      "timing": { "start": 25, "duration": 5 },
+      "timing": {},
       "narration": "There is no exit. There never was. The mansion doesn't trap you. It becomes you.",
 
       "image_generation": {
         "model": "fal-ai/nano-banana-pro/edit",
         "input": {
-          "prompt": "Extreme close-up of the shadow creature's face filling the entire frame, its glowing white eyes enormous and hypnotic, its mouth opening to reveal an infinite void of darkness inside, dark tendrils of shadow reaching out from the edges of the frame toward the viewer, the face is cracking like porcelain revealing pure darkness beneath, dark cel-shaded horror anime style, maximum contrast, crimson veins of light cracking through the darkness",
+          "prompt": "Extreme close-up macro shot of the shadow creature's face consuming the entire frame, shot from slightly below looking up. The glowing white pupil-less eyes are enormous and hypnotic, each eye showing faint concentric rings of light like a dying star. The featureless void-black face is cracking apart like porcelain, fracture lines spreading from the center revealing an infinite depth of pure darkness beneath the surface, with faint crimson veins of light pulsing through the cracks like magma through volcanic rock. The creature's mouth is opening impossibly wide, revealing not teeth but a spiraling void of absolute nothingness that seems to pull the viewer inward. Dark tendrils of shadow extend outward from all edges of the frame toward the viewer, each tendril detailed with smoke-like wisps at the tips. The creature's surface texture is visible: semi-translucent shadow material with depth, like looking into dark water. Lighting: the eyes provide the primary white illumination, crimson light bleeds through every crack in the face, the overall composition is a study in darkness with strategic light accents. Dark cel-shaded horror anime style at maximum intensity, inspired by the cosmic horror of Junji Ito's spirals, 8K detail on every crack and tendril, the void inside the mouth has subtle depth with faint distant points of light like dying stars",
           "aspect_ratio": "9:16"
         }
       },
 
+      "transition": {
+        "model": "fal-ai/pixverse/v5.6/transition",
+        "duration": "5",
+        "prompt": "Terrifying transition from running through corridors to extreme close-up of the creature's face, as if slamming into it face-to-face, sudden stop of all motion into oppressive stillness, horror climax",
+        "style": "anime"
+      },
+
       "video_generation": {
-        "model": "fal-ai/kling-video/v2.6/pro/image-to-video",
+        "model": "fal-ai/vidu/q3/image-to-video",
         "input": {
-          "prompt": "Extreme slow zoom into the creature's face, its eyes pulse brighter, mouth opens wider revealing infinite void, shadow tendrils reach toward camera, the image cracks and fractures like broken glass, final horror reveal, dark animated style",
-          "duration": "5",
-          "negative_prompt": "blur, low quality, happy, bright, colorful"
+          "prompt": "Extremely slow imperceptible zoom into the creature's face, almost subliminal forward drift. The glowing eyes pulse brighter in waves, the concentric rings rotating slowly. The mouth opens wider frame by frame revealing deeper infinite void within. The porcelain cracks spread further across the face with visible fracturing movement, crimson light bleeding brighter through each new crack. Shadow tendrils reaching toward the camera drift and curl with organic smoke-like movement. The edges of the frame darken progressively, the creature consuming all remaining light. Cosmic horror atmosphere, oppressive dread, dark animated style",
+          "duration": "8",
+          "resolution": "720p"
         }
       },
 
       "sound_effects": [
         {
-          "prompt": "Deep demonic whisper layered with reverse audio, building to sudden silence",
+          "prompt": "Deep guttural demonic whisper layered with reversed audio and low frequency rumble, building to a crescendo then abrupt total silence with faint ringing",
           "timing_offset": 0,
-          "duration": 4,
+          "duration": 6,
           "volume": 0.9
         }
       ],
@@ -225,15 +256,16 @@
     "tts": {
       "model": "fal-ai/qwen-3-tts/voice-design/1.7b",
       "voice_prompt": "A low raspy whispering male voice, speaking slowly with dread and tension, pausing between phrases, as if afraid to speak too loudly, horror narrator",
-      "language": "en"
+      "language": "en",
+      "speed": 0.85
     },
     "music": {
       "generate": true,
-      "prompt": "Dark ambient horror soundtrack, deep bass drones, dissonant strings, occasional distant bells, building tension throughout, unsettling and oppressive atmosphere",
-      "duration": 30,
+      "prompt": "Dark ambient horror soundtrack, deep pulsing sub-bass drones in D minor, dissonant tremolo strings building slowly, occasional distant church bells tolling, sparse reversed piano notes, tension building throughout with increasing layered dissonance, unsettling oppressive suffocating atmosphere, no drums no rhythm just pure dread",
+      "duration": 60,
       "volume": 0.15,
-      "fade_in": 2,
-      "fade_out": 3
+      "fade_in": 3,
+      "fade_out": 4
     }
   },
 

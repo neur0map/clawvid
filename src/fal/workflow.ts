@@ -13,6 +13,7 @@ export interface ConsistencyOptions {
   aspectRatio?: string;
   model?: string;
   editModel?: string;
+  resolution?: string;
 }
 
 /**
@@ -40,6 +41,9 @@ export async function generateReferenceImage(
   }
   if (options.aspectRatio) {
     input.aspect_ratio = options.aspectRatio;
+  }
+  if (options.resolution) {
+    input.resolution = options.resolution;
   }
 
   const result = await falRequest<FalKlingImageOutput>(model, input);
@@ -91,6 +95,9 @@ export async function generateSceneFromReference(
   }
   if (options.aspectRatio) {
     input.aspect_ratio = options.aspectRatio;
+  }
+  if (options.resolution) {
+    input.resolution = options.resolution;
   }
 
   const result = await falRequest<FalKlingImageOutput>(editModel, input);

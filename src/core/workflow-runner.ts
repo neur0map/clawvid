@@ -3,7 +3,7 @@ import type { Scene } from '../schemas/scene.js';
 import type { AppConfig } from '../config/loader.js';
 import { AssetManager } from './asset-manager.js';
 import { generateImage } from '../fal/image.js';
-import { generateVideo } from '../fal/video.js';
+import { generateVideo, generateTransition } from '../fal/video.js';
 import { generateSpeech, transcribe } from '../fal/audio.js';
 import { generateSoundEffect } from '../fal/sound.js';
 import { generateMusic } from '../fal/music.js';
@@ -23,8 +23,15 @@ const COST_ESTIMATES = {
   image_default: 0.028,
   image_nano_ref: 0.15,
   image_nano_edit: 0.15,
-  video_512p: 0.35,
-  video_1024p: 0.70,
+  video_kling_5s: 0.35,
+  video_kling_10s: 0.70,
+  video_vidu_5s_720p: 0.77,
+  video_vidu_5s_1080p: 0.77,
+  video_pixverse_5s_720p: 0.45,
+  video_pixverse_5s_1080p: 0.75,
+  video_default: 0.35,
+  transition_pixverse: 0.45,
+  transition_vidu: 0.77,
   tts: 0.09,
   transcription: 0.001,
   sound_effect: 0.10,
@@ -37,6 +44,8 @@ export interface SceneAssets {
   imageUrl: string;
   videoPath?: string;
   videoUrl?: string;
+  transitionPath?: string;
+  transitionUrl?: string;
 }
 
 export interface NarrationSegment {
@@ -438,7 +447,7 @@ async function generateSceneAssets(
         sceneResult.videoPath = videoPath;
         sceneResult.videoUrl = result.url;
         await cache.set(`${scene.id}-video`, videoHash, result.url);
-        costTracker.record(scene.video_generation.model, COST_ESTIMATES.video_512p);
+        costTracker.record(scene.video_generation.model, estimateVideoCost(scene.video_generation.model));
       }
     }
 
@@ -469,6 +478,7 @@ async function generateSceneAssetsViaWorkflow(
     aspectRatio,
     model: consistency.model,
     editModel: consistency.edit_model,
+    resolution: consistency.resolution,
   };
 
   // Step 1: Generate reference image
@@ -544,11 +554,51 @@ async function generateSceneAssetsViaWorkflow(
         sceneAsset.videoPath = videoPath;
         sceneAsset.videoUrl = result.url;
         await cache.set(`${scene.id}-video`, videoHash, result.url);
-        costTracker.record(scene.video_generation.model, COST_ESTIMATES.video_512p);
+        costTracker.record(scene.video_generation.model, estimateVideoCost(scene.video_generation.model));
       }
     }
 
     results.push(sceneAsset);
+  }
+
+  // Step 3: Generate transitions between consecutive scenes
+  for (let i = 1; i < scenes.length; i++) {
+    const scene = scenes[i];
+    if (!scene.transition) continue;
+
+    const prevAsset = results[i - 1];
+    const currAsset = results[i];
+    if (!prevAsset?.imageUrl || !currAsset?.imageUrl) continue;
+
+    spinner.text = `Generating transition ${scenes[i - 1].id} → ${scene.id}...`;
+    const transFilename = `transition-${scenes[i - 1].id}-${scene.id}.mp4`;
+    const transPath = assetManager.getAssetPath(transFilename);
+
+    try {
+      const transResult = await generateTransition(
+        scene.transition.model,
+        prevAsset.imageUrl,
+        currAsset.imageUrl,
+        scene.transition.prompt ?? `Smooth transition between scenes`,
+        transPath,
+        {
+          duration: scene.transition.duration,
+          style: scene.transition.style,
+        },
+      );
+      currAsset.transitionPath = transPath;
+      currAsset.transitionUrl = transResult.url;
+      const transCost = scene.transition.model.includes('pixverse')
+        ? COST_ESTIMATES.transition_pixverse
+        : COST_ESTIMATES.transition_vidu;
+      costTracker.record(scene.transition.model, transCost);
+    } catch (err) {
+      log.warn('Transition generation failed, skipping', {
+        from: scenes[i - 1].id,
+        to: scene.id,
+        error: String(err),
+      });
+    }
   }
 
   spinner.succeed(`${scenes.length} consistent scene images generated`);
@@ -654,9 +704,16 @@ async function generateBackgroundMusic(
   }
 }
 
+function estimateVideoCost(model: string): number {
+  if (model.includes('vidu')) return COST_ESTIMATES.video_vidu_5s_720p;
+  if (model.includes('pixverse')) return COST_ESTIMATES.video_pixverse_5s_720p;
+  if (model.includes('kling')) return COST_ESTIMATES.video_kling_5s;
+  return COST_ESTIMATES.video_default;
+}
+
 function estimateCost(category: 'image' | 'video', model: string): number {
   if (category === 'image') {
     return model.includes('kling') ? COST_ESTIMATES.image_kling : COST_ESTIMATES.image_default;
   }
-  return COST_ESTIMATES.video_512p;
+  return estimateVideoCost(model);
 }

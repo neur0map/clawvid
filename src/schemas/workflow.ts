@@ -38,6 +38,7 @@ export const consistencyConfigSchema = z.object({
   seed: z.number().int().optional(),
   model: z.string().optional(),
   edit_model: z.string().optional(),
+  resolution: z.enum(['1K', '2K', '4K']).optional(),
 });
 
 export const subtitleStyleSchema = z.object({

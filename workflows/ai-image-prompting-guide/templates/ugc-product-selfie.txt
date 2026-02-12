@@ -1,0 +1,55 @@
+UGC PRODUCT SELFIE TEMPLATE
+===========================
+
+Use with: Nano Banana Pro, Flux
+Best for: Brand collaborations, product promotion, influencer-style content
+
+
+JSON FORMAT (RECOMMENDED):
+--------------------------
+
+{
+  "subject": "Young woman in her early 20s, [ETHNICITY], [HAIR COLOR] hair, natural makeup look",
+  
+  "action": "Taking a casual selfie while holding [PRODUCT NAME] near her face. Genuine excited expression, slight smile, one eye slightly squinted from smiling",
+  
+  "outfit": "[CASUAL OUTFIT - e.g., oversized gray hoodie, white tank top, etc.]",
+  
+  "environment": "Bathroom with white tile walls, soft natural light from window, slightly steamy mirror in background",
+  
+  "camera": "Shot on iPhone 15 Pro, front-facing camera, slight grain, authentic social media quality",
+  
+  "skin": "Natural skin texture with visible pores, slight under-eye circles, minor imperfections for realism - NOT airbrushed",
+  
+  "mood": "Authentic morning routine vibe, relatable and genuine"
+}
+
+
+PLAIN TEXT FORMAT:
+------------------
+
+Photorealistic selfie of a young [ETHNICITY] woman, early 20s, [HAIR DESCRIPTION], taking a bathroom mirror selfie.
+
+She's excitedly holding [PRODUCT] next to her face with a genuine smile. Wearing [CASUAL OUTFIT].
+
+Natural morning light from window. Bathroom setting with white tiles.
+
+Shot on iPhone, authentic social media aesthetic. 
+
+Skin has natural texture - visible pores, slight imperfections, real human details. NOT overly smooth or airbrushed.
+
+
+VARIABLES TO CUSTOMIZE:
+-----------------------
+[ETHNICITY] - e.g., Latina, Asian, Caucasian, Black
+[HAIR DESCRIPTION] - e.g., long dark wavy hair, short blonde bob
+[PRODUCT] - e.g., skincare serum bottle, vitamin gummies jar, protein shake
+[CASUAL OUTFIT] - e.g., white tank top, oversized hoodie, crop top
+
+
+PRO TIPS:
+---------
+• Add "slight imperfections" to avoid uncanny valley
+• "Shot on iPhone" cue helps with authentic social media look
+• Include environment details (steam, messy counter, etc.)
+• Expression should be mid-action (mid-laugh, squinting from smile)

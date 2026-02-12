@@ -1,0 +1,161 @@
+{
+  "metadata": {
+    "collected": "2026-02-06",
+    "sources": ["X/Twitter", "@369labsx", "AI image community"],
+    "purpose": "Ultra-realistic AI image generation prompts and workflows"
+  },
+  "tools": {
+    "image_generation": [
+      {
+        "name": "Nano Banana Pro",
+        "platform": "Higgsfield, OpenArt",
+        "best_for": "Ultra-realistic human portraits, UGC content",
+        "notes": "JSON-structured prompts work best, more detail = better results"
+      },
+      {
+        "name": "GPT Image / DALL-E",
+        "platform": "ChatGPT, OpenAI API",
+        "best_for": "Quick iterations, general purpose",
+        "notes": "Less consistent for character identity across images"
+      },
+      {
+        "name": "Midjourney",
+        "platform": "Discord",
+        "best_for": "Artistic styles, style references",
+        "notes": "Use --sref for style consistency"
+      },
+      {
+        "name": "Flux",
+        "platform": "Various",
+        "best_for": "Photorealistic output, fine details",
+        "notes": "Good for skin texture and lighting"
+      },
+      {
+        "name": "Stable Diffusion / SD3",
+        "platform": "Local, ComfyUI",
+        "best_for": "Full control, custom models",
+        "notes": "Requires more technical setup"
+      }
+    ],
+    "video_generation": [
+      {
+        "name": "Kling 3.0",
+        "platform": "Higgsfield",
+        "best_for": "Multi-shot video, character consistency",
+        "notes": "Single prompt workflow, 15s cinematic scenes with audio"
+      },
+      {
+        "name": "Sora 2",
+        "platform": "Higgsfield, OpenAI",
+        "best_for": "Full video ads from single prompt",
+        "notes": "No complex setup needed"
+      }
+    ]
+  },
+  "prompts": {
+    "character_consistency": [
+      {
+        "source": "@369labsx",
+        "type": "Reference Sheet Method",
+        "prompt": "Use the attached reference sheet as the absolute ground truth for the subject's facial features, skin texture, and body proportions. The output must be a 1:1 match of the character provided. The subject is the woman from the reference image.",
+        "usage": "Attach a character reference sheet with multiple angles/expressions",
+        "effectiveness": "High - maintains identity across generations"
+      }
+    ],
+    "realistic_portraits": [
+      {
+        "source": "@JustBethanyai",
+        "tool": "Nano Banana Pro",
+        "format": "JSON",
+        "prompt": {
+          "prompt": "Photorealistic 8K full-body portrait of beautiful young woman, early 20s, slim athletic build with elegant natural curves, smooth olive-toned skin...",
+          "notes": "Continue with specific details about pose, lighting, environment"
+        },
+        "key_elements": [
+          "Resolution (8K)",
+          "Age specification",
+          "Body type details",
+          "Skin tone/texture",
+          "Lighting description"
+        ]
+      },
+      {
+        "source": "Community",
+        "tool": "Nano Banana Pro",
+        "format": "Structured sections",
+        "template": {
+          "SUBJECT_AND_ACTION": "[CHARACTER] [action/pose description]",
+          "ENVIRONMENT_AND_CONTEXT": "Scene takes place in [location], [lighting], [atmosphere]",
+          "TECHNICAL": "Photorealistic, 8K, [camera settings], [lens type]"
+        }
+      }
+    ],
+    "product_imagery": [
+      {
+        "source": "@369labsx",
+        "type": "Product Extraction Gem",
+        "system_prompt": "You are a professional product image extraction specialist. Your purpose is to extract products from supplier images and create a clean, reusable, high-quality asset.",
+        "workflow": [
+          "User uploads supplier image + specifies product",
+          "AI extracts and cleans product",
+          "Output: studio-quality product shot"
+        ],
+        "use_case": "Turn low-quality supplier images into high-quality studio shots"
+      }
+    ],
+    "ugc_style": [
+      {
+        "type": "Selfie with Product",
+        "elements": [
+          "Casual bathroom/bedroom setting",
+          "Natural lighting (ring light or window)",
+          "Product held near face",
+          "Relaxed, authentic expression",
+          "Slight smile or wink"
+        ],
+        "avoid": [
+          "Perfect studio lighting",
+          "Overly polished appearance",
+          "Stiff poses"
+        ]
+      }
+    ],
+    "midjourney_style_refs": [
+      {
+        "source": "@dogan_k_",
+        "style": "Biomechanical horror",
+        "description": "Monochromatic biomechanical horror rendered with hyper-fine fibrous textures, stark high-contrast lighting, and a cold sculptural realism that fuses organic forms with eerie minimalism and existential dread.",
+        "parameters": "--ar 3:4 --sref 2262119364"
+      }
+    ]
+  },
+  "best_practices": {
+    "character_consistency": [
+      "Create a reference sheet with multiple angles of your character",
+      "Include: front view, side profile, 3/4 view, different expressions",
+      "Use the reference sheet as 'ground truth' in every prompt",
+      "Specify exact features: facial structure, skin texture, proportions",
+      "For video: use start and end frame references"
+    ],
+    "realistic_output": [
+      "Specify resolution (8K, 4K)",
+      "Describe skin texture: pores, slight imperfections, natural sheen",
+      "Include lighting details: natural, soft, directional",
+      "Add environmental context for believability",
+      "Mention camera/lens type for photographic realism"
+    ],
+    "ugc_content": [
+      "Use casual, lived-in environments",
+      "Natural poses - slightly imperfect",
+      "Relatable expressions",
+      "Product integration should feel organic",
+      "Avoid over-polished aesthetic"
+    ],
+    "workflow_efficiency": [
+      "Use JSON-structured prompts for Nano Banana Pro",
+      "More detail = better results (don't be sparse)",
+      "2-3 reruns typically needed for best output",
+      "Lock face in from start rather than matching after"
+    ]
+  }
+}

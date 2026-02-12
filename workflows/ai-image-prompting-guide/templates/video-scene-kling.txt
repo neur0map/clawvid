@@ -1,0 +1,74 @@
+VIDEO SCENE TEMPLATE (KLING 3.0 / HIGGSFIELD)
+==============================================
+
+Use with: Kling 3.0 on Higgsfield
+Best for: Short-form video content, ads, social clips
+
+
+SINGLE SCENE PROMPT:
+--------------------
+
+[CHARACTER DESCRIPTION from reference sheet]
+
+Scene: [LOCATION/SETTING]
+
+Action: [WHAT HAPPENS - be specific about movement]
+
+Camera: [CAMERA MOVEMENT - e.g., slow push-in, tracking shot, static]
+
+Duration: [5-15 seconds]
+
+Audio: [MOOD/MUSIC STYLE - optional]
+
+
+EXAMPLE - PRODUCT UNBOXING:
+---------------------------
+
+Young woman, early 20s, long brown hair, natural makeup (reference attached).
+
+Scene: Cozy bedroom with warm afternoon light. Sitting on bed with white bedding.
+
+Action: Opens a small package excitedly. Pulls out product. Holds it up to camera with genuine surprised smile. Examines it closely.
+
+Camera: Medium shot, slight slow zoom in as she holds up product.
+
+Duration: 12 seconds
+
+Audio: Upbeat, positive lo-fi background
+
+
+EXAMPLE - MORNING ROUTINE:
+--------------------------
+
+Young woman matching reference sheet.
+
+Scene: Modern bathroom, soft morning light through frosted window.
+
+Action: Applies skincare product to face while looking in mirror. Turns to camera with satisfied smile. Shows product bottle.
+
+Camera: Over-shoulder shot transitioning to front-facing.
+
+Duration: 10 seconds
+
+Audio: Calm, fresh morning vibes
+
+
+MULTI-SHOT EXAMPLE:
+-------------------
+
+Shot 1 (3s): Close-up of hands opening product packaging
+Shot 2 (4s): Medium shot of woman's excited reaction
+Shot 3 (3s): Close-up of product with soft focus background
+Shot 4 (5s): Woman applying/using product with satisfied expression
+
+Transitions: Smooth cuts
+Overall mood: Authentic, relatable, aspirational
+
+
+TIPS FOR VIDEO:
+---------------
+• Attach start frame reference for character
+• Be specific about camera movement
+• Keep actions simple and clear
+• Include transition notes for multi-shot
+• Kling 3.0 handles character consistency automatically
