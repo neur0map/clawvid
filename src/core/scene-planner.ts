@@ -19,7 +19,7 @@ export interface ScenePlan {
 export function analyzeScenePlan(scenes: Scene[], config: AppConfig): ScenePlan {
   const videoClipCount = scenes.filter((s) => s.type === 'video').length;
   const imageCount = scenes.filter((s) => s.type === 'image').length;
-  const totalDuration = scenes.reduce((sum, s) => Math.max(sum, s.timing.start + s.timing.duration), 0);
+  const totalDuration = scenes.reduce((sum, s) => Math.max(sum, (s.timing?.start ?? 0) + (s.timing?.duration ?? 0)), 0);
 
   if (videoClipCount > config.defaults.max_video_clips) {
     log.warn('Scene plan exceeds max video clips', {

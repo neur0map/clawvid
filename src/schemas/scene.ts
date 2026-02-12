@@ -34,8 +34,8 @@ export const textOverlaySchema = z.object({
 });
 
 export const timingSchema = z.object({
-  start: z.number().nonnegative(),
-  duration: z.number().positive(),
+  start: z.number().nonnegative().optional(),
+  duration: z.number().positive().optional(),
 });
 
 export const soundEffectSchema = z.object({

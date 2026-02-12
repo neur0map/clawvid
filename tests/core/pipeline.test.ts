@@ -85,7 +85,7 @@ vi.mock('../../src/core/workflow-runner.js', () => ({
       { sceneId: 'scene_1', imagePath: '/tmp/scene_1.png', imageUrl: 'https://fal.ai/scene_1.png' },
     ],
     narrationSegments: [
-      { sceneId: 'scene_1', text: 'Test narration', audioPath: '/tmp/narration-scene_1.mp3', audioUrl: 'https://fal.ai/narration.mp3', startTime: 0, duration: 10 },
+      { sceneId: 'scene_1', text: 'Test narration', audioPath: '/tmp/narration-scene_1.mp3', audioUrl: 'https://fal.ai/narration.mp3', actualDuration: 7, computedStart: 0 },
     ],
     fullNarrationPath: '/tmp/narration-full.mp3',
     transcription: { text: 'Test narration', chunks: [{ text: 'Test', timestamp: [0, 2] }] },
@@ -96,10 +96,15 @@ vi.mock('../../src/core/workflow-runner.js', () => ({
       getBreakdown: vi.fn().mockReturnValue({}),
       getSummary: vi.fn().mockReturnValue({ total: 0.1, breakdown: {}, count: 3 }),
     },
+    computedTimings: [
+      { sceneId: 'scene_1', start: 0, duration: 7.5, ttsDuration: 7, source: 'tts' },
+    ],
+    totalDuration: 7.5,
   }),
 }));
 
 vi.mock('../../src/audio/mixer.js', () => ({
+  positionNarration: vi.fn().mockResolvedValue(undefined),
   concatenateNarration: vi.fn().mockResolvedValue(undefined),
   mixAudio: vi.fn().mockResolvedValue(undefined),
 }));

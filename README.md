@@ -1,6 +1,6 @@
 # ClawVid
 
-> **Status: Beta** — End-to-end pipeline working. Full 30-second production video generated successfully with scene consistency, Kling 2.6 video, Remotion rendering, word-level subtitles, and multi-track audio. Edge cases and hardening still in progress.
+> **Status: Beta** — End-to-end pipeline working. TTS-driven timing (narration drives scene duration), voice consistency (voice cloning across scenes), subtitle sync, aspect-ratio-safe encoding, Kling 2.6 video, Remotion rendering, word-level subtitles, and multi-track audio. 97 tests passing. Edge cases and hardening still in progress.
 
 AI-powered short-form video generation CLI for [OpenClaw](https://github.com/neur0map/openclaw).
 
@@ -21,16 +21,18 @@ User: "Make a horror video about a haunted library"
       - Runs: clawvid generate --workflow workflow.json
                     |
                     v
-    ClawVid Pipeline (5 phases)
-      Phase 1. Generate images via fal.ai (kling-image/v3 or nano-banana-pro)
-      Phase 2. Generate video clips via fal.ai (Kling 2.6 Pro)
-      Phase 3. Generate TTS narration via fal.ai (qwen-3-tts)
-      Phase 4. Generate sound effects via fal.ai (beatoven)
-      Phase 5. Generate background music via fal.ai (beatoven)
-      + Process audio (trim, normalize, mix with adelay sync)
-      + Generate subtitles (Whisper word-level -> SRT/VTT)
+    ClawVid Pipeline (TTS-first, 6 phases)
+      Phase 1. Generate TTS narration (qwen-3-tts, voice cloning for consistency)
+      Phase 2. Compute timing (scene durations derived from actual TTS length)
+      Phase 3. Generate images via fal.ai (kling-image/v3 or nano-banana-pro)
+      Phase 4. Generate video clips via fal.ai (Kling 2.6 Pro)
+      Phase 5. Generate sound effects via fal.ai (beatoven)
+      Phase 6. Generate background music via fal.ai (beatoven)
+      + Position narration at scene starts (adelay, not sequential concat)
+      + Process audio (trim, normalize, multi-track mix)
+      + Generate subtitles (Whisper word-level, offset by scene start)
       + Render compositions (Remotion: 16:9 + 9:16 with effects)
-      + Post-process (FFmpeg: encode, thumbnails)
+      + Post-process (FFmpeg: encode with aspect-ratio-safe scaling, thumbnails)
                     |
                     v
     output/2026-02-11-haunted-library/
@@ -137,12 +139,13 @@ Minimal example:
 {
   "name": "Quick Horror",
   "template": "horror",
-  "duration_target_seconds": 30,
+  "timing_mode": "tts_driven",
+  "scene_padding_seconds": 0.5,
   "scenes": [
     {
       "id": "scene_1",
       "type": "video",
-      "timing": { "start": 0, "duration": 15 },
+      "timing": {},
       "narration": "The door opened by itself.",
       "image_generation": {
         "model": "fal-ai/kling-image/v3/text-to-image",
@@ -232,7 +235,7 @@ clawvid/
 
     core/                        # Pipeline orchestration
       pipeline.ts                #   Main pipeline (generate/render/preview/studio/setup)
-      workflow-runner.ts          #   Execute workflow steps (5 phases)
+      workflow-runner.ts          #   TTS-first workflow execution (6 phases + computeTiming)
       scene-planner.ts           #   Validate scene plans
       asset-manager.ts           #   Track assets per run
 
@@ -280,7 +283,7 @@ clawvid/
         transition.tsx           #   Scene transitions
 
     audio/                       # Audio processing
-      mixer.ts                   #   Multi-track mix: narration + music + positioned SFX (adelay)
+      mixer.ts                   #   positionNarration (adelay) + multi-track mix (narration + music + SFX)
       normalize.ts               #   LUFS normalization (-14 target)
       silence.ts                 #   Trim silence from TTS output
 
@@ -290,7 +293,7 @@ clawvid/
 
     post/                        # FFmpeg post-production
       ffmpeg.ts                  #   fluent-ffmpeg wrapper
-      encoder.ts                 #   Platform-specific encoding profiles
+      encoder.ts                 #   Platform-specific encoding (aspect-ratio-safe scale+pad)
       thumbnail.ts               #   Frame extraction for thumbnails
 
     validation/                  # Asset validation
@@ -344,7 +347,7 @@ clawvid/
 | AI Generation | fal.ai (see model reference below) |
 | Video Composition | Remotion (React-based) |
 | Post-Production | FFmpeg via fluent-ffmpeg |
-| Audio Sync | FFmpeg adelay filter for SFX positioning |
+| Audio Sync | FFmpeg adelay for narration positioning + SFX placement |
 | Image Processing | Sharp |
 | Schema Validation | Zod |
 | Concurrency | p-queue + p-retry |

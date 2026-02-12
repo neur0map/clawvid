@@ -58,6 +58,61 @@ export async function concatenateNarration(
   }
 }
 
+/**
+ * Position narration segments at their computed scene start times using adelay,
+ * instead of sequential concatenation. This ensures each narration segment
+ * plays at the correct point in the final video timeline.
+ */
+export async function positionNarration(
+  segments: Array<{ audioPath: string; startTimeMs: number }>,
+  totalDurationMs: number,
+  outputPath: string,
+): Promise<void> {
+  if (segments.length === 0) return;
+
+  if (segments.length === 1 && segments[0].startTimeMs === 0) {
+    const { copy } = await import('fs-extra');
+    await copy(segments[0].audioPath, outputPath);
+    return;
+  }
+
+  log.info('Positioning narration segments', {
+    segments: segments.length,
+    totalDurationMs,
+  });
+
+  const filterParts: string[] = [];
+  const segLabels: string[] = [];
+
+  for (let i = 0; i < segments.length; i++) {
+    const delayMs = Math.max(0, Math.round(segments[i].startTimeMs));
+    filterParts.push(
+      `[${i}:a]aresample=44100,adelay=${delayMs}|${delayMs}[seg_${i}]`,
+    );
+    segLabels.push(`[seg_${i}]`);
+  }
+
+  // Mix all positioned segments (normalize=0 because segments don't overlap)
+  filterParts.push(
+    `${segLabels.join('')}amix=inputs=${segments.length}:duration=longest:normalize=0[out]`,
+  );
+
+  let command = getFFmpegCommand(segments[0].audioPath);
+  for (let i = 1; i < segments.length; i++) {
+    command = command.input(segments[i].audioPath);
+  }
+
+  command = command
+    .complexFilter(filterParts)
+    .outputOptions(['-map', '[out]', '-t', String(totalDurationMs / 1000)])
+    .audioCodec('libmp3lame')
+    .audioBitrate('192k')
+    .output(outputPath);
+
+  await runFFmpeg(command);
+  log.info('Narration positioned', { output: outputPath, segments: segments.length });
+}
+
 export async function mixAudio(input: MixInput, outputPath: string): Promise<void> {
   const sfxList = input.soundEffects ?? [];
 

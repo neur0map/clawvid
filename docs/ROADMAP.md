@@ -1,8 +1,41 @@
 # ClawVid Roadmap to Production-Ready
 
-Status: **End-to-end pipeline working. 30s production video generated successfully. 82 tests passing.**
+Status: **End-to-end pipeline working. TTS-driven timing, voice consistency, and subtitle sync implemented. 97 tests passing.**
 
-### Recent Changes (2026-02-12)
+### Recent Changes (2026-02-12, session 2)
+
+#### TTS-Driven Timing Pipeline
+- Rearchitected pipeline order: TTS runs **first**, scene durations derived from actual narration length
+- **Before:** All scenes hardcoded to 5s, narration totals ~46s, video only 30s — audio truncated
+- **After:** Scene durations = TTS duration + 0.5s padding, video matches narration perfectly
+- New `computeTiming()` function computes scene starts/durations from TTS output
+- Two timing modes: `tts_driven` (default) and `fixed` (backward-compatible)
+- Configurable `scene_padding_seconds` (default 0.5) and `min_scene_duration_seconds` (default 3)
+
+#### Voice Consistency
+- Scene 1 generates voice from `voice_prompt`, captures audio URL
+- Scenes 2-N inject `voice_reference: scene1AudioUrl` for voice cloning via qwen-3-tts
+- All narration segments now use the same voice automatically
+
+#### Subtitle Sync Fix
+- Whisper timestamps now offset by `computedStart` (scene start time), not cumulative concat offset
+- Subtitles align to actual video timeline instead of the concatenated audio timeline
+
+#### Audio Positioning
+- New `positionNarration()` in mixer.ts — places each segment at its computed start via `adelay`
+- Replaces sequential `concatenateNarration()` — segments no longer pile up at the start
+
+#### Video Orientation Bug Fix
+- **Fallback renderer:** Added target resolution scaling (`scale=W:H:force_original_aspect_ratio=decrease,pad=...`)
+- **Encoder:** Replaced `.size()` with aspect-ratio-preserving `scale+pad` filter, fixed fluent-ffmpeg chain ordering
+- Source assets (768x1376 images, 1076x1924 video clips) now correctly scale to target (1080x1920 or 1920x1080)
+
+#### Schema Changes
+- `duration_target_seconds` now optional (not needed in TTS-driven mode)
+- `timing.start` and `timing.duration` now optional per scene
+- Added `timing_mode`, `scene_padding_seconds`, `min_scene_duration_seconds` to workflow schema
+
+### Previous Changes (2026-02-12, session 1)
 
 - Replaced fal.ai workflow platform with direct API orchestration for scene consistency
 - Switched video generation from kandinsky5-pro to **Kling 2.6 Pro** (1076x1924 output)
@@ -76,9 +109,11 @@ Full pipeline exercised with real API calls across multiple generation runs.
 ### 2.2 Audio processing chain
 
 - [x] TTS generates one audio file per narrated scene
+- [x] TTS-first pipeline: narration generated before scene timing is computed
+- [x] Voice consistency: scene 1 voice cloned for all subsequent scenes via `voice_reference`
 - [x] `silence.ts` — `silenceremove` filter works with fluent-ffmpeg
 - [x] `normalize.ts` — `loudnorm` single-pass works correctly (-14 LUFS)
-- [x] `mixer.ts` concatenation — concat filter produces valid audio
+- [x] `mixer.ts` `positionNarration()` — positions segments at computed scene starts via `adelay`
 - [x] `mixer.ts` music mixing — background music plays throughout
 - [x] `mixer.ts` SFX positioning — `adelay` places SFX at correct timestamps
 - [x] Multi-track mix verified: narration + music + 6 positioned SFX via `amix`
@@ -96,6 +131,8 @@ Full pipeline exercised with real API calls across multiple generation runs.
 - [x] `timing.start` (seconds) correctly converts to `startFrame` (at 30fps)
 - [x] `timing.duration` (seconds) correctly converts to `durationFrames`
 - [x] Total frames matches `duration_target_seconds * fps` (900 frames = 30s at 30fps)
+- [x] Computed timing (`computedTimings`) used for frame conversion in TTS-driven mode
+- [x] `renderAllPlatforms()` uses `computedTimings` for `startFrame` and `durationFrames`
 
 ---
 
@@ -137,6 +174,8 @@ Remotion rendering fully operational. Key fix: hard-link assets into bundle `pub
 
 - [x] FFmpeg fallback works when Remotion fails
 - [x] Fallback uses `-stream_loop -1 -t <duration>` for video looping
+- [x] Fallback now scales to target resolution (`scale+pad` with `force_original_aspect_ratio=decrease`)
+- [x] Target resolution derived from `compositionId` (LandscapeVideo=1920x1080, PortraitVideo=1080x1920)
 
 ---
 
@@ -145,6 +184,8 @@ Remotion rendering fully operational. Key fix: hard-link assets into bundle `pub
 ### 4.1 Encoding
 
 - [x] `encoder.ts` platform-specific encoding profiles work
+- [x] Fixed aspect-ratio-preserving scaling (`scale+pad` filter replaces `.size()`)
+- [x] Fixed fluent-ffmpeg chain ordering (`.output()` after `.videoFilter()`)
 - [ ] YouTube output (h264, 8M bitrate, 1920x1080, AAC 192k) — not yet tested
 - [x] TikTok output (h264, 6M bitrate, 1080x1920, AAC 128k) — verified
 - [ ] Instagram output — not yet tested (same specs as TikTok)
@@ -158,6 +199,8 @@ Remotion rendering fully operational. Key fix: hard-link assets into bundle `pub
 
 - [x] All filter chains work (silence trimming, normalization, mixing, encoding)
 - [x] Fixed `.videoBitrate('6M')` bug — replaced with `.outputOptions(['-b:v', profile.bitrate])`
+- [x] Fixed `.size()` distortion bug — replaced with `scale+pad` videoFilter
+- [x] Fixed chain ordering — `.output()` must come after filter setup
 
 ---
 
@@ -169,6 +212,11 @@ Multiple successful end-to-end runs completed.
 
 1. **2-scene motivation test** (consistency + Kling 2.6): 16s, 1080x1920, $0.90
 2. **6-scene horror production** (full pipeline): 30s, 1080x1920, $4.40
+
+### Known issue found and fixed
+
+- **Timing mismatch:** 6-scene horror had ~46s of narration crammed into 30s video. Root cause: hardcoded 5s scene durations vs 6-9s TTS narration. Fixed with TTS-driven timing pipeline.
+- **Video orientation bug:** Fallback renderer + encoder produced distorted 9:16 content in 16:9 frame. Fixed with aspect-ratio-preserving scale+pad filters.
 
 ### Validation checklist
 
@@ -306,10 +354,10 @@ The quality of generated videos depends heavily on the prompts in the workflow J
 | Phase | Status | Notes |
 |-------|--------|-------|
 | 1. fal.ai API | **COMPLETE** | All 7 models validated |
-| 2. Pipeline flow | **COMPLETE** | Full 5-phase pipeline working |
-| 3. Remotion | **COMPLETE** | Hard-link fix, Loop+OffthreadVideo, transitions |
-| 4. FFmpeg | **COMPLETE** | Encoding, thumbnails, audio processing |
-| 5. End-to-end | **COMPLETE** | 30s production video generated |
+| 2. Pipeline flow | **COMPLETE** | TTS-first pipeline, voice consistency, positioned narration |
+| 3. Remotion | **COMPLETE** | Hard-link fix, Loop+OffthreadVideo, transitions, computed timing |
+| 4. FFmpeg | **COMPLETE** | Encoding, thumbnails, audio processing, aspect-ratio-safe scaling |
+| 5. End-to-end | **COMPLETE** | 30s production video generated, timing mismatch found and fixed |
 | 6. Cache/re-render | **PARTIAL** | Basic caching + re-render work |
 | 7. Edge cases | NOT STARTED | Need hardening pass |
 | 8. Polish | **PARTIAL** | Progress + cost tracking done |

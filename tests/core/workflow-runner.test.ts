@@ -13,7 +13,7 @@ vi.mock('../../src/fal/video.js', () => ({
 }));
 
 vi.mock('../../src/fal/audio.js', () => ({
-  generateSpeech: vi.fn().mockResolvedValue({ url: 'https://fal.ai/speech.mp3', duration: 5 }),
+  generateSpeech: vi.fn().mockResolvedValue({ url: 'https://fal.ai/speech.mp3', duration: 7 }),
   transcribe: vi.fn().mockResolvedValue({ text: 'Hello world', chunks: [{ text: 'Hello', timestamp: [0, 1] }] }),
 }));
 
@@ -71,7 +71,7 @@ vi.mock('../../src/core/asset-manager.js', () => ({
   })),
 }));
 
-import { executeWorkflow } from '../../src/core/workflow-runner.js';
+import { executeWorkflow, computeTiming, type NarrationSegment } from '../../src/core/workflow-runner.js';
 import { generateImage } from '../../src/fal/image.js';
 import { generateVideo } from '../../src/fal/video.js';
 import { generateSpeech } from '../../src/fal/audio.js';
@@ -143,6 +143,23 @@ describe('Core: workflow-runner', () => {
     expect(result.sceneAssets).toHaveLength(2);
     expect(result.narrationSegments).toHaveLength(2);
     expect(result.costTracker).toBeDefined();
+    expect(result.computedTimings).toHaveLength(2);
+    expect(result.totalDuration).toBeGreaterThan(0);
+  });
+
+  it('should return NarrationSegments with actualDuration and computedStart', async () => {
+    const workflow = makeWorkflow();
+    const assetManager = new AssetManager('/tmp/test-output', 'test');
+
+    const result = await executeWorkflow(workflow, config, assetManager, true);
+
+    for (const segment of result.narrationSegments) {
+      expect(segment.actualDuration).toBeGreaterThan(0);
+      expect(typeof segment.computedStart).toBe('number');
+    }
+
+    // Second segment should start after first
+    expect(result.narrationSegments[1].computedStart).toBeGreaterThan(0);
   });
 
   it('should skip cached steps', async () => {
@@ -168,7 +185,7 @@ describe('Core: workflow-runner', () => {
     const result = await executeWorkflow(workflow, config, assetManager, true);
 
     const summary = result.costTracker.getSummary();
-    // Should have recorded costs for: 2 images + 1 video + 2 narrations + 1 transcription
+    // Should have recorded costs for: 2 images + 1 video + 2 narrations + 2 transcriptions
     expect(summary.count).toBeGreaterThanOrEqual(5);
     expect(summary.total).toBeGreaterThan(0);
     expect(summary.breakdown).toBeDefined();
@@ -207,5 +224,105 @@ describe('Core: workflow-runner', () => {
 
     // The workflow runner should throw because image generation is required
     await expect(executeWorkflow(workflow, config, assetManager, true)).rejects.toThrow('API rate limit');
+  });
+
+  it('should inject voice_reference for scenes after the first', async () => {
+    const workflow = makeWorkflow();
+    const assetManager = new AssetManager('/tmp/test-output', 'test');
+
+    await executeWorkflow(workflow, config, assetManager, true);
+
+    // First call: no voice_reference
+    const firstCall = vi.mocked(generateSpeech).mock.calls[0];
+    expect(firstCall[0].voice_reference).toBeUndefined();
+
+    // Second call: should have voice_reference set to first audio URL
+    const secondCall = vi.mocked(generateSpeech).mock.calls[1];
+    expect(secondCall[0].voice_reference).toBe('https://fal.ai/speech.mp3');
+  });
+});
+
+describe('computeTiming', () => {
+  it('should compute TTS-driven timing with padding', () => {
+    const workflow = makeWorkflow();
+    const segments: NarrationSegment[] = [
+      { sceneId: 'scene_1', text: 'Hello', audioPath: '', audioUrl: '', actualDuration: 7, computedStart: 0 },
+      { sceneId: 'scene_2', text: 'World', audioPath: '', audioUrl: '', actualDuration: 8, computedStart: 0 },
+    ];
+
+    const timings = computeTiming(workflow, segments);
+
+    expect(timings).toHaveLength(2);
+    // scene_1: max(7 + 0.5, 3) = 7.5
+    expect(timings[0].start).toBe(0);
+    expect(timings[0].duration).toBe(7.5);
+    expect(timings[0].source).toBe('tts');
+    // scene_2: max(8 + 0.5, 3) = 8.5, start = 7.5
+    expect(timings[1].start).toBe(7.5);
+    expect(timings[1].duration).toBe(8.5);
+    expect(timings[1].source).toBe('tts');
+  });
+
+  it('should use fixed timing mode when specified', () => {
+    const workflow = makeWorkflow({ timing_mode: 'fixed' });
+    const segments: NarrationSegment[] = [
+      { sceneId: 'scene_1', text: 'Hello', audioPath: '', audioUrl: '', actualDuration: 7, computedStart: 0 },
+      { sceneId: 'scene_2', text: 'World', audioPath: '', audioUrl: '', actualDuration: 8, computedStart: 0 },
+    ];
+
+    const timings = computeTiming(workflow, segments);
+
+    expect(timings).toHaveLength(2);
+    // Fixed mode uses workflow JSON timing
+    expect(timings[0].start).toBe(0);
+    expect(timings[0].duration).toBe(10);
+    expect(timings[0].source).toBe('workflow');
+    expect(timings[1].start).toBe(10);
+    expect(timings[1].duration).toBe(10);
+    expect(timings[1].source).toBe('workflow');
+  });
+
+  it('should respect min_scene_duration_seconds', () => {
+    const workflow = makeWorkflow({ min_scene_duration_seconds: 10 });
+    const segments: NarrationSegment[] = [
+      { sceneId: 'scene_1', text: 'Hi', audioPath: '', audioUrl: '', actualDuration: 2, computedStart: 0 },
+      { sceneId: 'scene_2', text: 'Ok', audioPath: '', audioUrl: '', actualDuration: 1, computedStart: 0 },
+    ];
+
+    const timings = computeTiming(workflow, segments);
+
+    // max(2 + 0.5, 10) = 10
+    expect(timings[0].duration).toBe(10);
+    expect(timings[1].duration).toBe(10);
+  });
+
+  it('should use custom padding', () => {
+    const workflow = makeWorkflow({ scene_padding_seconds: 2 });
+    const segments: NarrationSegment[] = [
+      { sceneId: 'scene_1', text: 'Hello', audioPath: '', audioUrl: '', actualDuration: 7, computedStart: 0 },
+      { sceneId: 'scene_2', text: 'World', audioPath: '', audioUrl: '', actualDuration: 8, computedStart: 0 },
+    ];
+
+    const timings = computeTiming(workflow, segments);
+
+    // max(7 + 2, 3) = 9
+    expect(timings[0].duration).toBe(9);
+    // max(8 + 2, 3) = 10
+    expect(timings[1].duration).toBe(10);
+  });
+
+  it('should fall back to default for scenes without narration', () => {
+    const workflow = makeWorkflow();
+    // Only scene_1 has narration
+    const segments: NarrationSegment[] = [
+      { sceneId: 'scene_1', text: 'Hello', audioPath: '', audioUrl: '', actualDuration: 7, computedStart: 0 },
+    ];
+
+    const timings = computeTiming(workflow, segments);
+
+    expect(timings[0].source).toBe('tts');
+    // scene_2 has no narration segment → uses workflow timing or default
+    expect(timings[1].source).toBe('workflow');
+    expect(timings[1].duration).toBe(10); // from workflow JSON
   });
 });

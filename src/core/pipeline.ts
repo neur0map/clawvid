@@ -7,7 +7,7 @@ import { loadConfig, type AppConfig } from '../config/loader.js';
 import { workflowSchema, type Workflow } from '../schemas/workflow.js';
 import { AssetManager } from './asset-manager.js';
 import { executeWorkflow, type WorkflowResult } from './workflow-runner.js';
-import { concatenateNarration } from '../audio/mixer.js';
+import { positionNarration } from '../audio/mixer.js';
 import { normalizeAudio } from '../audio/normalize.js';
 import { trimSilence } from '../audio/silence.js';
 import { buildSubtitleSegments, writeSRT, writeVTT, type TimedWord, type SubtitleSegment } from '../subtitles/generator.js';
@@ -55,7 +55,8 @@ export async function runGenerate(options: GenerateOptions): Promise<void> {
   const workflowPath = resolve(options.workflow);
   const rawWorkflow = await readJson(workflowPath);
   const workflow = workflowSchema.parse(rawWorkflow);
-  spinner.succeed(`Workflow loaded: ${workflow.name} (${workflow.scenes.length} scenes, ${workflow.duration_target_seconds}s)`);
+  const durationLabel = workflow.duration_target_seconds ? `${workflow.duration_target_seconds}s target` : 'tts-driven';
+  spinner.succeed(`Workflow loaded: ${workflow.name} (${workflow.scenes.length} scenes, ${durationLabel})`);
 
   // 2. Initialize output directory
   const assetManager = new AssetManager(
@@ -148,10 +149,14 @@ async function processAudio(
     }
   }
 
-  // Concatenate all narration into one file
+  // Position narration segments at their computed scene start times
   if (result.fullNarrationPath) {
-    await concatenateNarration(
-      result.narrationSegments.map((s) => s.audioPath),
+    await positionNarration(
+      result.narrationSegments.map((s) => ({
+        audioPath: s.audioPath,
+        startTimeMs: s.computedStart * 1000,
+      })),
+      result.totalDuration * 1000,
       result.fullNarrationPath,
     );
   }
@@ -196,7 +201,7 @@ async function processAudio(
           musicVolume: musicConfig?.volume ?? 0.25,
           musicFadeIn: musicConfig?.fade_in,
           musicFadeOut: musicConfig?.fade_out,
-          totalDuration: workflow.duration_target_seconds,
+          totalDuration: result.totalDuration,
         },
         mixedPath,
       );
@@ -233,12 +238,12 @@ async function generateSubtitles(
     for (const segment of result.narrationSegments) {
       const segmentWords = segment.text.split(/\s+/).filter(Boolean);
       if (segmentWords.length === 0) continue;
-      const wordDuration = segment.duration / segmentWords.length;
+      const wordDuration = segment.actualDuration / segmentWords.length;
       segmentWords.forEach((word, i) => {
         words.push({
           word,
-          start: segment.startTime + i * wordDuration,
-          end: segment.startTime + (i + 1) * wordDuration,
+          start: segment.computedStart + i * wordDuration,
+          end: segment.computedStart + (i + 1) * wordDuration,
         });
       });
     }
@@ -306,12 +311,13 @@ async function renderAllPlatforms(
     const props = {
       scenes: workflow.scenes.map((scene) => {
         const assets = result.sceneAssets.find((a) => a.sceneId === scene.id);
+        const timing = result.computedTimings.find((t) => t.sceneId === scene.id);
         return {
           id: scene.id,
           type: scene.type,
           src: scene.type === 'video' && assets?.videoPath ? assets.videoPath : assets?.imagePath ?? '',
-          startFrame: Math.round(scene.timing.start * fps),
-          durationFrames: Math.round(scene.timing.duration * fps),
+          startFrame: Math.round((timing?.start ?? scene.timing?.start ?? 0) * fps),
+          durationFrames: Math.round((timing?.duration ?? scene.timing?.duration ?? 5) * fps),
           effects: scene.effects ?? [],
         };
       }),
@@ -391,6 +397,22 @@ export async function runRender(options: RenderOptions): Promise<void> {
 
   const workflow = workflowSchema.parse(await readJson(join(runDir, 'workflow.json')));
 
+  // Build computed timings from workflow scene data for re-render
+  let reRenderStart = 0;
+  const computedTimings = workflow.scenes.map((s) => {
+    const duration = s.timing?.duration ?? 5;
+    const start = s.timing?.start ?? reRenderStart;
+    reRenderStart = start + duration;
+    return {
+      sceneId: s.id,
+      start,
+      duration,
+      ttsDuration: 0,
+      source: 'workflow' as const,
+    };
+  });
+  const totalDuration = computedTimings.reduce((sum, t) => sum + t.duration, 0);
+
   const result: WorkflowResult = {
     sceneAssets: workflow.scenes.map((s) => ({
       sceneId: s.id,
@@ -402,6 +424,8 @@ export async function runRender(options: RenderOptions): Promise<void> {
     fullNarrationPath: join(runDir, 'assets', 'audio-mixed.mp3'),
     soundEffects: [],
     costTracker: new (await import('../fal/cost.js')).CostTracker(),
+    computedTimings,
+    totalDuration,
   };
 
   await renderAllPlatforms(workflow, result, assetManager, config, platforms);

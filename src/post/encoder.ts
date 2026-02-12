@@ -23,13 +23,16 @@ export async function encode(
     bitrate: profile.bitrate,
   });
 
+  const { width, height } = profile.resolution;
+  // Scale to target resolution preserving aspect ratio, pad with black bars if needed
+  const scaleFilter = `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:black,setsar=1`;
+
   const command = getFFmpegCommand(inputPath)
-    .inputOptions(['-y'])
-    .output(outputPath)
     .videoCodec(profile.codec === 'h264' ? 'libx264' : profile.codec)
     .outputOptions(['-b:v', profile.bitrate])
-    .size(`${profile.resolution.width}x${profile.resolution.height}`)
-    .outputOptions(['-pix_fmt', 'yuv420p']);
+    .videoFilter(scaleFilter)
+    .outputOptions(['-pix_fmt', 'yuv420p', '-y'])
+    .output(outputPath);
 
   // Probe for audio stream — if present, encode it; otherwise skip
   try {

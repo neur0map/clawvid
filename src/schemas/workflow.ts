@@ -66,7 +66,10 @@ export const outputConfigSchema = z.object({
 export const workflowSchema = z.object({
   name: z.string(),
   template: z.string(),
-  duration_target_seconds: z.number().positive(),
+  duration_target_seconds: z.number().positive().optional(),
+  timing_mode: z.enum(['tts_driven', 'fixed']).optional(),
+  scene_padding_seconds: z.number().nonnegative().optional(),
+  min_scene_duration_seconds: z.number().positive().optional(),
   scenes: z.array(sceneSchema).min(1),
   audio: audioConfigSchema,
   subtitles: subtitlesConfigSchema.optional(),

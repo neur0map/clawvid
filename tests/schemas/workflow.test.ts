@@ -261,4 +261,83 @@ describe('Schema: workflow', () => {
     const result = workflowSchema.safeParse(invalid);
     expect(result.success).toBe(false);
   });
+
+  it('should accept workflow without duration_target_seconds', () => {
+    const { duration_target_seconds, ...noDuration } = validWorkflow;
+    const result = workflowSchema.safeParse(noDuration);
+    expect(result.success).toBe(true);
+  });
+
+  it('should accept workflow with timing_mode', () => {
+    const withTimingMode = {
+      ...validWorkflow,
+      timing_mode: 'tts_driven',
+    };
+    const result = workflowSchema.safeParse(withTimingMode);
+    expect(result.success).toBe(true);
+  });
+
+  it('should accept workflow with fixed timing_mode', () => {
+    const withFixed = {
+      ...validWorkflow,
+      timing_mode: 'fixed',
+    };
+    const result = workflowSchema.safeParse(withFixed);
+    expect(result.success).toBe(true);
+  });
+
+  it('should reject invalid timing_mode', () => {
+    const invalid = {
+      ...validWorkflow,
+      timing_mode: 'auto',
+    };
+    const result = workflowSchema.safeParse(invalid);
+    expect(result.success).toBe(false);
+  });
+
+  it('should accept workflow with scene_padding_seconds', () => {
+    const withPadding = {
+      ...validWorkflow,
+      scene_padding_seconds: 1.5,
+    };
+    const result = workflowSchema.safeParse(withPadding);
+    expect(result.success).toBe(true);
+  });
+
+  it('should accept workflow with min_scene_duration_seconds', () => {
+    const withMin = {
+      ...validWorkflow,
+      min_scene_duration_seconds: 5,
+    };
+    const result = workflowSchema.safeParse(withMin);
+    expect(result.success).toBe(true);
+  });
+
+  it('should accept scene with optional timing fields', () => {
+    const optionalTiming = {
+      ...validWorkflow,
+      scenes: [
+        {
+          ...validWorkflow.scenes[0],
+          timing: {},
+        },
+      ],
+    };
+    const result = workflowSchema.safeParse(optionalTiming);
+    expect(result.success).toBe(true);
+  });
+
+  it('should accept scene with partial timing (only start)', () => {
+    const partialTiming = {
+      ...validWorkflow,
+      scenes: [
+        {
+          ...validWorkflow.scenes[0],
+          timing: { start: 5 },
+        },
+      ],
+    };
+    const result = workflowSchema.safeParse(partialTiming);
+    expect(result.success).toBe(true);
+  });
 });

@@ -44,8 +44,16 @@ export interface NarrationSegment {
   text: string;
   audioPath: string;
   audioUrl: string;
-  startTime: number;
+  actualDuration: number;
+  computedStart: number;
+}
+
+export interface ComputedSceneTiming {
+  sceneId: string;
+  start: number;
   duration: number;
+  ttsDuration: number;
+  source: 'tts' | 'workflow' | 'default';
 }
 
 export interface SoundEffectAsset {
@@ -65,6 +73,8 @@ export interface WorkflowResult {
   soundEffects: SoundEffectAsset[];
   generatedMusicPath?: string;
   costTracker: CostTracker;
+  computedTimings: ComputedSceneTiming[];
+  totalDuration: number;
 }
 
 export async function executeWorkflow(
@@ -81,10 +91,37 @@ export async function executeWorkflow(
     name: workflow.name,
     scenes: workflow.scenes.length,
     template: workflow.template,
+    timingMode: workflow.timing_mode ?? 'tts_driven',
   });
 
-  // Phase 1: Generate scene images & videos
-  // Use direct API orchestration for consistent images when configured
+  // Phase 1: Generate narration FIRST (TTS-driven timing, voice consistency)
+  const narrationSegments = await generateNarrationFirst(
+    workflow,
+    assetManager,
+    cache,
+    costTracker,
+    skipCache,
+  );
+
+  // Phase 2: Compute timing from TTS durations
+  const computedTimings = computeTiming(workflow, narrationSegments);
+  const totalDuration = computedTimings.reduce((sum, t) => sum + t.duration, 0);
+
+  // Update narration segments with computed start times
+  for (const segment of narrationSegments) {
+    const timing = computedTimings.find((t) => t.sceneId === segment.sceneId);
+    if (timing) {
+      segment.computedStart = timing.start;
+    }
+  }
+
+  log.info('Timing computed', {
+    mode: workflow.timing_mode ?? 'tts_driven',
+    totalDuration: `${totalDuration.toFixed(1)}s`,
+    scenes: computedTimings.map((t) => `${t.sceneId}:${t.duration.toFixed(1)}s`),
+  });
+
+  // Phase 3: Generate scene images & videos
   const sceneAssets = workflow.consistency
     ? await generateSceneAssetsViaWorkflow(
         workflow,
@@ -101,89 +138,36 @@ export async function executeWorkflow(
         skipCache,
       );
 
-  // Phase 2: Generate narration audio per scene
-  const narrationSegments = await generateNarration(
-    workflow,
-    assetManager,
-    cache,
-    costTracker,
-    skipCache,
-  );
-
-  // Phase 3: Concatenate narration and transcribe for subtitles
-  let fullNarrationPath: string | undefined;
-  let transcription: WorkflowResult['transcription'];
-
-  if (narrationSegments.length > 0) {
-    fullNarrationPath = assetManager.getAssetPath('narration-full.mp3');
-
-    // Transcribe each narration segment and merge chunks with cumulative offset.
-    // Whisper timestamps are relative to each audio file. Since segments get
-    // concatenated sequentially, we track cumulative duration to align timestamps
-    // with the final concatenated audio timeline.
-    const whisperModel = config.fal.audio.transcription;
-    const allText: string[] = [];
-    const allChunks: Array<{ text: string; timestamp: [number, number] }> = [];
-    let cumulativeOffset = 0;
-
-    for (const segment of narrationSegments) {
-      try {
-        const result = await transcribe(segment.audioUrl, whisperModel);
-        allText.push(result.text);
-
-        let segmentEnd = 0;
-        for (const chunk of result.chunks ?? []) {
-          allChunks.push({
-            text: chunk.text,
-            timestamp: [
-              chunk.timestamp[0] + cumulativeOffset,
-              chunk.timestamp[1] + cumulativeOffset,
-            ],
-          });
-          segmentEnd = Math.max(segmentEnd, chunk.timestamp[1]);
-        }
-
-        // Advance offset by this segment's actual audio duration
-        cumulativeOffset += segmentEnd > 0 ? segmentEnd : segment.duration;
-
-        costTracker.record(whisperModel, COST_ESTIMATES.transcription);
-      } catch (err) {
-        log.warn('Transcription failed for segment, using narration text', {
-          sceneId: segment.sceneId,
-          error: String(err),
-        });
-        // Still advance offset so subsequent segments align
-        cumulativeOffset += segment.duration;
-      }
-    }
-
-    if (allText.length > 0 || allChunks.length > 0) {
-      transcription = {
-        text: allText.join(' '),
-        chunks: allChunks,
-      };
-      log.info('Transcription complete', {
-        segments: narrationSegments.length,
-        wordCount: transcription.text.split(' ').length,
-      });
-    }
-  }
-
-  // Phase 4: Generate sound effects per scene
+  // Phase 4: Generate sound effects using computed timing
   const soundEffects = await generateSceneSoundEffects(
     workflow,
     config,
     assetManager,
     costTracker,
+    computedTimings,
   );
 
-  // Phase 5: Generate background music
+  // Phase 5: Generate background music using computed total duration
   let generatedMusicPath: string | undefined;
   if (workflow.audio.music?.generate && workflow.audio.music.prompt) {
     generatedMusicPath = await generateBackgroundMusic(
       workflow,
       config,
       assetManager,
+      costTracker,
+      totalDuration,
+    );
+  }
+
+  // Phase 6: Transcribe narration with scene-aligned offsets
+  let fullNarrationPath: string | undefined;
+  let transcription: WorkflowResult['transcription'];
+
+  if (narrationSegments.length > 0) {
+    fullNarrationPath = assetManager.getAssetPath('narration-full.mp3');
+    transcription = await transcribeWithSceneOffsets(
+      narrationSegments,
+      config,
       costTracker,
     );
   }
@@ -196,7 +180,213 @@ export async function executeWorkflow(
     soundEffects,
     generatedMusicPath,
     costTracker,
+    computedTimings,
+    totalDuration,
   };
+}
+
+/**
+ * Generate narration with voice consistency: first segment establishes
+ * the voice, subsequent segments clone it via voice_reference.
+ */
+async function generateNarrationFirst(
+  workflow: Workflow,
+  assetManager: AssetManager,
+  cache: CacheStore,
+  costTracker: CostTracker,
+  skipCache: boolean,
+): Promise<NarrationSegment[]> {
+  const segments: NarrationSegment[] = [];
+  const scenesWithNarration = workflow.scenes.filter(
+    (s) => s.narration && s.narration.trim().length > 0,
+  );
+
+  if (scenesWithNarration.length === 0) {
+    log.info('No narration in workflow');
+    return segments;
+  }
+
+  const spinner = createSpinner('Generating narration (voice-consistent)...');
+  spinner.start();
+
+  let firstAudioUrl: string | undefined;
+
+  for (let i = 0; i < scenesWithNarration.length; i++) {
+    const scene = scenesWithNarration[i];
+    const narrationText = scene.narration ?? '';
+    if (!narrationText) continue;
+    const audioFilename = `narration-${scene.id}.mp3`;
+    const audioPath = assetManager.getAssetPath(audioFilename);
+
+    // Build TTS config with voice cloning for scenes after the first
+    const ttsConfig = { ...workflow.audio.tts };
+    if (i > 0 && firstAudioUrl && !ttsConfig.voice_reference) {
+      ttsConfig.voice_reference = firstAudioUrl;
+    }
+
+    const narrationHash = hashWorkflowStep({
+      text: narrationText,
+      tts: ttsConfig,
+    } as Record<string, unknown>);
+
+    let audioUrl: string;
+    let actualDuration = 0;
+
+    if (!skipCache && cache.has(`${scene.id}-narration`, narrationHash)) {
+      const cached = cache.get(`${scene.id}-narration`)!;
+      audioUrl = cached.outputPath;
+      log.info('Narration cache hit', { sceneId: scene.id });
+    } else {
+      spinner.text = `Narrating scene ${scene.id}${i > 0 ? ' (voice-cloned)' : ''}...`;
+      const result = await generateSpeech(ttsConfig, narrationText, audioPath);
+      audioUrl = result.url;
+      if (result.duration) {
+        actualDuration = result.duration;
+      }
+      await cache.set(`${scene.id}-narration`, narrationHash, result.url);
+      costTracker.record(ttsConfig.model, COST_ESTIMATES.tts);
+    }
+
+    // Capture first segment's audio URL for voice cloning
+    if (i === 0) {
+      firstAudioUrl = audioUrl;
+    }
+
+    // If we don't have duration from API (e.g. cache hit), use ffprobe fallback
+    if (actualDuration <= 0) {
+      try {
+        const { getMediaInfo } = await import('../post/ffmpeg.js');
+        const info = await getMediaInfo(audioPath);
+        actualDuration = info.format.duration ? Number(info.format.duration) : 5;
+      } catch {
+        log.warn('Could not probe narration duration, using default', { sceneId: scene.id });
+        actualDuration = scene.timing?.duration ?? 5;
+      }
+    }
+
+    segments.push({
+      sceneId: scene.id,
+      text: narrationText,
+      audioPath,
+      audioUrl,
+      actualDuration,
+      computedStart: 0, // will be set by computeTiming()
+    });
+  }
+
+  spinner.succeed(`Narration generated for ${segments.length} scenes (voice-consistent)`);
+  return segments;
+}
+
+/**
+ * Compute scene timing from TTS durations.
+ * In tts_driven mode: scene duration = max(ttsDuration + padding, minDuration)
+ * In fixed mode: uses workflow JSON timing values (backward compat)
+ */
+export function computeTiming(
+  workflow: Workflow,
+  narrationSegments: NarrationSegment[],
+): ComputedSceneTiming[] {
+  const timingMode = workflow.timing_mode ?? 'tts_driven';
+  const padding = workflow.scene_padding_seconds ?? 0.5;
+  const minDuration = workflow.min_scene_duration_seconds ?? 3;
+
+  const timings: ComputedSceneTiming[] = [];
+  let currentStart = 0;
+
+  for (const scene of workflow.scenes) {
+    const segment = narrationSegments.find((s) => s.sceneId === scene.id);
+    const ttsDuration = segment?.actualDuration ?? 0;
+
+    let duration: number;
+    let source: ComputedSceneTiming['source'];
+
+    if (timingMode === 'fixed') {
+      // Backward-compatible: use workflow JSON timing
+      duration = scene.timing?.duration ?? 5;
+      source = scene.timing?.duration ? 'workflow' : 'default';
+      currentStart = scene.timing?.start ?? currentStart;
+    } else {
+      // TTS-driven: duration derived from actual narration length
+      if (ttsDuration > 0) {
+        duration = Math.max(ttsDuration + padding, minDuration);
+        source = 'tts';
+      } else {
+        // No narration for this scene — use workflow timing or default
+        duration = scene.timing?.duration ?? minDuration;
+        source = scene.timing?.duration ? 'workflow' : 'default';
+      }
+    }
+
+    timings.push({
+      sceneId: scene.id,
+      start: currentStart,
+      duration,
+      ttsDuration,
+      source,
+    });
+
+    if (timingMode !== 'fixed') {
+      currentStart += duration;
+    } else {
+      currentStart = (scene.timing?.start ?? currentStart) + duration;
+    }
+  }
+
+  return timings;
+}
+
+/**
+ * Transcribe narration segments with offsets based on computed scene starts
+ * (not sequential cumulative offset). This aligns subtitles to the video timeline.
+ */
+async function transcribeWithSceneOffsets(
+  narrationSegments: NarrationSegment[],
+  config: AppConfig,
+  costTracker: CostTracker,
+): Promise<WorkflowResult['transcription']> {
+  const whisperModel = config.fal.audio.transcription;
+  const allText: string[] = [];
+  const allChunks: Array<{ text: string; timestamp: [number, number] }> = [];
+
+  for (const segment of narrationSegments) {
+    try {
+      const result = await transcribe(segment.audioUrl, whisperModel);
+      allText.push(result.text);
+
+      // Offset chunks by the segment's computed scene start time
+      for (const chunk of result.chunks ?? []) {
+        allChunks.push({
+          text: chunk.text,
+          timestamp: [
+            chunk.timestamp[0] + segment.computedStart,
+            chunk.timestamp[1] + segment.computedStart,
+          ],
+        });
+      }
+
+      costTracker.record(whisperModel, COST_ESTIMATES.transcription);
+    } catch (err) {
+      log.warn('Transcription failed for segment, using narration text', {
+        sceneId: segment.sceneId,
+        error: String(err),
+      });
+    }
+  }
+
+  if (allText.length > 0 || allChunks.length > 0) {
+    const transcription = {
+      text: allText.join(' '),
+      chunks: allChunks,
+    };
+    log.info('Transcription complete', {
+      segments: narrationSegments.length,
+      wordCount: transcription.text.split(' ').length,
+    });
+    return transcription;
+  }
+
+  return undefined;
 }
 
 async function generateSceneAssets(
@@ -365,66 +555,12 @@ async function generateSceneAssetsViaWorkflow(
   return results;
 }
 
-async function generateNarration(
-  workflow: Workflow,
-  assetManager: AssetManager,
-  cache: CacheStore,
-  costTracker: CostTracker,
-  skipCache: boolean,
-): Promise<NarrationSegment[]> {
-  const segments: NarrationSegment[] = [];
-  const scenesWithNarration = workflow.scenes.filter(
-    (s) => s.narration && s.narration.trim().length > 0,
-  );
-
-  if (scenesWithNarration.length === 0) {
-    log.info('No narration in workflow');
-    return segments;
-  }
-
-  const spinner = createSpinner('Generating narration...');
-  spinner.start();
-
-  for (const scene of scenesWithNarration) {
-    const narrationText = scene.narration ?? '';
-    if (!narrationText) continue;
-    const audioFilename = `narration-${scene.id}.mp3`;
-    const audioPath = assetManager.getAssetPath(audioFilename);
-    const narrationHash = hashWorkflowStep({ text: narrationText, tts: workflow.audio.tts } as Record<string, unknown>);
-
-    let audioUrl: string;
-
-    if (!skipCache && cache.has(`${scene.id}-narration`, narrationHash)) {
-      const cached = cache.get(`${scene.id}-narration`)!;
-      audioUrl = cached.outputPath;
-      log.info('Narration cache hit', { sceneId: scene.id });
-    } else {
-      spinner.text = `Narrating scene ${scene.id}...`;
-      const result = await generateSpeech(workflow.audio.tts, narrationText, audioPath);
-      audioUrl = result.url;
-      await cache.set(`${scene.id}-narration`, narrationHash, result.url);
-      costTracker.record(workflow.audio.tts.model, COST_ESTIMATES.tts);
-    }
-
-    segments.push({
-      sceneId: scene.id,
-      text: narrationText,
-      audioPath,
-      audioUrl,
-      startTime: scene.timing.start,
-      duration: scene.timing.duration,
-    });
-  }
-
-  spinner.succeed(`Narration generated for ${segments.length} scenes`);
-  return segments;
-}
-
 async function generateSceneSoundEffects(
   workflow: Workflow,
   config: AppConfig,
   assetManager: AssetManager,
   costTracker: CostTracker,
+  computedTimings: ComputedSceneTiming[],
 ): Promise<SoundEffectAsset[]> {
   const results: SoundEffectAsset[] = [];
   const scenesWithSfx = workflow.scenes.filter(
@@ -441,6 +577,9 @@ async function generateSceneSoundEffects(
 
   for (const scene of scenesWithSfx) {
     const sfxArray = scene.sound_effects ?? [];
+    const timing = computedTimings.find((t) => t.sceneId === scene.id);
+    const sceneStart = timing?.start ?? (scene.timing?.start ?? 0);
+
     for (let i = 0; i < sfxArray.length; i++) {
       const sfx = sfxArray[i];
       const sfxFilename = `sfx-${scene.id}-${i}.wav`;
@@ -455,7 +594,7 @@ async function generateSceneSoundEffects(
           sfxPath,
         );
 
-        const absoluteTimestamp = scene.timing.start + sfx.timing_offset;
+        const absoluteTimestamp = sceneStart + sfx.timing_offset;
 
         results.push({
           sceneId: scene.id,
@@ -486,12 +625,13 @@ async function generateBackgroundMusic(
   config: AppConfig,
   assetManager: AssetManager,
   costTracker: CostTracker,
+  computedTotalDuration: number,
 ): Promise<string | undefined> {
   const musicConfig = workflow.audio.music;
   if (!musicConfig?.generate || !musicConfig.prompt) return undefined;
 
   const musicModel = config.fal.audio.music_generation ?? 'beatoven/music-generation';
-  const duration = musicConfig.duration ?? workflow.duration_target_seconds;
+  const duration = musicConfig.duration ?? computedTotalDuration;
 
   const spinner = createSpinner('Generating background music...');
   spinner.start();

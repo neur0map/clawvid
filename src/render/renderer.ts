@@ -121,6 +121,17 @@ async function fallbackRender(input: RenderInput): Promise<string> {
     throw new Error('No scenes to render');
   }
 
+  // Determine target resolution from composition type
+  const isLandscape = input.compositionId === 'LandscapeVideo';
+  const targetW = isLandscape ? 1920 : 1080;
+  const targetH = isLandscape ? 1080 : 1920;
+
+  // Scale filter: scale to fit within target dimensions preserving aspect ratio,
+  // then pad to exact target size with black bars. Force even dimensions.
+  const scaleFilter = `scale=${targetW}:${targetH}:force_original_aspect_ratio=decrease,pad=${targetW}:${targetH}:(ow-iw)/2:(oh-ih)/2:black,setsar=1`;
+
+  log.info('Fallback render', { compositionId: input.compositionId, target: `${targetW}x${targetH}` });
+
   const runCmd = (cmd: string, args: string[]): Promise<void> =>
     new Promise((resolve, reject) => {
       const child = spawn(cmd, args, { stdio: 'pipe' });
@@ -144,11 +155,12 @@ async function fallbackRender(input: RenderInput): Promise<string> {
     const segmentPath = join(outputDir, `segment-${i}.mp4`);
 
     if (localSrc.endsWith('.mp4') && await pathExists(localSrc)) {
-      // Video scene — loop/extend to fill the scene duration
+      // Video scene — loop/extend to fill the scene duration, scale to target
       await runCmd('ffmpeg', [
         '-stream_loop', '-1',
         '-t', String(duration),
         '-i', localSrc,
+        '-vf', scaleFilter,
         '-c:v', 'libx264',
         '-pix_fmt', 'yuv420p',
         '-r', String(fps),
@@ -158,10 +170,11 @@ async function fallbackRender(input: RenderInput): Promise<string> {
       ]);
       segmentPaths.push(segmentPath);
     } else if (await pathExists(localSrc)) {
-      // Image scene — create video from still image
+      // Image scene — create video from still image, scale to target
       await runCmd('ffmpeg', [
         '-loop', '1',
         '-i', localSrc,
+        '-vf', scaleFilter,
         '-c:v', 'libx264',
         '-t', String(duration),
         '-pix_fmt', 'yuv420p',
