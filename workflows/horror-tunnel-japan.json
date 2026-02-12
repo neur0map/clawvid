@@ -1,0 +1,282 @@
+{
+  "name": "The Tunnel That Swallows - Japan Horror",
+  "template": "horror",
+  "timing_mode": "tts_driven",
+  "scene_padding_seconds": 0.5,
+  "min_scene_duration_seconds": 5,
+
+  "consistency": {
+    "reference_prompt": "Dark atmospheric illustration of a long abandoned concrete tunnel in rural Japan, moss and water stains on cracked walls, rusted drainage grates, a single flickering fluorescent tube light casting sickly green-yellow light, thick darkness beyond the light's reach, wet floor reflecting the dim glow, Japanese warning signs faded and peeling on the walls, dark cel-shaded horror anime aesthetic with muted desaturated colors dominated by concrete greys sickly greens and deep blacks, inspired by Junji Ito and Japanese urban horror photography, 8K detail, oppressive claustrophobic atmosphere",
+    "seed": 713,
+    "resolution": "2K"
+  },
+
+  "scenes": [
+    {
+      "id": "frame_1",
+      "description": "HOOK - The tunnel entrance from outside, daytime but ominous",
+      "type": "video",
+      "timing": {},
+      "narration": "In the mountains of rural Japan, there is a tunnel the locals refuse to name. They only call it The Mouth.",
+
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Wide exterior shot of an old abandoned concrete tunnel entrance built into a steep forested mountainside in rural Japan, late afternoon with overcast sky. The tunnel mouth is a dark semicircular void in the hillside, unnaturally dark inside as if light cannot penetrate past the threshold. Foreground: a weathered wooden torii gate at the start of the path, faded red paint almost completely worn to bare grey wood, a chain with a rusted padlock and a hand-painted sign in Japanese characters hanging across it reading warning. Mid-ground: cracked asphalt road leading straight to the tunnel entrance, weeds and ferns growing through the cracks, puddles of rainwater reflecting the grey sky. To the left a small moss-covered stone jizo statue with a faded red cloth bib, offerings of wilted flowers at its base. Background: the tunnel entrance itself is the focal point, perfectly centered, the concrete facade stained with dark water streaks and patches of green-black mold, rebar exposed at the top where concrete has crumbled away. Dense cedar forest frames both sides, branches reaching inward as if pointing toward the entrance. Overcast diffused lighting from above, no direct sunlight, the tunnel interior is pure black void. Dark cel-shaded horror anime style, muted desaturated palette of forest greens concrete greys and the faded red of the torii, 8K detail, visible texture on every surface",
+          "aspect_ratio": "9:16"
+        }
+      },
+
+      "video_generation": {
+        "model": "fal-ai/vidu/q3/image-to-video",
+        "input": {
+          "prompt": "Slow deliberate forward dolly toward the tunnel entrance, camera at waist height on the cracked road. Light wind rustles the cedar branches overhead, casting moving shadows on the path. Puddles on the road ripple slightly from a distant vibration. The chain across the torii gate sways gently. Leaves drift across the path. As the camera approaches, the absolute darkness inside the tunnel seems to deepen. The jizo statue passes on the left. Atmospheric tension, the sense of approaching something forbidden. Smooth cinematic motion, no sudden movements, building dread",
+          "duration": "8",
+          "resolution": "720p"
+        }
+      },
+
+      "sound_effects": [
+        {
+          "prompt": "Distant wind through mountain forest with occasional bird calls abruptly going silent, light rain dripping on concrete and puddles, unsettling quiet rural Japanese mountain atmosphere",
+          "timing_offset": 0,
+          "duration": 8,
+          "volume": 0.5
+        }
+      ],
+
+      "effects": ["vignette", "grain"]
+    },
+    {
+      "id": "frame_2",
+      "description": "SETUP - Entering the tunnel, first steps inside, still normal but unsettling",
+      "type": "video",
+      "timing": {},
+      "narration": "They say it was built in nineteen fifty-three. A shortcut through the mountain. But the workers who dug it never spoke about what they found inside.",
+
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Interior shot from just inside the tunnel entrance looking deeper inward, the viewer has just stepped past the threshold. The tunnel stretches ahead in a long straight corridor, the walls are raw concrete with visible form-board marks and water damage. A single row of old fluorescent tube lights runs along the ceiling, the first two are working casting harsh sickly yellow-green light, the third is flickering erratically, and beyond that only darkness. The wet floor reflects the lights creating a mirror effect. On the left wall at eye height someone has scratched characters into the concrete with a sharp object, partially obscured by water stains. A drainage channel runs along the right wall, dark water flowing in the wrong direction deeper into the tunnel instead of out. Behind the viewer the tunnel entrance is visible as a bright semicircle of grey daylight, the last connection to the outside world. Foreground: the viewer's shadow stretches forward on the wet floor. Mid-ground: the flickering light creates strobing shadows on the walls. Background: impenetrable darkness where the lights end. Dark cel-shaded horror anime style, color palette dominated by sickly fluorescent green-yellow and concrete grey with deep black shadows, 8K detail, water droplets visible on the walls and ceiling",
+          "aspect_ratio": "9:16"
+        }
+      },
+
+      "transition": {
+        "model": "fal-ai/pixverse/v5.6/transition",
+        "duration": "5",
+        "prompt": "Crossing the threshold from bright overcast daylight exterior into the dim fluorescent-lit tunnel interior, light dramatically shifts from natural grey to sickly green-yellow artificial light, horror atmosphere transition",
+        "style": "anime"
+      },
+
+      "video_generation": {
+        "model": "fal-ai/vidu/q3/image-to-video",
+        "input": {
+          "prompt": "Steady walking-pace forward movement through the tunnel, camera bobbing slightly with each step as footsteps echo. The fluorescent light overhead flickers and buzzes audibly. Water drips from the ceiling creating ripples in the puddles on the floor. The reflected light on the wet floor shimmers with the walking motion. The darkness ahead remains impenetrable, not yielding despite moving forward. Behind the viewer the entrance daylight is getting smaller. The scratched characters on the wall pass by. A single water droplet falls in slow motion from the ceiling. Claustrophobic tunnel atmosphere, the walls seem close, deliberate steady pace, building unease",
+          "duration": "8",
+          "resolution": "720p"
+        }
+      },
+
+      "sound_effects": [
+        {
+          "prompt": "Footsteps echoing on wet concrete floor in a tunnel, fluorescent light buzzing and flickering, steady water drips with tunnel reverb, distant low rumbling vibration",
+          "timing_offset": 0,
+          "duration": 8,
+          "volume": 0.6
+        }
+      ],
+
+      "effects": ["vignette_heavy", "grain", "flicker_subtle"]
+    },
+    {
+      "id": "frame_3",
+      "description": "RISING TENSION - Deep inside, something is wrong. The tunnel is too long.",
+      "type": "video",
+      "timing": {},
+      "narration": "You have been walking for ten minutes. The tunnel should have ended five minutes ago. You turn around. The entrance is gone.",
+
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Interior shot looking back toward where the tunnel entrance should be, but there is only more tunnel stretching endlessly behind. The viewer has turned around and the exit has vanished. The tunnel extends identically in both directions now, an infinite corridor of concrete and flickering fluorescent lights with no beginning and no end. The floor is wetter here, standing water an inch deep reflecting the lights in long distorted streaks. The walls have changed subtly, the concrete seems darker, the water stains have formed patterns that almost look like handprints pressed from the inside of the wall. One fluorescent light far behind is swinging slightly as if someone just walked past it. The scratched characters on the wall are different now, more frantic, deeper gouges, the same phrase repeated over and over. Foreground: standing water around the viewer's feet, the surface perfectly still except for one expanding ripple with no visible source. Mid-ground: the impossibly long identical corridor stretching away in both directions. Background: the tunnel curves very slightly, just enough that you cannot see where it ends. Dark cel-shaded horror anime style, the fluorescent lights now have a more sickly quality, colors shifted toward pale green and institutional grey, isolation and wrongness, 8K detail, visible scratches in the concrete",
+          "aspect_ratio": "9:16"
+        }
+      },
+
+      "video_generation": {
+        "model": "fal-ai/vidu/q3/image-to-video",
+        "input": {
+          "prompt": "The camera slowly pans from looking forward in the tunnel to looking backward, revealing the same infinite corridor in both directions with no entrance visible. The fluorescent lights flicker in sequence like a wave rolling toward the viewer. A single ripple expands in the standing water on the floor with no source. The swinging light in the distance moves in a wider arc. Complete stillness except for the water and lights. The realization that there is no way out. Slow dread-filled camera movement, the pan should feel reluctant like the viewer does not want to see what is behind them",
+          "duration": "8",
+          "resolution": "720p"
+        }
+      },
+
+      "sound_effects": [
+        {
+          "prompt": "Deep reverberant tunnel ambience with water dripping into standing water, fluorescent buzz intensifying, a single distant metallic scrape that echoes and fades, total isolation sound design",
+          "timing_offset": 0,
+          "duration": 8,
+          "volume": 0.7
+        }
+      ],
+
+      "effects": ["vignette_heavy", "grain_heavy", "chromatic_aberration_subtle"]
+    },
+    {
+      "id": "frame_4",
+      "description": "ESCALATION - The tunnel changes. Evidence of others who were trapped.",
+      "type": "video",
+      "timing": {},
+      "narration": "The walls are different now. Scratches. Hundreds of them. Fingernail marks. And written in the concrete, over and over. Do not look behind you.",
+
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Close medium shot of the tunnel wall at eye level, the camera has stopped moving and is examining what is on the walls. The concrete is covered in scratches, deep gouges made by human fingernails, some with dark stains at the edges. The scratches form patterns of desperate clawing as if someone tried to dig through solid concrete. Among the scratches, characters are carved into the wall in shaking uneven handwriting in both Japanese and English: do not look behind you, repeated dozens of times in overlapping layers, some carved deeper than others, some in different handwriting sizes suggesting different people over many years. A few personal items are embedded in cracks in the wall, a rusted watch, a faded photograph too water-damaged to identify, a hair clip. The fluorescent light above is barely working, casting deep shadows into every scratch mark. The floor below the wall is littered with concrete dust and fragments from the scratching. No creature, no ghost, just the evidence of human terror accumulated over decades. Dark cel-shaded horror anime style, extreme close-up detail on the scratches and carvings, muted institutional colors with the dark stains providing the only contrast, psychological horror through implication not showing, 8K detail on every scratch mark and carved character",
+          "aspect_ratio": "9:16"
+        }
+      },
+
+      "transition": {
+        "model": "fal-ai/pixverse/v5.6/transition",
+        "duration": "5",
+        "prompt": "From the wide infinite tunnel corridor slowly pushing in close to examine the scratched wall surface, the focus narrows from vast space to intimate horrifying detail, dread transition",
+        "style": "anime"
+      },
+
+      "video_generation": {
+        "model": "fal-ai/vidu/q3/image-to-video",
+        "input": {
+          "prompt": "Slow close tracking shot along the tunnel wall surface, the camera moves laterally revealing more and more scratches and carved warnings. The fluorescent light above flickers causing the shadows in the scratch marks to dance and shift. Water seeps through a crack in the concrete running down through the carved characters like tears. The camera pauses on the deepest set of scratches where someone clearly spent hours trying to claw through. A piece of concrete dust falls from one of the gouges. The rusted watch ticks once. Everything else is still. Pure psychological dread through environmental detail, no creature, no jump scare, just accumulated human desperation",
+          "duration": "8",
+          "resolution": "720p"
+        }
+      },
+
+      "sound_effects": [
+        {
+          "prompt": "Scratching sounds on concrete like fingernails dragging across a wall, layered whispers speaking unintelligible Japanese words, a single clock tick, oppressive suffocating silence between sounds",
+          "timing_offset": 1,
+          "duration": 6,
+          "volume": 0.7
+        }
+      ],
+
+      "effects": ["vignette_heavy", "grain_heavy", "flicker"]
+    },
+    {
+      "id": "frame_5",
+      "description": "CLIMAX - The entity at the deepest point of the tunnel",
+      "type": "video",
+      "timing": {},
+      "narration": "Then you feel it. The air changes. Something is breathing in the dark ahead. And when the light flickers on, you see her. Standing in the water. Facing you. Smiling.",
+
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Full shot down the tunnel corridor, all fluorescent lights are off except one far ahead that flickers on revealing the entity for the first time. A female figure stands motionless in the ankle-deep standing water exactly in the center of the tunnel, facing directly toward the viewer. She wears a white funeral kimono soaked and dripping with dark water, her long black hair hangs past her waist partially covering her face but one eye is visible, unnaturally wide and unblinking, reflecting the fluorescent light with an inhuman gleam. Her mouth is curved in a smile that is too wide, stretching past where a human smile should end, showing teeth. Her skin is the pale grey-blue of someone long dead. She stands perfectly still but the water around her feet ripples outward in concentric circles as if she is vibrating at a frequency below perception. Her bare feet are just visible beneath the kimono hem, standing on the water surface not in it. The single working light above her head buzzes and flickers, each flash showing her in a slightly different position though she appears not to have moved. The tunnel around her is darker than it should be as if the darkness is emanating from her. Foreground: rippling water extending from where she stands toward the viewer. Mid-ground: the entity herself, the only vertical form in the horizontal tunnel. Background: absolute void behind her. Dark cel-shaded horror anime style, the fluorescent light is now cold blue-white making her kimono glow against the darkness, maximum contrast between her pale form and the surrounding void, Japanese horror yurei aesthetic, 8K detail on her visible eye and the impossible smile",
+          "aspect_ratio": "9:16"
+        }
+      },
+
+      "video_generation": {
+        "model": "fal-ai/vidu/q3/image-to-video",
+        "input": {
+          "prompt": "The fluorescent light above the figure flickers rapidly between on and off. In each flash of light the figure is visible standing motionless in the water but with each flicker she appears slightly closer though no movement is visible between frames. The water ripples outward from her continuously. Her hair drifts as if underwater despite being in air. The one visible eye does not blink. The smile does not change. The light stabilizes for a moment showing her clearly, then all lights go dark for two full seconds, then snap back on and she is now noticeably closer. The water surface trembles. Pure Japanese horror atmosphere, the terror of something that moves only when you cannot see it, yurei horror",
+          "duration": "8",
+          "resolution": "720p"
+        }
+      },
+
+      "sound_effects": [
+        {
+          "prompt": "Fluorescent light buzzing and popping on and off rapidly, water rippling in an enclosed tunnel space, a single wet footstep that should not be there, sudden total silence then a long exhale breath that is not yours",
+          "timing_offset": 0,
+          "duration": 8,
+          "volume": 0.8
+        }
+      ],
+
+      "effects": ["vignette_heavy", "grain_heavy", "glitch_subtle", "chromatic_aberration", "flicker"]
+    },
+    {
+      "id": "frame_6",
+      "description": "CLIFFHANGER - You emerge, but something is wrong. She followed you.",
+      "type": "video",
+      "timing": {},
+      "narration": "You run. You do not know how long. But somehow you find the exit. You step into daylight. You are safe. But in the puddle at your feet, her reflection smiles back at you.",
+
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Exterior shot from just outside the tunnel exit, the viewer has just emerged into grey daylight. The scene appears normal and safe at first glance, the forested mountainside, the cracked road, overcast sky. But the focus of the image is a large puddle of rainwater on the cracked asphalt directly at the viewer's feet in the foreground. In the puddle's reflection instead of showing the sky and trees above, it shows the interior of the tunnel, and standing in that reflected tunnel is the female entity in the white kimono, her face now fully visible in the water, both eyes wide open staring upward through the puddle at the viewer, the too-wide smile even more pronounced from below, one pale hand reaching upward as if pressing against the water surface from underneath trying to push through. The reflection does not match reality. The real world above the puddle is normal overcast daylight. The reflected world in the water is the dark fluorescent tunnel with the entity. The viewer's own feet are visible at the puddle's edge, their reflection in the water is missing, replaced by the entity. Small cracks spider-web outward from the puddle across the asphalt as if the boundary between the reflection and reality is breaking. Dark cel-shaded horror anime style, deliberate contrast between the muted normal exterior and the vivid horror in the reflection, the entity in the water is the sharpest most detailed element in the frame, 8K detail, the water surface has a subtle wrongness to its texture",
+          "aspect_ratio": "9:16"
+        }
+      },
+
+      "transition": {
+        "model": "fal-ai/pixverse/v5.6/transition",
+        "duration": "5",
+        "prompt": "Frantic desperate escape from the dark tunnel interior bursting out into grey daylight, dramatic shift from claustrophobic darkness to open air, but the relief is wrong, something followed, horror transition to false safety",
+        "style": "anime"
+      },
+
+      "video_generation": {
+        "model": "fal-ai/vidu/q3/image-to-video",
+        "input": {
+          "prompt": "Camera looks down at the puddle on the ground. The reflection in the water shows the tunnel interior with the entity looking up. Her smile widens almost imperceptibly. Her hand in the reflection presses harder against the water surface from below, creating a subtle bulge in the real water. The cracks in the asphalt around the puddle extend slightly further. A single drop of water falls from the viewer into the puddle creating a ripple that distorts the entity's face momentarily but when the water settles she is still there, still smiling, now slightly closer to the surface. The real world around the puddle is still and quiet and normal. Slow subtle movements, the horror is in what is wrong with the reflection, building to a final frame where her fingers seem to break through the water surface",
+          "duration": "8",
+          "resolution": "720p"
+        }
+      },
+
+      "sound_effects": [
+        {
+          "prompt": "Sudden transition from tunnel echo to outdoor quiet, heavy exhausted breathing, birds singing normally then going silent one by one, a wet bubbling sound from a puddle, ending with a woman's whisper in Japanese very close to the ear",
+          "timing_offset": 0,
+          "duration": 8,
+          "volume": 0.8
+        }
+      ],
+
+      "effects": ["vignette", "grain", "chromatic_aberration_subtle"]
+    }
+  ],
+
+  "audio": {
+    "tts": {
+      "model": "fal-ai/qwen-3-tts/voice-design/1.7b",
+      "voice_prompt": "A calm measured male voice with subtle Japanese accent, speaking slowly and deliberately as if telling a true story at a campfire, quiet intensity, each word chosen carefully, pausing between sentences for weight, a voice that makes you lean in closer to hear",
+      "language": "en",
+      "speed": 0.85
+    },
+    "music": {
+      "generate": true,
+      "prompt": "Japanese horror ambient soundtrack, deep sustained shakuhachi flute notes in minor key, sparse dissonant koto plucks, low frequency drones and sub-bass rumble, water dripping sounds processed into rhythm, occasional distant taiko drum hit that reverberates, building tension throughout with layers slowly adding, oppressive atmosphere inspired by Ju-On and Dark Water soundtracks, no melody just texture and dread",
+      "duration": 70,
+      "volume": 0.15,
+      "fade_in": 3,
+      "fade_out": 5
+    }
+  },
+
+  "subtitles": {
+    "enabled": true,
+    "style": {
+      "font": "Impact",
+      "color": "#ffffff",
+      "stroke_color": "#000000",
+      "stroke_width": 3,
+      "position": "center"
+    }
+  },
+
+  "output": {
+    "filename": "the_tunnel_that_swallows.mp4",
+    "fps": 30,
+    "format": "mp4",
+    "platforms": ["tiktok"]
+  }
+}
