@@ -124,11 +124,16 @@ export async function mixAudio(input: MixInput, outputPath: string): Promise<voi
     inputLabels.push(`[sfx${i}]`);
   }
 
-  // Mix all tracks together (weights compensate for amix amplitude division)
+  // Mix all tracks: amix divides amplitude by input count, so we weight
+  // narration much higher to keep it dominant over music/SFX.
   const mixLabel = inputLabels.join('');
-  const weights = inputLabels.map(() => '1').join(' ');
+  const weightValues: number[] = [];
+  weightValues.push(3); // narration — dominant
+  if (hasMusic) weightValues.push(1); // music — background
+  for (let i = 0; i < sfxList.length; i++) weightValues.push(1); // SFX — accent
+  const weights = weightValues.join(' ');
   filterParts.push(
-    `${mixLabel}amix=inputs=${inputLabels.length}:duration=first:dropout_transition=3:weights=${weights},dynaudnorm=p=0.9:s=5[out]`,
+    `${mixLabel}amix=inputs=${inputLabels.length}:duration=first:dropout_transition=3:weights=${weights},dynaudnorm=p=0.71:s=5[out]`,
   );
 
   // Build command

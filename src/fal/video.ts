@@ -5,6 +5,10 @@ import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('fal-video');
 
+function isKlingModel(model: string): boolean {
+  return model.includes('kling-video');
+}
+
 export async function generateVideo(
   spec: VideoGeneration,
   imageUrl: string,
@@ -17,9 +21,19 @@ export async function generateVideo(
 
   const input: Record<string, unknown> = {
     prompt: spec.input.prompt,
-    image_url: imageUrl,
-    duration: spec.input.duration ?? '5s',
   };
+
+  // Kling uses start_image_url and duration as "5"/"10"
+  // Kandinsky uses image_url and duration as "5s"
+  if (isKlingModel(spec.model)) {
+    input.start_image_url = imageUrl;
+    const rawDuration = spec.input.duration ?? '5';
+    input.duration = rawDuration.replace('s', '');
+    input.generate_audio = false;
+  } else {
+    input.image_url = imageUrl;
+    input.duration = spec.input.duration ?? '5s';
+  }
 
   if (spec.input.resolution) {
     input.resolution = spec.input.resolution;
@@ -29,6 +43,9 @@ export async function generateVideo(
   }
   if (spec.input.acceleration !== undefined) {
     input.acceleration = spec.input.acceleration;
+  }
+  if (spec.input.negative_prompt) {
+    input.negative_prompt = spec.input.negative_prompt;
   }
 
   const result = await falRequest<FalKandinskyVideoOutput>(spec.model, input);

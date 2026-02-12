@@ -73,6 +73,7 @@ export async function transcribe(
   const result = await falRequest<FalTranscriptionOutput>(model, {
     audio_url: audioUrl,
     task: 'transcribe',
+    chunk_level: 'word',
   });
 
   return result;

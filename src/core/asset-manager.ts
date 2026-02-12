@@ -45,7 +45,7 @@ export class AssetManager {
     await ensureDir(join(this.outputDir, 'assets'));
     await ensureDir(join(this.outputDir, 'youtube'));
     await ensureDir(join(this.outputDir, 'tiktok'));
-    await ensureDir(join(this.outputDir, 'instagram'));
+    await ensureDir(join(this.outputDir, 'instagram_reels'));
     log.info('Initialized output directory', { path: this.outputDir });
   }
 

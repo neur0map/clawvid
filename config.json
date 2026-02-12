@@ -6,9 +6,9 @@
       "stylized": "fal-ai/kling-image/v3/text-to-image"
     },
     "video": {
-      "default": "fal-ai/kandinsky5-pro/image-to-video",
+      "default": "fal-ai/kling-video/v2.6/pro/image-to-video",
       "fast": "fal-ai/kandinsky5-pro/image-to-video",
-      "cinematic": "fal-ai/kandinsky5-pro/image-to-video"
+      "cinematic": "fal-ai/kling-video/v2.6/pro/image-to-video"
     },
     "audio": {
       "tts": "fal-ai/qwen-3-tts/voice-design/1.7b",

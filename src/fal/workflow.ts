@@ -1,133 +1,115 @@
-import { fal } from '@fal-ai/client';
-import { ensureInitialized, downloadFile } from './client.js';
+import { falRequest, downloadFile } from './client.js';
+import type { FalKlingImageOutput } from './types.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('fal-workflow');
 
-export interface WorkflowInput {
-  [key: string]: unknown;
-}
+const DEFAULT_MODEL = 'fal-ai/nano-banana-pro';
+const DEFAULT_EDIT_MODEL = 'fal-ai/nano-banana-pro/edit';
 
-export interface WorkflowSceneResult {
-  sceneId: string;
-  imageUrl: string;
-  downloadPath: string;
+export interface ConsistencyOptions {
+  referencePrompt: string;
+  seed?: number;
+  aspectRatio?: string;
+  model?: string;
+  editModel?: string;
 }
 
 /**
- * Calls a fal.ai workflow endpoint via streaming.
- * The workflow must be uploaded to fal.ai first, then referenced by its ID
- * (e.g. "workflows/neur0map/clawvid-scenes").
- *
- * @returns The workflow output fields as a key-value map of URLs.
+ * Generates a reference image using nano-banana-pro (or custom model).
+ * This reference is then passed to all scene edits for visual consistency.
  */
-export async function runWorkflow(
-  workflowId: string,
-  input: WorkflowInput,
-): Promise<Record<string, string>> {
-  ensureInitialized();
+export async function generateReferenceImage(
+  options: ConsistencyOptions,
+  outputPath: string,
+): Promise<{ url: string; width: number; height: number }> {
+  const model = options.model ?? DEFAULT_MODEL;
 
-  log.info('Running fal.ai workflow', {
-    workflowId,
-    inputKeys: Object.keys(input).join(', '),
+  log.info('Generating reference image', {
+    model,
+    prompt: options.referencePrompt.slice(0, 80),
+    seed: options.seed,
   });
 
-  const stream = await fal.stream(workflowId, { input });
-
-  for await (const event of stream) {
-    const summary = JSON.stringify(event).slice(0, 200);
-    log.info('Workflow progress', { event: summary });
-  }
-
-  const result = await stream.done();
-  const data = (result as { data?: Record<string, string> }).data ?? (result as Record<string, string>);
-
-  log.info('Workflow complete', {
-    outputKeys: Object.keys(data).join(', '),
-  });
-
-  return data;
-}
-
-/**
- * Runs a fal.ai workflow and downloads all output images to local paths.
- *
- * @param workflowId - The fal.ai workflow endpoint (e.g. "workflows/neur0map/clawvid-scenes")
- * @param input - The workflow input payload
- * @param outputMapping - Maps workflow output field names to scene IDs and local download paths
- * @returns Array of scene results with image URLs
- */
-export async function runWorkflowAndDownload(
-  workflowId: string,
-  input: WorkflowInput,
-  outputMapping: Array<{ field: string; sceneId: string; downloadPath: string }>,
-): Promise<WorkflowSceneResult[]> {
-  const output = await runWorkflow(workflowId, input);
-
-  const results: WorkflowSceneResult[] = [];
-
-  for (const mapping of outputMapping) {
-    const imageUrl = output[mapping.field];
-    if (!imageUrl) {
-      log.warn('Workflow output field missing, skipping', { field: mapping.field });
-      continue;
-    }
-
-    await downloadFile(imageUrl, mapping.downloadPath);
-
-    results.push({
-      sceneId: mapping.sceneId,
-      imageUrl,
-      downloadPath: mapping.downloadPath,
-    });
-
-    log.info('Scene image downloaded', {
-      sceneId: mapping.sceneId,
-      field: mapping.field,
-    });
-  }
-
-  return results;
-}
-
-/**
- * Builds the input payload for the clawvid-scenes workflow template.
- * Maps scene prompts (in order) to scene_1_prompt, scene_2_prompt, etc.
- */
-export function buildSceneWorkflowInput(
-  referencePrompt: string,
-  scenePrompts: string[],
-  options?: { seed?: number; aspectRatio?: string },
-): WorkflowInput {
-  const input: WorkflowInput = {
-    reference_prompt: referencePrompt,
+  const input: Record<string, unknown> = {
+    prompt: options.referencePrompt,
   };
 
-  for (let i = 0; i < scenePrompts.length; i++) {
-    input[`scene_${i + 1}_prompt`] = scenePrompts[i];
-  }
-
-  if (options?.seed !== undefined) {
+  if (options.seed !== undefined) {
     input.seed = options.seed;
   }
-  if (options?.aspectRatio) {
+  if (options.aspectRatio) {
     input.aspect_ratio = options.aspectRatio;
   }
 
-  return input;
+  const result = await falRequest<FalKlingImageOutput>(model, input);
+  const image = result.images[0];
+
+  if (!image?.url) {
+    throw new Error('No reference image returned from fal.ai');
+  }
+
+  await downloadFile(image.url, outputPath);
+
+  const width = image.width ?? 0;
+  const height = image.height ?? 0;
+
+  log.info('Reference image generated', {
+    url: image.url.slice(0, 80),
+    width,
+    height,
+  });
+
+  return { url: image.url, width, height };
 }
 
 /**
- * Builds the output mapping for the clawvid-scenes workflow template.
- * Maps scene_1_image, scene_2_image, etc. to scene IDs and download paths.
+ * Generates a scene image by editing the reference image with a scene-specific prompt.
+ * Uses the same seed and reference URL to maintain visual consistency across scenes.
  */
-export function buildSceneOutputMapping(
-  sceneIds: string[],
-  getDownloadPath: (sceneId: string) => string,
-): Array<{ field: string; sceneId: string; downloadPath: string }> {
-  return sceneIds.map((sceneId, i) => ({
-    field: `scene_${i + 1}_image`,
-    sceneId,
-    downloadPath: getDownloadPath(sceneId),
-  }));
+export async function generateSceneFromReference(
+  referenceImageUrl: string,
+  scenePrompt: string,
+  options: ConsistencyOptions,
+  outputPath: string,
+): Promise<{ url: string; width: number; height: number }> {
+  const editModel = options.editModel ?? DEFAULT_EDIT_MODEL;
+
+  log.info('Generating scene from reference', {
+    model: editModel,
+    prompt: scenePrompt.slice(0, 80),
+    seed: options.seed,
+  });
+
+  const input: Record<string, unknown> = {
+    prompt: scenePrompt,
+    image_urls: [referenceImageUrl],
+  };
+
+  if (options.seed !== undefined) {
+    input.seed = options.seed;
+  }
+  if (options.aspectRatio) {
+    input.aspect_ratio = options.aspectRatio;
+  }
+
+  const result = await falRequest<FalKlingImageOutput>(editModel, input);
+  const image = result.images[0];
+
+  if (!image?.url) {
+    throw new Error('No scene image returned from fal.ai');
+  }
+
+  await downloadFile(image.url, outputPath);
+
+  const width = image.width ?? 0;
+  const height = image.height ?? 0;
+
+  log.info('Scene image generated from reference', {
+    url: image.url.slice(0, 80),
+    width,
+    height,
+  });
+
+  return { url: image.url, width, height };
 }

@@ -1,0 +1,257 @@
+{
+  "name": "The Watchers - Horror Production",
+  "template": "horror",
+  "duration_target_seconds": 30,
+
+  "consistency": {
+    "reference_prompt": "A dark animated horror character, a tall gaunt shadow creature with glowing white eyes and elongated limbs, standing in a decrepit Victorian mansion, dark cel-shaded animation style, high contrast shadows, deep blacks and crimson accents, horror anime aesthetic",
+    "seed": 666
+  },
+
+  "scenes": [
+    {
+      "id": "frame_1",
+      "description": "Exterior - Abandoned mansion at night",
+      "type": "video",
+      "timing": { "start": 0, "duration": 5 },
+      "narration": "They say the mansion on Ashwood Lane has been empty for forty years. But every night, the lights flicker on.",
+
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Wide establishing shot of a massive decrepit Victorian mansion at night, dark animated style, dead twisted trees in foreground, a single window glowing faint crimson, thick fog rolling across an overgrown path, moonlight casting long shadows, high contrast cel-shaded horror anime aesthetic, deep blacks and muted blues",
+          "aspect_ratio": "9:16"
+        }
+      },
+
+      "video_generation": {
+        "model": "fal-ai/kling-video/v2.6/pro/image-to-video",
+        "input": {
+          "prompt": "Slow dolly push toward the mansion, fog drifting across frame, the crimson window light pulses gently, dead tree branches sway in wind, cinematic horror atmosphere, dark animated style",
+          "duration": "5",
+          "negative_prompt": "blur, distort, low quality, bright colors, cheerful"
+        }
+      },
+
+      "sound_effects": [
+        {
+          "prompt": "Howling wind through dead trees at night, distant creaking wood",
+          "timing_offset": 0,
+          "duration": 5,
+          "volume": 0.6
+        }
+      ],
+
+      "effects": ["vignette_heavy", "grain", "flicker_subtle"]
+    },
+    {
+      "id": "frame_2",
+      "description": "Interior - Dark entrance hall",
+      "type": "video",
+      "timing": { "start": 5, "duration": 5 },
+      "narration": "The door was open. It was always open. As if something inside wanted you to enter.",
+
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Interior of a ruined Victorian entrance hall, massive staircase disappearing into darkness above, the dark animated shadow creature barely visible at the top of the stairs with glowing white eyes, dust particles floating in a shaft of moonlight from a broken window, peeling wallpaper, shattered chandelier, dark cel-shaded horror anime style, deep blacks crimson accents",
+          "aspect_ratio": "9:16"
+        }
+      },
+
+      "video_generation": {
+        "model": "fal-ai/kling-video/v2.6/pro/image-to-video",
+        "input": {
+          "prompt": "Camera slowly tilts upward from the entrance floor to the top of the staircase, dust particles drift through moonlight beam, the shadow creature's eyes flicker, subtle movement in the darkness above, cinematic horror",
+          "duration": "5",
+          "negative_prompt": "blur, distort, low quality, bright, happy"
+        }
+      },
+
+      "sound_effects": [
+        {
+          "prompt": "Heavy wooden door creaking open slowly, echoing in large empty room",
+          "timing_offset": 0,
+          "duration": 3,
+          "volume": 0.7
+        }
+      ],
+
+      "effects": ["vignette_heavy", "grain_heavy", "chromatic_aberration_subtle"]
+    },
+    {
+      "id": "frame_3",
+      "description": "The hallway of portraits",
+      "type": "video",
+      "timing": { "start": 10, "duration": 5 },
+      "narration": "The portraits watched you. Their painted eyes followed every step. And one of them was breathing.",
+
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Long dark hallway lined with old oil paintings in ornate gold frames, the portraits show pale figures with unnaturally wide eyes that seem to follow the viewer, one portrait at the end shows the shadow creature with glowing white eyes, flickering candlelight casting dancing shadows on the walls, dark cel-shaded horror anime aesthetic, deep blacks and warm amber candlelight",
+          "aspect_ratio": "9:16"
+        }
+      },
+
+      "video_generation": {
+        "model": "fal-ai/kling-video/v2.6/pro/image-to-video",
+        "input": {
+          "prompt": "Slow tracking shot moving through the hallway past the portraits, candlelight flickers making shadows dance, the painted eyes seem to shift and follow, the portrait at the end pulses with an eerie glow, horror atmosphere",
+          "duration": "5",
+          "negative_prompt": "blur, distort, low quality, bright colors, modern"
+        }
+      },
+
+      "sound_effects": [
+        {
+          "prompt": "Slow heavy footsteps on old wooden floorboards, creaking and groaning",
+          "timing_offset": 1,
+          "duration": 4,
+          "volume": 0.5
+        }
+      ],
+
+      "effects": ["vignette", "grain", "flicker"]
+    },
+    {
+      "id": "frame_4",
+      "description": "The creature reveals itself",
+      "type": "video",
+      "timing": { "start": 15, "duration": 5 },
+      "narration": "Then you see it. Standing at the end of the corridor. Impossibly tall. Its arms hanging past its knees.",
+
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "The dark animated shadow creature fully revealed at the end of a narrow corridor, impossibly tall and gaunt with elongated arms reaching past its knees, glowing white eyes piercing through darkness, its body slightly translucent like living shadow, the corridor walls seem to warp and bend around it, deep crimson light emanating from behind the creature, dark cel-shaded horror anime style with high contrast",
+          "aspect_ratio": "9:16"
+        }
+      },
+
+      "video_generation": {
+        "model": "fal-ai/kling-video/v2.6/pro/image-to-video",
+        "input": {
+          "prompt": "The shadow creature tilts its head slowly and unnaturally, its elongated fingers twitch, the crimson light behind it pulses, the corridor walls seem to breathe and contract, extreme horror tension, dark animated style",
+          "duration": "5",
+          "negative_prompt": "blur, distort, low quality, cute, friendly, bright"
+        }
+      },
+
+      "sound_effects": [
+        {
+          "prompt": "Low rumbling bass drone with sudden sharp violin screech, horror sting",
+          "timing_offset": 2,
+          "duration": 3,
+          "volume": 0.8
+        }
+      ],
+
+      "effects": ["vignette_heavy", "grain_heavy", "glitch_subtle", "chromatic_aberration"]
+    },
+    {
+      "id": "frame_5",
+      "description": "The chase",
+      "type": "video",
+      "timing": { "start": 20, "duration": 5 },
+      "narration": "It moved. Not like anything human. It folded through space, appearing closer each time you blinked.",
+
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Motion blur shot of running through the dark Victorian mansion, the shadow creature appearing in multiple positions simultaneously like a glitch in reality, its glowing white eyes leaving trails of light, broken furniture and debris flying, walls cracking, extreme dynamic angle from low ground looking up, dark cel-shaded horror anime style, heavy motion blur and chromatic aberration, crimson and black color palette",
+          "aspect_ratio": "9:16"
+        }
+      },
+
+      "video_generation": {
+        "model": "fal-ai/kling-video/v2.6/pro/image-to-video",
+        "input": {
+          "prompt": "Fast shaky camera running through dark corridors, the shadow creature teleporting closer in flashes, walls crumbling, lights exploding, frantic escape sequence, found footage horror energy, dark animated style",
+          "duration": "5",
+          "negative_prompt": "blur, low quality, static, calm, peaceful"
+        }
+      },
+
+      "sound_effects": [
+        {
+          "prompt": "Rapid heartbeat pounding with heavy breathing, running footsteps on wood",
+          "timing_offset": 0,
+          "duration": 5,
+          "volume": 0.7
+        }
+      ],
+
+      "effects": ["glitch", "chromatic_aberration", "grain_heavy", "vignette_heavy"]
+    },
+    {
+      "id": "frame_6",
+      "description": "The final confrontation",
+      "type": "video",
+      "timing": { "start": 25, "duration": 5 },
+      "narration": "There is no exit. There never was. The mansion doesn't trap you. It becomes you.",
+
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Extreme close-up of the shadow creature's face filling the entire frame, its glowing white eyes enormous and hypnotic, its mouth opening to reveal an infinite void of darkness inside, dark tendrils of shadow reaching out from the edges of the frame toward the viewer, the face is cracking like porcelain revealing pure darkness beneath, dark cel-shaded horror anime style, maximum contrast, crimson veins of light cracking through the darkness",
+          "aspect_ratio": "9:16"
+        }
+      },
+
+      "video_generation": {
+        "model": "fal-ai/kling-video/v2.6/pro/image-to-video",
+        "input": {
+          "prompt": "Extreme slow zoom into the creature's face, its eyes pulse brighter, mouth opens wider revealing infinite void, shadow tendrils reach toward camera, the image cracks and fractures like broken glass, final horror reveal, dark animated style",
+          "duration": "5",
+          "negative_prompt": "blur, low quality, happy, bright, colorful"
+        }
+      },
+
+      "sound_effects": [
+        {
+          "prompt": "Deep demonic whisper layered with reverse audio, building to sudden silence",
+          "timing_offset": 0,
+          "duration": 4,
+          "volume": 0.9
+        }
+      ],
+
+      "effects": ["vignette_heavy", "glitch", "chromatic_aberration", "grain_heavy", "flicker"]
+    }
+  ],
+
+  "audio": {
+    "tts": {
+      "model": "fal-ai/qwen-3-tts/voice-design/1.7b",
+      "voice_prompt": "A low raspy whispering male voice, speaking slowly with dread and tension, pausing between phrases, as if afraid to speak too loudly, horror narrator",
+      "language": "en"
+    },
+    "music": {
+      "generate": true,
+      "prompt": "Dark ambient horror soundtrack, deep bass drones, dissonant strings, occasional distant bells, building tension throughout, unsettling and oppressive atmosphere",
+      "duration": 30,
+      "volume": 0.15,
+      "fade_in": 2,
+      "fade_out": 3
+    }
+  },
+
+  "subtitles": {
+    "enabled": true,
+    "style": {
+      "font": "Impact",
+      "color": "#ffffff",
+      "stroke_color": "#000000",
+      "stroke_width": 3,
+      "position": "center"
+    }
+  },
+
+  "output": {
+    "filename": "the_watchers_horror.mp4",
+    "fps": 30,
+    "format": "mp4",
+    "platforms": ["tiktok"]
+  }
+}

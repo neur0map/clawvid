@@ -34,9 +34,10 @@ export const analysisConfigSchema = z.object({
 });
 
 export const consistencyConfigSchema = z.object({
-  workflow_id: z.string(),
   reference_prompt: z.string(),
   seed: z.number().int().optional(),
+  model: z.string().optional(),
+  edit_model: z.string().optional(),
 });
 
 export const subtitleStyleSchema = z.object({

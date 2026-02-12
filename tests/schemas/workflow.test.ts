@@ -218,7 +218,6 @@ describe('Schema: workflow', () => {
     const withConsistency = {
       ...validWorkflow,
       consistency: {
-        workflow_id: 'workflows/neur0map/clawvid-scenes',
         reference_prompt: 'A shadowy figure, horror style',
         seed: 42,
       },
@@ -227,11 +226,36 @@ describe('Schema: workflow', () => {
     expect(result.success).toBe(true);
   });
 
-  it('should reject consistency config without workflow_id', () => {
-    const invalid = {
+  it('should accept consistency config with custom models', () => {
+    const withModels = {
+      ...validWorkflow,
+      consistency: {
+        reference_prompt: 'A shadowy figure, horror style',
+        seed: 42,
+        model: 'fal-ai/custom-model',
+        edit_model: 'fal-ai/custom-edit-model',
+      },
+    };
+    const result = workflowSchema.safeParse(withModels);
+    expect(result.success).toBe(true);
+  });
+
+  it('should accept consistency config without optional fields', () => {
+    const minimal = {
       ...validWorkflow,
       consistency: {
         reference_prompt: 'A shadowy figure',
+      },
+    };
+    const result = workflowSchema.safeParse(minimal);
+    expect(result.success).toBe(true);
+  });
+
+  it('should reject consistency config without reference_prompt', () => {
+    const invalid = {
+      ...validWorkflow,
+      consistency: {
+        seed: 42,
       },
     };
     const result = workflowSchema.safeParse(invalid);

@@ -51,7 +51,3 @@ export interface FalVideoAnalysisOutput {
   segments?: Array<{ start: number; end: number; description: string }>;
 }
 
-// --- Workflow output (user-defined workflows) ---
-export interface FalWorkflowOutput {
-  [key: string]: string;
-}

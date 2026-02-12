@@ -1,4 +1,4 @@
-import { join, resolve } from 'node:path';
+import { join, resolve, basename, dirname } from 'node:path';
 import fsExtra from 'fs-extra';
 const { pathExists } = fsExtra;
 import { createLogger } from '../utils/logger.js';
@@ -22,20 +22,69 @@ export async function renderComposition(input: RenderInput): Promise<string> {
     // Dynamic import to avoid loading Remotion unless rendering
     const { bundle } = await import('@remotion/bundler');
     const { renderMedia, selectComposition } = await import('@remotion/renderer');
+    const { link, copyFile, mkdir } = await import('node:fs/promises');
 
     const entryPoint = resolve('src/render/root.tsx');
 
     log.info('Bundling Remotion project...');
     const bundleLocation = await bundle({
       entryPoint,
-      // Webpack override not needed for basic bundling
+      webpackOverride: (config) => ({
+        ...config,
+        resolve: {
+          ...config.resolve,
+          extensionAlias: {
+            '.js': ['.tsx', '.ts', '.jsx', '.js'],
+          },
+        },
+      }),
     });
+
+    // Hard-link (or copy) scene assets into the bundle's public/ dir
+    // so Remotion's HTTP server can serve them
+    const bundlePublicDir = join(bundleLocation, 'public');
+    await mkdir(bundlePublicDir, { recursive: true });
+
+    const scenes = (input.props.scenes as Array<{ src: string; [k: string]: unknown }>) ?? [];
+    const rewrittenScenes = await Promise.all(
+      scenes.map(async (scene) => {
+        const localSrc = scene.src;
+        if (!localSrc || !(await pathExists(localSrc))) return scene;
+        const filename = basename(localSrc);
+        const dest = join(bundlePublicDir, filename);
+        try {
+          await link(localSrc, dest);
+        } catch {
+          await copyFile(localSrc, dest);
+        }
+        return { ...scene, src: `/public/${filename}` };
+      }),
+    );
+
+    // Also link the audio file
+    let audioUrl = input.props.audioUrl as string | undefined;
+    if (audioUrl && typeof audioUrl === 'string' && !audioUrl.startsWith('http') && await pathExists(audioUrl)) {
+      const audioFilename = basename(audioUrl);
+      const audioDest = join(bundlePublicDir, audioFilename);
+      try {
+        await link(audioUrl, audioDest);
+      } catch {
+        await copyFile(audioUrl, audioDest);
+      }
+      audioUrl = `/public/${audioFilename}`;
+    }
+
+    const rewrittenProps = {
+      ...input.props,
+      scenes: rewrittenScenes,
+      audioUrl,
+    };
 
     log.info('Selecting composition...', { id: input.compositionId });
     const composition = await selectComposition({
       serveUrl: bundleLocation,
       id: input.compositionId,
-      inputProps: input.props,
+      inputProps: rewrittenProps,
     });
 
     log.info('Rendering video...', {
@@ -49,14 +98,14 @@ export async function renderComposition(input: RenderInput): Promise<string> {
       serveUrl: bundleLocation,
       codec: 'h264',
       outputLocation: input.outputPath,
-      inputProps: input.props,
+      inputProps: rewrittenProps,
     });
 
     log.info('Render complete', { output: input.outputPath });
     return input.outputPath;
   } catch (err) {
-    // Fallback: if Remotion renderer isn't available, use FFmpeg slideshow
-    log.warn('Remotion render failed, falling back to FFmpeg slideshow', {
+    // Fallback: if Remotion renderer isn't available, use FFmpeg
+    log.warn('Remotion render failed, falling back to FFmpeg', {
       error: String(err),
     });
     return fallbackRender(input);
@@ -64,7 +113,6 @@ export async function renderComposition(input: RenderInput): Promise<string> {
 }
 
 async function fallbackRender(input: RenderInput): Promise<string> {
-  // FFmpeg-based fallback: create a simple slideshow from scene images
   const { spawn } = await import('node:child_process');
   const scenes = (input.props.scenes as Array<{ src: string; durationFrames: number }>) ?? [];
   const fps = input.fps ?? 30;
@@ -86,23 +134,34 @@ async function fallbackRender(input: RenderInput): Promise<string> {
       child.on('error', reject);
     });
 
-  // For each image scene, create a segment, then concatenate
   const segmentPaths: string[] = [];
-  const outputDir = input.outputPath.replace(/[^/]+$/, '');
+  const outputDir = dirname(input.outputPath);
 
   for (let i = 0; i < scenes.length; i++) {
     const scene = scenes[i];
+    const localSrc = scene.src;
     const duration = scene.durationFrames / fps;
     const segmentPath = join(outputDir, `segment-${i}.mp4`);
 
-    if (scene.src.endsWith('.mp4') && await pathExists(scene.src)) {
-      // Video scene — use as-is
-      segmentPaths.push(scene.src);
-    } else if (await pathExists(scene.src)) {
+    if (localSrc.endsWith('.mp4') && await pathExists(localSrc)) {
+      // Video scene — loop/extend to fill the scene duration
+      await runCmd('ffmpeg', [
+        '-stream_loop', '-1',
+        '-t', String(duration),
+        '-i', localSrc,
+        '-c:v', 'libx264',
+        '-pix_fmt', 'yuv420p',
+        '-r', String(fps),
+        '-an',
+        '-y',
+        segmentPath,
+      ]);
+      segmentPaths.push(segmentPath);
+    } else if (await pathExists(localSrc)) {
       // Image scene — create video from still image
       await runCmd('ffmpeg', [
         '-loop', '1',
-        '-i', scene.src,
+        '-i', localSrc,
         '-c:v', 'libx264',
         '-t', String(duration),
         '-pix_fmt', 'yuv420p',
@@ -124,8 +183,10 @@ async function fallbackRender(input: RenderInput): Promise<string> {
   const escapeForConcat = (p: string) => p.replace(/'/g, "'\\''");
   await writeFile(concatList, segmentPaths.map((p) => `file '${escapeForConcat(p)}'`).join('\n'));
 
-  const audioArgs = input.props.audioUrl
-    ? ['-i', String(input.props.audioUrl), '-c:a', 'aac', '-shortest']
+  const audioPath = input.props.audioUrl ? String(input.props.audioUrl) : '';
+  const hasAudio = audioPath && await pathExists(audioPath);
+  const audioArgs = hasAudio
+    ? ['-i', audioPath, '-c:a', 'aac', '-shortest']
     : ['-an'];
 
   try {

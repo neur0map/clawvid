@@ -7,7 +7,8 @@ import { generateVideo } from '../fal/video.js';
 import { generateSpeech, transcribe } from '../fal/audio.js';
 import { generateSoundEffect } from '../fal/sound.js';
 import { generateMusic } from '../fal/music.js';
-import { runWorkflowAndDownload, buildSceneWorkflowInput, buildSceneOutputMapping } from '../fal/workflow.js';
+import { generateReferenceImage, generateSceneFromReference } from '../fal/workflow.js';
+import type { ConsistencyOptions } from '../fal/workflow.js';
 import { CacheStore } from '../cache/store.js';
 import { hashWorkflowStep } from '../cache/hash.js';
 import { CostTracker } from '../fal/cost.js';
@@ -18,13 +19,16 @@ const log = createLogger('workflow-runner');
 
 /** Estimated cost per API call by model category. Update when pricing changes. */
 const COST_ESTIMATES = {
-  image_kling: 0.04,
-  image_default: 0.03,
-  video: 0.08,
-  tts: 0.015,
-  transcription: 0.01,
-  sound_effect: 0.02,
-  music: 0.05,
+  image_kling: 0.028,
+  image_default: 0.028,
+  image_nano_ref: 0.15,
+  image_nano_edit: 0.15,
+  video_512p: 0.35,
+  video_1024p: 0.70,
+  tts: 0.09,
+  transcription: 0.001,
+  sound_effect: 0.10,
+  music: 0.10,
 } as const;
 
 export interface SceneAssets {
@@ -80,8 +84,8 @@ export async function executeWorkflow(
   });
 
   // Phase 1: Generate scene images & videos
-  // Use fal.ai workflow route for consistent images when configured
-  const sceneAssets = workflow.consistency?.workflow_id
+  // Use direct API orchestration for consistent images when configured
+  const sceneAssets = workflow.consistency
     ? await generateSceneAssetsViaWorkflow(
         workflow,
         assetManager,
@@ -113,18 +117,55 @@ export async function executeWorkflow(
   if (narrationSegments.length > 0) {
     fullNarrationPath = assetManager.getAssetPath('narration-full.mp3');
 
-    const firstUrl = narrationSegments[0].audioUrl;
-    try {
-      const whisperModel = config.fal.audio.transcription;
-      const result = await transcribe(firstUrl, whisperModel);
+    // Transcribe each narration segment and merge chunks with cumulative offset.
+    // Whisper timestamps are relative to each audio file. Since segments get
+    // concatenated sequentially, we track cumulative duration to align timestamps
+    // with the final concatenated audio timeline.
+    const whisperModel = config.fal.audio.transcription;
+    const allText: string[] = [];
+    const allChunks: Array<{ text: string; timestamp: [number, number] }> = [];
+    let cumulativeOffset = 0;
+
+    for (const segment of narrationSegments) {
+      try {
+        const result = await transcribe(segment.audioUrl, whisperModel);
+        allText.push(result.text);
+
+        let segmentEnd = 0;
+        for (const chunk of result.chunks ?? []) {
+          allChunks.push({
+            text: chunk.text,
+            timestamp: [
+              chunk.timestamp[0] + cumulativeOffset,
+              chunk.timestamp[1] + cumulativeOffset,
+            ],
+          });
+          segmentEnd = Math.max(segmentEnd, chunk.timestamp[1]);
+        }
+
+        // Advance offset by this segment's actual audio duration
+        cumulativeOffset += segmentEnd > 0 ? segmentEnd : segment.duration;
+
+        costTracker.record(whisperModel, COST_ESTIMATES.transcription);
+      } catch (err) {
+        log.warn('Transcription failed for segment, using narration text', {
+          sceneId: segment.sceneId,
+          error: String(err),
+        });
+        // Still advance offset so subsequent segments align
+        cumulativeOffset += segment.duration;
+      }
+    }
+
+    if (allText.length > 0 || allChunks.length > 0) {
       transcription = {
-        text: result.text,
-        chunks: result.chunks ?? [],
+        text: allText.join(' '),
+        chunks: allChunks,
       };
-      costTracker.record(whisperModel, COST_ESTIMATES.transcription);
-      log.info('Transcription complete', { wordCount: result.text.split(' ').length });
-    } catch (err) {
-      log.warn('Transcription failed, subtitles will use narration text', { error: String(err) });
+      log.info('Transcription complete', {
+        segments: narrationSegments.length,
+        wordCount: transcription.text.split(' ').length,
+      });
     }
   }
 
@@ -207,7 +248,7 @@ async function generateSceneAssets(
         sceneResult.videoPath = videoPath;
         sceneResult.videoUrl = result.url;
         await cache.set(`${scene.id}-video`, videoHash, result.url);
-        costTracker.record(scene.video_generation.model, COST_ESTIMATES.video);
+        costTracker.record(scene.video_generation.model, COST_ESTIMATES.video_512p);
       }
     }
 
@@ -227,64 +268,74 @@ async function generateSceneAssetsViaWorkflow(
 ): Promise<SceneAssets[]> {
   const consistency = workflow.consistency!;
   const scenes = workflow.scenes;
-  const spinner = createSpinner('Generating consistent scene images via workflow...');
+  const spinner = createSpinner('Generating consistent scene images...');
   spinner.start();
 
-  // Check cache for all scenes first
-  const workflowHash = hashWorkflowStep({
-    workflow_id: consistency.workflow_id,
-    reference_prompt: consistency.reference_prompt,
-    seed: consistency.seed,
-    scene_prompts: scenes.map((s) => s.image_generation.input.prompt),
-  } as Record<string, unknown>);
-
-  if (!skipCache && cache.has('workflow-scenes', workflowHash)) {
-    log.info('Workflow scene images cache hit');
-    spinner.succeed('Scene images loaded from cache');
-    // Even on cache hit, we still need to construct the SceneAssets
-    // The cache stored the workflow output URLs, but we need local paths
-  }
-
-  // Build workflow input from scene prompts
-  const scenePrompts = scenes.map((s) => s.image_generation.input.prompt);
   const aspectRatio = scenes[0]?.image_generation.input.aspect_ratio ?? '9:16';
 
-  const input = buildSceneWorkflowInput(
-    consistency.reference_prompt,
-    scenePrompts,
-    { seed: consistency.seed, aspectRatio },
-  );
+  const consistencyOptions: ConsistencyOptions = {
+    referencePrompt: consistency.reference_prompt,
+    seed: consistency.seed,
+    aspectRatio,
+    model: consistency.model,
+    editModel: consistency.edit_model,
+  };
 
-  // Build output mapping: scene_N_image → scene ID → download path
-  const sceneIds = scenes.map((s) => s.id);
-  const outputMapping = buildSceneOutputMapping(
-    sceneIds,
-    (sceneId) => assetManager.getAssetPath(`${sceneId}.png`),
-  );
+  // Step 1: Generate reference image
+  spinner.text = 'Generating reference image...';
+  const refPath = assetManager.getAssetPath('reference.png');
+  const refHash = hashWorkflowStep({
+    reference_prompt: consistency.reference_prompt,
+    seed: consistency.seed,
+    model: consistency.model,
+  } as Record<string, unknown>);
 
-  // Call the fal.ai workflow
-  const workflowResults = await runWorkflowAndDownload(
-    consistency.workflow_id,
-    input,
-    outputMapping,
-  );
+  let referenceUrl: string;
 
-  // Cache the result
-  await cache.set('workflow-scenes', workflowHash, consistency.workflow_id);
+  if (!skipCache && cache.has('consistency-reference', refHash)) {
+    const cached = cache.get('consistency-reference')!;
+    referenceUrl = cached.outputPath;
+    log.info('Reference image cache hit');
+  } else {
+    const refResult = await generateReferenceImage(consistencyOptions, refPath);
+    referenceUrl = refResult.url;
+    await cache.set('consistency-reference', refHash, refResult.url);
+    costTracker.record(consistency.model ?? 'fal-ai/nano-banana-pro', COST_ESTIMATES.image_nano_ref);
+  }
 
-  // Estimate cost: reference image + N scene edits
-  const editCostPerScene = COST_ESTIMATES.image_default;
-  costTracker.record(consistency.workflow_id, editCostPerScene * (scenes.length + 1));
-
-  // Build SceneAssets, then handle video generation for video-type scenes
+  // Step 2: Generate each scene image from the reference
   const results: SceneAssets[] = [];
 
   for (const scene of scenes) {
-    const wfResult = workflowResults.find((r) => r.sceneId === scene.id);
+    spinner.text = `Scene ${scene.id}: generating from reference...`;
     const imagePath = assetManager.getAssetPath(`${scene.id}.png`);
-    const imageUrl = wfResult?.imageUrl ?? '';
+    const scenePrompt = scene.image_generation.input.prompt;
+    const sceneHash = hashWorkflowStep({
+      reference_url: referenceUrl,
+      prompt: scenePrompt,
+      seed: consistency.seed,
+      edit_model: consistency.edit_model,
+    } as Record<string, unknown>);
 
-    const sceneResult: SceneAssets = { sceneId: scene.id, imagePath, imageUrl };
+    let imageUrl: string;
+
+    if (!skipCache && cache.has(`${scene.id}-image`, sceneHash)) {
+      const cached = cache.get(`${scene.id}-image`)!;
+      imageUrl = cached.outputPath;
+      log.info('Scene image cache hit', { sceneId: scene.id });
+    } else {
+      const sceneResult = await generateSceneFromReference(
+        referenceUrl,
+        scenePrompt,
+        consistencyOptions,
+        imagePath,
+      );
+      imageUrl = sceneResult.url;
+      await cache.set(`${scene.id}-image`, sceneHash, sceneResult.url);
+      costTracker.record(consistency.edit_model ?? 'fal-ai/nano-banana-pro/edit', COST_ESTIMATES.image_nano_edit);
+    }
+
+    const sceneAsset: SceneAssets = { sceneId: scene.id, imagePath, imageUrl };
 
     // Generate video if needed (uses the consistent image as input)
     if (scene.type === 'video' && scene.video_generation) {
@@ -295,22 +346,22 @@ async function generateSceneAssetsViaWorkflow(
 
       if (!skipCache && cache.has(`${scene.id}-video`, videoHash)) {
         const cached = cache.get(`${scene.id}-video`)!;
-        sceneResult.videoPath = videoPath;
-        sceneResult.videoUrl = cached.outputPath;
+        sceneAsset.videoPath = videoPath;
+        sceneAsset.videoUrl = cached.outputPath;
         log.info('Video cache hit', { sceneId: scene.id });
       } else {
         const result = await generateVideo(scene.video_generation, imageUrl, videoPath);
-        sceneResult.videoPath = videoPath;
-        sceneResult.videoUrl = result.url;
+        sceneAsset.videoPath = videoPath;
+        sceneAsset.videoUrl = result.url;
         await cache.set(`${scene.id}-video`, videoHash, result.url);
-        costTracker.record(scene.video_generation.model, COST_ESTIMATES.video);
+        costTracker.record(scene.video_generation.model, COST_ESTIMATES.video_512p);
       }
     }
 
-    results.push(sceneResult);
+    results.push(sceneAsset);
   }
 
-  spinner.succeed(`${scenes.length} consistent scene images generated via workflow`);
+  spinner.succeed(`${scenes.length} consistent scene images generated`);
   return results;
 }
 
@@ -467,5 +518,5 @@ function estimateCost(category: 'image' | 'video', model: string): number {
   if (category === 'image') {
     return model.includes('kling') ? COST_ESTIMATES.image_kling : COST_ESTIMATES.image_default;
   }
-  return COST_ESTIMATES.video;
+  return COST_ESTIMATES.video_512p;
 }

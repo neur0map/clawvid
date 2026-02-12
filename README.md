@@ -1,6 +1,6 @@
 # ClawVid
 
-> **Status: Alpha Testing** — Under active development. Not production-ready. API integrations, pipeline data flow, and rendering are being validated against real services. Do not use for production workloads.
+> **Status: Beta** — End-to-end pipeline working. Full 30-second production video generated successfully with scene consistency, Kling 2.6 video, Remotion rendering, word-level subtitles, and multi-track audio. Edge cases and hardening still in progress.
 
 AI-powered short-form video generation CLI for [OpenClaw](https://github.com/neur0map/openclaw).
 
@@ -22,14 +22,14 @@ User: "Make a horror video about a haunted library"
                     |
                     v
     ClawVid Pipeline (5 phases)
-      Phase 1. Generate images via fal.ai (kling-image/v3)
-      Phase 2. Generate video clips via fal.ai (kandinsky5-pro)
+      Phase 1. Generate images via fal.ai (kling-image/v3 or nano-banana-pro)
+      Phase 2. Generate video clips via fal.ai (Kling 2.6 Pro)
       Phase 3. Generate TTS narration via fal.ai (qwen-3-tts)
       Phase 4. Generate sound effects via fal.ai (beatoven)
       Phase 5. Generate background music via fal.ai (beatoven)
       + Process audio (trim, normalize, mix with adelay sync)
-      + Generate subtitles (Whisper transcription -> SRT/VTT)
-      + Render compositions (Remotion: 16:9 + 9:16)
+      + Generate subtitles (Whisper word-level -> SRT/VTT)
+      + Render compositions (Remotion: 16:9 + 9:16 with effects)
       + Post-process (FFmpeg: encode, thumbnails)
                     |
                     v
@@ -87,8 +87,8 @@ Central settings file checked into git. Controls:
 
 | Section | What it configures |
 |---------|-------------------|
-| `fal.image` | Image generation model (kling-image/v3) |
-| `fal.video` | Video generation model (kandinsky5-pro) |
+| `fal.image` | Image generation model (kling-image/v3, nano-banana-pro) |
+| `fal.video` | Video generation model (Kling 2.6 Pro) |
 | `fal.audio` | TTS (qwen-3-tts), transcription (whisper), sound effects (beatoven), music (beatoven) |
 | `fal.analysis` | Image/video analysis models for quality verification |
 | `defaults` | Aspect ratio, resolution, FPS, duration, max video clips |
@@ -141,7 +141,7 @@ Minimal example:
   "scenes": [
     {
       "id": "scene_1",
-      "type": "image",
+      "type": "video",
       "timing": { "start": 0, "duration": 15 },
       "narration": "The door opened by itself.",
       "image_generation": {
@@ -149,6 +149,14 @@ Minimal example:
         "input": {
           "prompt": "Dark hallway, door slightly ajar, light from behind, horror atmosphere",
           "aspect_ratio": "9:16"
+        }
+      },
+      "video_generation": {
+        "model": "fal-ai/kling-video/v2.6/pro/image-to-video",
+        "input": {
+          "prompt": "Slow push into dark hallway, door creaks open, light flickers",
+          "duration": "5",
+          "negative_prompt": "blur, low quality, bright"
         }
       },
       "sound_effects": [
@@ -178,7 +186,24 @@ Minimal example:
 }
 ```
 
-Full example: [workflows/horror-story-example.json](workflows/horror-story-example.json)
+### Scene consistency
+
+For visually consistent characters/environments across scenes, add a `consistency` block:
+
+```json
+{
+  "consistency": {
+    "reference_prompt": "A dark animated shadow creature with glowing white eyes...",
+    "seed": 666
+  }
+}
+```
+
+This generates a reference image first, then edits it for each scene using `nano-banana-pro/edit` with the same seed — ensuring visual consistency without the fal.ai workflow platform.
+
+Full examples:
+- [workflows/horror-story-example.json](workflows/horror-story-example.json) — standard workflow
+- [workflows/production-horror-frames.json](workflows/production-horror-frames.json) — production 30s with consistency
 
 ## Project Structure
 
@@ -189,7 +214,10 @@ clawvid/
   preferences.json               # Per-user defaults (gitignored)
   .env                           # FAL_KEY (gitignored)
   workflows/                     # Example workflow JSONs
-    horror-story-example.json
+    horror-story-example.json    # Standard horror (7 scenes, 60s)
+    production-horror-frames.json # Production horror (6 frames, 30s, consistency)
+    test-motivation-consistency.json # Test with scene consistency
+    test-workflow-consistency.json   # Minimal consistency test
     test-minimal.json            # Minimal 2-scene test workflow
 
   src/
@@ -211,10 +239,11 @@ clawvid/
     fal/                         # fal.ai API layer
       client.ts                  #   Shared client (auth, queue, retry)
       image.ts                   #   Image generation (kling-image/v3)
-      video.ts                   #   Image-to-video generation (kandinsky5-pro)
+      video.ts                   #   Image-to-video (Kling 2.6 Pro, kandinsky5-pro)
       audio.ts                   #   TTS (qwen-3-tts) and transcription (whisper)
       sound.ts                   #   Sound effect generation (beatoven)
       music.ts                   #   Music generation (beatoven)
+      workflow.ts                #   Scene consistency (reference + edit orchestration)
       analysis.ts                #   Image/video analysis (got-ocr, video-understanding)
       cost.ts                    #   Cost tracking per run
       queue.ts                   #   Concurrency control (p-queue)
@@ -326,16 +355,19 @@ clawvid/
 
 All AI generation uses fal.ai endpoints. Use full endpoint paths in workflow JSON.
 
-| Capability | Short Name | Full fal.ai Endpoint |
-|-----------|------------|---------------------|
-| Image Generation | kling-image/v3 | `fal-ai/kling-image/v3/text-to-image` |
-| Image-to-Video | kandinsky5-pro | `fal-ai/kandinsky5-pro/image-to-video` |
-| Text-to-Speech | qwen-3-tts | `fal-ai/qwen-3-tts/voice-design/1.7b` |
-| Sound Effects | beatoven SFX | `beatoven/sound-effect-generation` |
-| Music Generation | beatoven Music | `beatoven/music-generation` |
-| Transcription | whisper | `fal-ai/whisper` |
-| Image Analysis | got-ocr | `fal-ai/got-ocr/v2` |
-| Video Analysis | video-understanding | `fal-ai/video-understanding` |
+| Capability | Short Name | Full fal.ai Endpoint | Price |
+|-----------|------------|---------------------|-------|
+| Image Generation | kling-image/v3 | `fal-ai/kling-image/v3/text-to-image` | $0.028/img |
+| Reference Image | nano-banana-pro | `fal-ai/nano-banana-pro` | $0.15/img |
+| Scene Edit (consistency) | nano-banana-pro/edit | `fal-ai/nano-banana-pro/edit` | $0.15/img |
+| Image-to-Video | Kling 2.6 Pro | `fal-ai/kling-video/v2.6/pro/image-to-video` | $0.35/5s |
+| Image-to-Video (fast) | kandinsky5-pro | `fal-ai/kandinsky5-pro/image-to-video` | $0.04-0.12/s |
+| Text-to-Speech | qwen-3-tts | `fal-ai/qwen-3-tts/voice-design/1.7b` | $0.09/1K chars |
+| Sound Effects | beatoven SFX | `beatoven/sound-effect-generation` | $0.10/req |
+| Music Generation | beatoven Music | `beatoven/music-generation` | $0.10/req |
+| Transcription | whisper | `fal-ai/whisper` | $0.001/comp sec |
+| Image Analysis | got-ocr | `fal-ai/got-ocr/v2` | — |
+| Video Analysis | video-understanding | `fal-ai/video-understanding` | — |
 
 ## Scripts
 

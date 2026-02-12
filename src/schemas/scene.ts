@@ -17,6 +17,7 @@ export const videoGenerationSchema = z.object({
   model: z.string(),
   input: z.object({
     prompt: z.string(),
+    negative_prompt: z.string().optional(),
     duration: z.string().optional(),
     resolution: z.string().optional(),
     num_inference_steps: z.number().int().positive().optional(),

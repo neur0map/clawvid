@@ -10,7 +10,7 @@ import { executeWorkflow, type WorkflowResult } from './workflow-runner.js';
 import { concatenateNarration } from '../audio/mixer.js';
 import { normalizeAudio } from '../audio/normalize.js';
 import { trimSilence } from '../audio/silence.js';
-import { buildSubtitleSegments, writeSRT, writeVTT, type TimedWord } from '../subtitles/generator.js';
+import { buildSubtitleSegments, writeSRT, writeVTT, type TimedWord, type SubtitleSegment } from '../subtitles/generator.js';
 import { renderComposition } from '../render/renderer.js';
 import { encode } from '../post/encoder.js';
 import { extractThumbnail } from '../post/thumbnail.js';
@@ -64,6 +64,7 @@ export async function runGenerate(options: GenerateOptions): Promise<void> {
   );
   await assetManager.initialize();
   console.log(chalk.dim(`Output: ${assetManager.outputDir}`));
+  console.log(chalk.dim(`Run ID: ${assetManager.runId}`));
 
   // Save workflow copy to output
   await writeJsonFile(join(assetManager.outputDir, 'workflow.json'), rawWorkflow);
@@ -80,18 +81,21 @@ export async function runGenerate(options: GenerateOptions): Promise<void> {
   await processAudio(workflow, result, assetManager);
 
   // 5. Generate subtitles
-  await generateSubtitles(workflow, result, assetManager);
+  const subtitleSegments = await generateSubtitles(workflow, result, assetManager);
 
   // 6. Render compositions for all target platforms
   const targetPlatforms = resolveTargetPlatforms(workflow, config);
-  await renderAllPlatforms(workflow, result, assetManager, config, targetPlatforms);
+  await renderAllPlatforms(workflow, result, assetManager, config, targetPlatforms, subtitleSegments);
 
   // 7. Post-process (encode + thumbnails)
   await postProcess(assetManager, targetPlatforms);
 
-  // 8. Write cost summary
+  // 8. Write cost summary with run tracking
   const costSummary = result.costTracker.getSummary();
-  await writeJsonFile(join(assetManager.outputDir, 'cost.json'), costSummary);
+  await writeJsonFile(join(assetManager.outputDir, 'cost.json'), {
+    runId: assetManager.runId,
+    ...costSummary,
+  });
 
   // 9. Final output
   console.log('');
@@ -209,9 +213,9 @@ async function generateSubtitles(
   workflow: Workflow,
   result: WorkflowResult,
   assetManager: AssetManager,
-): Promise<void> {
-  if (workflow.subtitles?.enabled === false) return;
-  if (result.narrationSegments.length === 0) return;
+): Promise<SubtitleSegment[]> {
+  if (workflow.subtitles?.enabled === false) return [];
+  if (result.narrationSegments.length === 0) return [];
 
   const spinner = createSpinner('Generating subtitles...');
   spinner.start();
@@ -248,6 +252,7 @@ async function generateSubtitles(
   await writeVTT(subtitleSegments, vttPath);
 
   spinner.succeed(`Subtitles generated (${subtitleSegments.length} segments)`);
+  return subtitleSegments;
 }
 
 function resolveTargetPlatforms(workflow: Workflow, config: AppConfig): PlatformId[] {
@@ -279,7 +284,17 @@ async function renderAllPlatforms(
   assetManager: AssetManager,
   config: AppConfig,
   platforms: PlatformId[],
+  subtitleSegments: SubtitleSegment[] = [],
 ): Promise<void> {
+  const fps = config.defaults.fps;
+
+  // Convert subtitle segments (seconds) to Remotion subtitle entries (frames)
+  const subtitles = subtitleSegments.map((seg) => ({
+    text: seg.text,
+    startFrame: Math.round(seg.start * fps),
+    endFrame: Math.round(seg.end * fps),
+  }));
+
   for (const platform of platforms) {
     const spinner = createSpinner(`Rendering ${platform}...`);
     spinner.start();
@@ -292,15 +307,16 @@ async function renderAllPlatforms(
       scenes: workflow.scenes.map((scene) => {
         const assets = result.sceneAssets.find((a) => a.sceneId === scene.id);
         return {
+          id: scene.id,
           type: scene.type,
           src: scene.type === 'video' && assets?.videoPath ? assets.videoPath : assets?.imagePath ?? '',
-          startFrame: Math.round(scene.timing.start * (config.defaults.fps)),
-          durationFrames: Math.round(scene.timing.duration * (config.defaults.fps)),
+          startFrame: Math.round(scene.timing.start * fps),
+          durationFrames: Math.round(scene.timing.duration * fps),
           effects: scene.effects ?? [],
         };
       }),
       audioUrl: result.fullNarrationPath ?? '',
-      subtitles: [],
+      subtitles,
     };
 
     await renderComposition({

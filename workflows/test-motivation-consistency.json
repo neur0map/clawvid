@@ -1,0 +1,108 @@
+{
+  "name": "Motivation Consistency Test",
+  "template": "motivation",
+  "duration_target_seconds": 16,
+
+  "consistency": {
+    "reference_prompt": "A lone mountain climber on a rugged cliff at golden hour, warm cinematic lighting, epic landscape, motivational tone",
+    "seed": 77
+  },
+
+  "scenes": [
+    {
+      "id": "scene_1",
+      "description": "Climber gripping the rock face at sunrise",
+      "type": "video",
+      "timing": { "start": 0, "duration": 8 },
+      "narration": "Every summit begins with a single handhold. The wind tears at your skin, your fingers burn against cold rock, and everything in your body screams to let go. But you don't. Because you know that the view from the top is earned, never given.",
+
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Close-up of the mountain climber gripping a rock face, golden sunrise behind, sweat on hands, determined expression, warm cinematic lighting",
+          "aspect_ratio": "9:16"
+        }
+      },
+
+      "video_generation": {
+        "model": "fal-ai/kling-video/v2.6/pro/image-to-video",
+        "input": {
+          "prompt": "Slow camera pull back revealing the climber on a vast cliff face, golden light streaming through clouds, wind blowing, epic cinematic",
+          "duration": "5",
+          "negative_prompt": "blur, distort, low quality, static, frozen"
+        }
+      },
+
+      "sound_effects": [
+        {
+          "prompt": "Wind blowing across a mountain ridge, distant echo",
+          "timing_offset": 0,
+          "duration": 5,
+          "volume": 0.5
+        }
+      ],
+
+      "effects": ["lens_flare", "fade"]
+    },
+    {
+      "id": "scene_2",
+      "description": "Climber reaching the summit",
+      "type": "video",
+      "timing": { "start": 8, "duration": 8 },
+      "narration": "And then you reach the top. The world opens up beneath you, endless and golden. You stand where doubt said you never would. This moment right here — this is what you were made for.",
+
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "The same mountain climber standing triumphantly on a summit, arms raised, golden hour panoramic view below, warm cinematic epic landscape",
+          "aspect_ratio": "9:16"
+        }
+      },
+
+      "video_generation": {
+        "model": "fal-ai/kling-video/v2.6/pro/image-to-video",
+        "input": {
+          "prompt": "Slow orbit around the climber on the summit, panoramic golden landscape below, clouds parting, epic triumphant moment",
+          "duration": "5",
+          "negative_prompt": "blur, distort, low quality, static, frozen"
+        }
+      },
+
+      "effects": ["lens_flare", "fade"]
+    }
+  ],
+
+  "audio": {
+    "tts": {
+      "model": "fal-ai/qwen-3-tts/voice-design/1.7b",
+      "voice_prompt": "A warm, confident male voice with powerful delivery for motivational narration",
+      "language": "en"
+    },
+    "music": {
+      "generate": true,
+      "prompt": "Uplifting epic orchestral music, inspiring, building to a triumphant climax, cinematic motivational",
+      "duration": 16,
+      "volume": 0.2,
+      "fade_in": 2,
+      "fade_out": 2
+    }
+  },
+
+  "subtitles": {
+    "enabled": true,
+    "style": {
+      "font": "Impact",
+      "color": "#ffffff",
+      "stroke_color": "#000000",
+      "stroke_width": 2,
+      "position": "bottom"
+    }
+  },
+
+  "output": {
+    "filename": "motivation_consistency_test.mp4",
+    "fps": 30,
+    "format": "mp4",
+    "platforms": ["tiktok"]
+  }
+}

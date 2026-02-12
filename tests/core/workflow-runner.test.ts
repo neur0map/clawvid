@@ -26,15 +26,8 @@ vi.mock('../../src/fal/music.js', () => ({
 }));
 
 vi.mock('../../src/fal/workflow.js', () => ({
-  runWorkflowAndDownload: vi.fn().mockResolvedValue([
-    { sceneId: 'scene_1', imageUrl: 'https://fal.ai/wf-scene1.png', downloadPath: '/tmp/test-output/assets/scene_1.png' },
-    { sceneId: 'scene_2', imageUrl: 'https://fal.ai/wf-scene2.png', downloadPath: '/tmp/test-output/assets/scene_2.png' },
-  ]),
-  buildSceneWorkflowInput: vi.fn().mockReturnValue({ reference_prompt: 'test', scene_1_prompt: 'p1', scene_2_prompt: 'p2' }),
-  buildSceneOutputMapping: vi.fn().mockReturnValue([
-    { field: 'scene_1_image', sceneId: 'scene_1', downloadPath: '/tmp/test-output/assets/scene_1.png' },
-    { field: 'scene_2_image', sceneId: 'scene_2', downloadPath: '/tmp/test-output/assets/scene_2.png' },
-  ]),
+  generateReferenceImage: vi.fn().mockResolvedValue({ url: 'https://fal.ai/ref.png', width: 1080, height: 1920 }),
+  generateSceneFromReference: vi.fn().mockResolvedValue({ url: 'https://fal.ai/scene.png', width: 1080, height: 1920 }),
 }));
 
 vi.mock('../../src/utils/progress.js', () => ({
@@ -82,7 +75,7 @@ import { executeWorkflow } from '../../src/core/workflow-runner.js';
 import { generateImage } from '../../src/fal/image.js';
 import { generateVideo } from '../../src/fal/video.js';
 import { generateSpeech } from '../../src/fal/audio.js';
-import { runWorkflowAndDownload } from '../../src/fal/workflow.js';
+import { generateReferenceImage, generateSceneFromReference } from '../../src/fal/workflow.js';
 import { AssetManager } from '../../src/core/asset-manager.js';
 
 const config: AppConfig = { ...defaults };
@@ -160,9 +153,7 @@ describe('Core: workflow-runner', () => {
     await executeWorkflow(workflow, config, assetManager, true);
     vi.clearAllMocks();
 
-    // Second run: skipCache=false, but the mock CacheStore.has returns true
-    // after entries were inserted in the first run
-    // For this test, we verify that when skipCache=true, we always call generate
+    // Second run: skipCache=true, so it always calls generate
     const result = await executeWorkflow(workflow, config, assetManager, true);
 
     // With skipCache=true, it should still call generateImage
@@ -183,10 +174,9 @@ describe('Core: workflow-runner', () => {
     expect(summary.breakdown).toBeDefined();
   });
 
-  it('should use workflow route when consistency is configured', async () => {
+  it('should use direct API orchestration when consistency is configured', async () => {
     const workflow = makeWorkflow({
       consistency: {
-        workflow_id: 'workflows/neur0map/clawvid-scenes',
         reference_prompt: 'A dark figure in horror style',
         seed: 42,
       },
@@ -195,11 +185,13 @@ describe('Core: workflow-runner', () => {
 
     const result = await executeWorkflow(workflow, config, assetManager, true);
 
-    // Should call the workflow route instead of individual image generation
-    expect(runWorkflowAndDownload).toHaveBeenCalledTimes(1);
+    // Should call generateReferenceImage once
+    expect(generateReferenceImage).toHaveBeenCalledTimes(1);
+    // Should call generateSceneFromReference for each scene
+    expect(generateSceneFromReference).toHaveBeenCalledTimes(2);
     // Should NOT call individual generateImage
     expect(generateImage).not.toHaveBeenCalled();
-    // Video generation for scene_2 should still happen (from workflow image)
+    // Video generation for scene_2 should still happen (from consistent image)
     expect(generateVideo).toHaveBeenCalledTimes(1);
     expect(result.sceneAssets).toHaveLength(2);
   });

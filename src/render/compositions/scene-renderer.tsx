@@ -13,9 +13,10 @@ import { Transition } from '../components/transition.js';
 interface SceneRendererProps {
   scene: SceneProps;
   template?: TemplateStyle;
+  isLast?: boolean;
 }
 
-export const SceneRenderer: React.FC<SceneRendererProps> = ({ scene, template }) => {
+export const SceneRenderer: React.FC<SceneRendererProps> = ({ scene, template, isLast = false }) => {
   const allEffects = [
     ...(scene.effects ?? []),
     ...(template?.defaultEffects ?? []),
@@ -23,10 +24,9 @@ export const SceneRenderer: React.FC<SceneRendererProps> = ({ scene, template })
 
   // Determine the transition style
   const transitionType = scene.transition ?? 'fade';
-  const transitionFrames = transitionType === 'cut' ? 0 : 8;
 
   return (
-    <Transition type={transitionType} durationFrames={transitionFrames}>
+    <Transition type={transitionType} durationFrames={scene.durationFrames} isLast={isLast}>
       <AbsoluteFill>
         {/* Base scene content */}
         <SceneContent scene={scene} effects={allEffects} />
@@ -77,7 +77,7 @@ const SceneContent: React.FC<SceneContentProps> = ({ scene, effects }) => {
   );
 
   if (scene.type === 'video' && scene.src.endsWith('.mp4')) {
-    return <SceneVideo src={scene.src} volume={0} />;
+    return <SceneVideo src={scene.src} volume={0} durationInFrames={scene.durationFrames} />;
   }
 
   if (hasKenBurns) {

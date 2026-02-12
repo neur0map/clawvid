@@ -166,11 +166,10 @@
 - **Issue**: Inputs may have different sample rates (44.1kHz, 48kHz). amix uses first input's rate.
 - **Fix**: Add `aresample=44100` to each input in the filter graph.
 
-### M16. Video duration mismatch in workflow JSON [OPEN]
+### M16. Video duration mismatch in workflow JSON [FIXED]
 - **File**: `workflows/horror-story-example.json:115,172`
 - **Source**: CodeRabbit
-- **Issue**: Scenes 4,6 have 8s duration but video gen uses "5s". Kandinsky5-Pro only supports "5s".
-- **Fix**: Add comment noting the gap is filled by the image; this is intentional behavior.
+- **Fix**: Video clips now loop via `<Loop>` + `<OffthreadVideo>` in Remotion, filling the full scene duration. FFmpeg fallback uses `-stream_loop -1 -t <duration>`.
 
 ### M17. Cache not used for SFX/music phases [WON'T FIX]
 - **File**: `src/core/workflow-runner.ts:110-127`
@@ -185,10 +184,9 @@
 - **File**: `src/fal/client.ts:14-31`
 - **Reason**: Node.js is single-threaded. No risk.
 
-### L2. Magic numbers for cost estimates [OPEN]
-- **File**: `src/core/workflow-runner.ts:168,189,237,298,329`
-- **Issue**: Hardcoded `0.04`, `0.08`, `0.015`, etc. scattered throughout.
-- **Fix**: Move to a cost constants object.
+### L2. Magic numbers for cost estimates [FIXED]
+- **File**: `src/core/workflow-runner.ts`
+- **Fix**: Centralized into `COST_ESTIMATES` const object with real fal.ai pricing.
 
 ### L3. estimateVideoCost dead conditional [FIXED]
 - **File**: `src/core/workflow-runner.ts:344-347`
@@ -247,10 +245,9 @@
 - **Issue**: Very long names or names that become empty after slugification.
 - **Fix**: Add min-length check after slugification.
 
-### L16. Fallback renderer discards FFmpeg stderr [OPEN]
-- **File**: `src/render/renderer.ts:77`
-- **Issue**: `stdio: 'pipe'` captures stderr but never reads it. Error messages lost.
-- **Fix**: Capture stderr and include in error message.
+### L16. Fallback renderer discards FFmpeg stderr [FIXED]
+- **File**: `src/render/renderer.ts`
+- **Fix**: Renderer rewritten. Remotion is now the primary path (hard-links assets). FFmpeg fallback uses direct `spawn()` with stderr captured.
 
 ### L17. Intermediate audio files not cleaned up [OPEN]
 - **File**: `src/core/pipeline.ts:124-142`

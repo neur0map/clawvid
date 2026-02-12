@@ -1,10 +1,9 @@
 {
   "name": "Workflow Consistency Test - 2 Scenes",
   "template": "horror",
-  "duration_target_seconds": 10,
+  "duration_target_seconds": 16,
 
   "consistency": {
-    "workflow_id": "workflows/neur0map/clawvid-scenes",
     "reference_prompt": "A shadowy figure in a dark abandoned building, horror cinematic style, consistent character design",
     "seed": 42
   },
@@ -13,15 +12,23 @@
     {
       "id": "scene_1",
       "description": "Dark hallway with flickering light",
-      "type": "image",
-      "timing": { "start": 0, "duration": 5 },
-      "narration": "The door opened by itself.",
+      "type": "video",
+      "timing": { "start": 0, "duration": 8 },
+      "narration": "The hallway stretched endlessly into darkness. A single fluorescent bulb flickered overhead, casting long shadows that twisted and crawled along the cracked walls. The door at the end stood slightly ajar, as if someone had just passed through.",
 
       "image_generation": {
         "model": "fal-ai/nano-banana-pro/edit",
         "input": {
           "prompt": "Dark hallway with a single flickering light, the shadowy figure standing near a slightly ajar door, horror atmosphere, cinematic",
           "aspect_ratio": "9:16"
+        }
+      },
+
+      "video_generation": {
+        "model": "fal-ai/kandinsky5-pro/image-to-video",
+        "input": {
+          "prompt": "Slow camera push forward through dark hallway, flickering light, shadows moving on walls, horror atmosphere",
+          "duration": "5s"
         }
       },
 
@@ -39,15 +46,23 @@
     {
       "id": "scene_2",
       "description": "Shadow at end of hallway",
-      "type": "image",
-      "timing": { "start": 5, "duration": 5 },
-      "narration": "Something was waiting inside.",
+      "type": "video",
+      "timing": { "start": 8, "duration": 8 },
+      "narration": "Then it appeared. A figure, impossibly tall and thin, standing motionless at the far end of the corridor. It did not breathe. It did not blink. But somehow, it was closer than before.",
 
       "image_generation": {
         "model": "fal-ai/nano-banana-pro/edit",
         "input": {
           "prompt": "The same shadowy figure now at the end of a long hallway, backlit, extremely dark, menacing pose, horror",
           "aspect_ratio": "9:16"
+        }
+      },
+
+      "video_generation": {
+        "model": "fal-ai/kandinsky5-pro/image-to-video",
+        "input": {
+          "prompt": "Slow zoom into the shadowy figure at end of hallway, figure slightly shifts, extremely dark and menacing, horror",
+          "duration": "5s"
         }
       },
 
@@ -64,7 +79,7 @@
     "music": {
       "generate": true,
       "prompt": "Dark ambient drone, low rumbling, unsettling horror atmosphere",
-      "duration": 10,
+      "duration": 16,
       "volume": 0.2,
       "fade_in": 1,
       "fade_out": 1

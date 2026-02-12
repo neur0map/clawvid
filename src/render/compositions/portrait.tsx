@@ -14,14 +14,14 @@ export const PortraitVideo: React.FC<CompositionProps> = ({
     <AbsoluteFill style={{ backgroundColor: 'black' }}>
       <PortraitFrame>
         {/* Scene sequences — each scene plays at its designated time */}
-        {scenes.map((scene) => (
+        {scenes.map((scene, index) => (
           <Sequence
             key={scene.id}
             from={scene.startFrame}
             durationInFrames={scene.durationFrames}
             name={scene.id}
           >
-            <SceneRenderer scene={scene} template={template} />
+            <SceneRenderer scene={scene} template={template} isLast={index === scenes.length - 1} />
           </Sequence>
         ))}
       </PortraitFrame>
@@ -35,8 +35,8 @@ export const PortraitVideo: React.FC<CompositionProps> = ({
       {subtitles.length > 0 && (
         <SubtitleOverlay
           subtitles={subtitles}
-          position="bottom"
-          fontSize={52}
+          position="center"
+          fontSize={56}
         />
       )}
     </AbsoluteFill>
