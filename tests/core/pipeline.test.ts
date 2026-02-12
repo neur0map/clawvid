@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Mock all heavy dependencies before importing the module under test
 vi.mock('dotenv/config', () => ({}));
 
-vi.mock('fs-extra', () => ({
+const mockFsExtra = {
   readJson: vi.fn().mockResolvedValue({
     name: 'Test Video',
     template: 'horror',
@@ -28,9 +28,15 @@ vi.mock('fs-extra', () => ({
       },
     },
   }),
+  writeJson: vi.fn().mockResolvedValue(undefined),
   pathExists: vi.fn().mockResolvedValue(false),
   ensureDir: vi.fn().mockResolvedValue(undefined),
   copy: vi.fn().mockResolvedValue(undefined),
+};
+
+vi.mock('fs-extra', () => ({
+  default: mockFsExtra,
+  ...mockFsExtra,
 }));
 
 vi.mock('chalk', () => ({

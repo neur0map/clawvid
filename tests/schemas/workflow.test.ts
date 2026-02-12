@@ -213,4 +213,28 @@ describe('Schema: workflow', () => {
     const result = workflowSchema.safeParse(withAnalysis);
     expect(result.success).toBe(true);
   });
+
+  it('should accept workflow with consistency config', () => {
+    const withConsistency = {
+      ...validWorkflow,
+      consistency: {
+        workflow_id: 'workflows/neur0map/clawvid-scenes',
+        reference_prompt: 'A shadowy figure, horror style',
+        seed: 42,
+      },
+    };
+    const result = workflowSchema.safeParse(withConsistency);
+    expect(result.success).toBe(true);
+  });
+
+  it('should reject consistency config without workflow_id', () => {
+    const invalid = {
+      ...validWorkflow,
+      consistency: {
+        reference_prompt: 'A shadowy figure',
+      },
+    };
+    const result = workflowSchema.safeParse(invalid);
+    expect(result.success).toBe(false);
+  });
 });

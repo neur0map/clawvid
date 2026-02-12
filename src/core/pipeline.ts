@@ -1,7 +1,7 @@
 import 'dotenv/config';
-import { readJson } from 'fs-extra';
+import fsExtra from 'fs-extra';
+const { readJson } = fsExtra;
 import { join, resolve, parse as parsePath, format as formatPath } from 'node:path';
-import { unlink } from 'node:fs/promises';
 import chalk from 'chalk';
 import { loadConfig, type AppConfig } from '../config/loader.js';
 import { workflowSchema, type Workflow } from '../schemas/workflow.js';
@@ -126,12 +126,7 @@ async function processAudio(
     const trimmedPath = formatPath({ ...parsed, base: undefined, name: `${parsed.name}-trimmed` });
     try {
       await trimSilence(segment.audioPath, trimmedPath);
-      const previousPath = segment.audioPath;
       segment.audioPath = trimmedPath;
-      // Clean up original if trimming succeeded and paths differ
-      if (previousPath !== trimmedPath) {
-        await unlink(previousPath).catch(() => {});
-      }
     } catch (err) {
       log.warn('Silence trim failed, using original', { sceneId: segment.sceneId, error: String(err) });
     }
@@ -143,12 +138,7 @@ async function processAudio(
     const normalizedPath = formatPath({ ...parsed, base: undefined, name: `${parsed.name}-norm` });
     try {
       await normalizeAudio(segment.audioPath, normalizedPath, { targetLUFS: -14 });
-      const previousPath = segment.audioPath;
       segment.audioPath = normalizedPath;
-      // Clean up pre-normalized file if paths differ
-      if (previousPath !== normalizedPath) {
-        await unlink(previousPath).catch(() => {});
-      }
     } catch (err) {
       log.warn('Normalization failed, using original', { sceneId: segment.sceneId, error: String(err) });
     }
@@ -433,7 +423,9 @@ export async function runStudio(): Promise<void> {
 }
 
 export async function runSetup(options: SetupOptions): Promise<void> {
-  const { writeJson, pathExists } = await import('fs-extra');
+  const fse = await import('fs-extra');
+  const { pathExists } = fse;
+  const writeJson = fse.default.writeJson;
   const prefsPath = resolve('preferences.json');
 
   if (options.reset || !(await pathExists(prefsPath))) {

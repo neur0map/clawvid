@@ -1,0 +1,253 @@
+{
+  "name": "clawvid-scenes",
+  "title": "ClawVid Scene Generator",
+  "contents": {
+    "name": "workflow",
+    "nodes": {
+      "node-ref": {
+        "type": "run",
+        "id": "node-ref",
+        "depends": ["input"],
+        "app": "fal-ai/nano-banana-pro",
+        "input": {
+          "prompt": "$input.reference_prompt",
+          "num_images": 1,
+          "aspect_ratio": "$input.aspect_ratio",
+          "resolution": "1K",
+          "output_format": "png",
+          "seed": "$input.seed"
+        },
+        "metadata": {
+          "position": { "x": 600, "y": 0 }
+        }
+      },
+      "node-scene-1": {
+        "type": "run",
+        "id": "node-scene-1",
+        "depends": ["node-ref"],
+        "app": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "$input.scene_1_prompt",
+          "image_urls": ["$node-ref.images.0.url"],
+          "num_images": 1,
+          "aspect_ratio": "$input.aspect_ratio",
+          "resolution": "1K",
+          "output_format": "png",
+          "seed": "$input.seed"
+        },
+        "metadata": {
+          "position": { "x": 1400, "y": -600 }
+        }
+      },
+      "node-scene-2": {
+        "type": "run",
+        "id": "node-scene-2",
+        "depends": ["node-ref"],
+        "app": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "$input.scene_2_prompt",
+          "image_urls": ["$node-ref.images.0.url"],
+          "num_images": 1,
+          "aspect_ratio": "$input.aspect_ratio",
+          "resolution": "1K",
+          "output_format": "png",
+          "seed": "$input.seed"
+        },
+        "metadata": {
+          "position": { "x": 1400, "y": -300 }
+        }
+      },
+      "node-scene-3": {
+        "type": "run",
+        "id": "node-scene-3",
+        "depends": ["node-ref"],
+        "app": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "$input.scene_3_prompt",
+          "image_urls": ["$node-ref.images.0.url"],
+          "num_images": 1,
+          "aspect_ratio": "$input.aspect_ratio",
+          "resolution": "1K",
+          "output_format": "png",
+          "seed": "$input.seed"
+        },
+        "metadata": {
+          "position": { "x": 1400, "y": 0 }
+        }
+      },
+      "node-scene-4": {
+        "type": "run",
+        "id": "node-scene-4",
+        "depends": ["node-ref"],
+        "app": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "$input.scene_4_prompt",
+          "image_urls": ["$node-ref.images.0.url"],
+          "num_images": 1,
+          "aspect_ratio": "$input.aspect_ratio",
+          "resolution": "1K",
+          "output_format": "png",
+          "seed": "$input.seed"
+        },
+        "metadata": {
+          "position": { "x": 1400, "y": 300 }
+        }
+      },
+      "node-scene-5": {
+        "type": "run",
+        "id": "node-scene-5",
+        "depends": ["node-ref"],
+        "app": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "$input.scene_5_prompt",
+          "image_urls": ["$node-ref.images.0.url"],
+          "num_images": 1,
+          "aspect_ratio": "$input.aspect_ratio",
+          "resolution": "1K",
+          "output_format": "png",
+          "seed": "$input.seed"
+        },
+        "metadata": {
+          "position": { "x": 1400, "y": 600 }
+        }
+      },
+      "node-scene-6": {
+        "type": "run",
+        "id": "node-scene-6",
+        "depends": ["node-ref"],
+        "app": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "$input.scene_6_prompt",
+          "image_urls": ["$node-ref.images.0.url"],
+          "num_images": 1,
+          "aspect_ratio": "$input.aspect_ratio",
+          "resolution": "1K",
+          "output_format": "png",
+          "seed": "$input.seed"
+        },
+        "metadata": {
+          "position": { "x": 1400, "y": 900 }
+        }
+      },
+      "output": {
+        "type": "display",
+        "id": "output",
+        "depends": ["node-ref", "node-scene-1", "node-scene-2", "node-scene-3", "node-scene-4", "node-scene-5", "node-scene-6"],
+        "input": {},
+        "fields": {
+          "reference_image": "$node-ref.images.0.url",
+          "scene_1_image": "$node-scene-1.images.0.url",
+          "scene_2_image": "$node-scene-2.images.0.url",
+          "scene_3_image": "$node-scene-3.images.0.url",
+          "scene_4_image": "$node-scene-4.images.0.url",
+          "scene_5_image": "$node-scene-5.images.0.url",
+          "scene_6_image": "$node-scene-6.images.0.url"
+        },
+        "metadata": {
+          "position": { "x": 2200, "y": 0 }
+        }
+      }
+    },
+    "output": {
+      "reference_image": "$node-ref.images.0.url",
+      "scene_1_image": "$node-scene-1.images.0.url",
+      "scene_2_image": "$node-scene-2.images.0.url",
+      "scene_3_image": "$node-scene-3.images.0.url",
+      "scene_4_image": "$node-scene-4.images.0.url",
+      "scene_5_image": "$node-scene-5.images.0.url",
+      "scene_6_image": "$node-scene-6.images.0.url"
+    },
+    "schema": {
+      "input": {
+        "reference_prompt": {
+          "name": "reference_prompt",
+          "label": "Reference Prompt",
+          "type": "string",
+          "description": "Describes the main subject/character for visual consistency across all scenes",
+          "required": true,
+          "modelId": "node-ref"
+        },
+        "scene_1_prompt": {
+          "name": "scene_1_prompt",
+          "label": "Scene 1 Prompt",
+          "type": "string",
+          "description": "Describes scene 1 composition while maintaining the reference subject",
+          "required": true,
+          "modelId": "node-scene-1"
+        },
+        "scene_2_prompt": {
+          "name": "scene_2_prompt",
+          "label": "Scene 2 Prompt",
+          "type": "string",
+          "description": "Describes scene 2 composition while maintaining the reference subject",
+          "required": true,
+          "modelId": "node-scene-2"
+        },
+        "scene_3_prompt": {
+          "name": "scene_3_prompt",
+          "label": "Scene 3 Prompt",
+          "type": "string",
+          "description": "Describes scene 3 composition while maintaining the reference subject",
+          "required": true,
+          "modelId": "node-scene-3"
+        },
+        "scene_4_prompt": {
+          "name": "scene_4_prompt",
+          "label": "Scene 4 Prompt",
+          "type": "string",
+          "description": "Describes scene 4 composition while maintaining the reference subject",
+          "required": true,
+          "modelId": "node-scene-4"
+        },
+        "scene_5_prompt": {
+          "name": "scene_5_prompt",
+          "label": "Scene 5 Prompt",
+          "type": "string",
+          "description": "Describes scene 5 composition while maintaining the reference subject",
+          "required": true,
+          "modelId": "node-scene-5"
+        },
+        "scene_6_prompt": {
+          "name": "scene_6_prompt",
+          "label": "Scene 6 Prompt",
+          "type": "string",
+          "description": "Describes scene 6 composition while maintaining the reference subject",
+          "required": true,
+          "modelId": "node-scene-6"
+        },
+        "seed": {
+          "name": "seed",
+          "label": "Seed",
+          "type": "number",
+          "description": "Shared seed for reproducibility and consistency across all scenes",
+          "required": false,
+          "modelId": "node-ref"
+        },
+        "aspect_ratio": {
+          "name": "aspect_ratio",
+          "label": "Aspect Ratio",
+          "type": "string",
+          "description": "Shared aspect ratio for all images (e.g. 9:16 for shorts, 16:9 for YouTube)",
+          "required": false,
+          "modelId": "node-ref"
+        }
+      },
+      "output": {
+        "reference_image": { "name": "reference_image", "label": "Reference Image", "type": "string" },
+        "scene_1_image": { "name": "scene_1_image", "label": "Scene 1", "type": "string" },
+        "scene_2_image": { "name": "scene_2_image", "label": "Scene 2", "type": "string" },
+        "scene_3_image": { "name": "scene_3_image", "label": "Scene 3", "type": "string" },
+        "scene_4_image": { "name": "scene_4_image", "label": "Scene 4", "type": "string" },
+        "scene_5_image": { "name": "scene_5_image", "label": "Scene 5", "type": "string" },
+        "scene_6_image": { "name": "scene_6_image", "label": "Scene 6", "type": "string" }
+      }
+    },
+    "version": "1",
+    "metadata": {
+      "input": {
+        "position": { "x": -200, "y": 0 }
+      },
+      "description": "Generates up to 6 scene images with visual consistency. Uses a shared seed and reference image editing to maintain character/style coherence across all scenes. Upload to fal.ai, then call via: fal.stream('workflows/<user>/clawvid-scenes', { input })"
+    }
+  }
+}

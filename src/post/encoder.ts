@@ -25,11 +25,25 @@ export async function encode(
 
   const command = getFFmpegCommand(inputPath)
     .videoCodec(profile.codec === 'h264' ? 'libx264' : profile.codec)
-    .audioCodec(profile.audioCodec)
     .videoBitrate(profile.bitrate)
-    .audioBitrate(profile.audioBitrate)
     .size(`${profile.resolution.width}x${profile.resolution.height}`)
-    .output(outputPath);
+    .outputOptions(['-y', '-pix_fmt', 'yuv420p']);
 
+  // Probe for audio stream — if present, encode it; otherwise skip
+  try {
+    const { getMediaInfo } = await import('./ffmpeg.js');
+    const info = await getMediaInfo(inputPath);
+    const hasAudio = info.streams.some((s: { codec_type?: string }) => s.codec_type === 'audio');
+    if (hasAudio) {
+      command.audioCodec(profile.audioCodec).audioBitrate(profile.audioBitrate);
+    } else {
+      command.noAudio();
+    }
+  } catch {
+    // If probe fails, try encoding with audio anyway
+    command.audioCodec(profile.audioCodec).audioBitrate(profile.audioBitrate);
+  }
+
+  command.output(outputPath);
   await runFFmpeg(command);
 }

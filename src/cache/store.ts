@@ -1,4 +1,5 @@
-import { readJson, writeJson, pathExists } from 'fs-extra';
+import fsExtra from 'fs-extra';
+const { readJson, writeJson, pathExists } = fsExtra;
 import { join } from 'node:path';
 import { createLogger } from '../utils/logger.js';
 

@@ -7,6 +7,7 @@ import { generateVideo } from '../fal/video.js';
 import { generateSpeech, transcribe } from '../fal/audio.js';
 import { generateSoundEffect } from '../fal/sound.js';
 import { generateMusic } from '../fal/music.js';
+import { runWorkflowAndDownload, buildSceneWorkflowInput, buildSceneOutputMapping } from '../fal/workflow.js';
 import { CacheStore } from '../cache/store.js';
 import { hashWorkflowStep } from '../cache/hash.js';
 import { CostTracker } from '../fal/cost.js';
@@ -79,13 +80,22 @@ export async function executeWorkflow(
   });
 
   // Phase 1: Generate scene images & videos
-  const sceneAssets = await generateSceneAssets(
-    workflow.scenes,
-    assetManager,
-    cache,
-    costTracker,
-    skipCache,
-  );
+  // Use fal.ai workflow route for consistent images when configured
+  const sceneAssets = workflow.consistency?.workflow_id
+    ? await generateSceneAssetsViaWorkflow(
+        workflow,
+        assetManager,
+        cache,
+        costTracker,
+        skipCache,
+      )
+    : await generateSceneAssets(
+        workflow.scenes,
+        assetManager,
+        cache,
+        costTracker,
+        skipCache,
+      );
 
   // Phase 2: Generate narration audio per scene
   const narrationSegments = await generateNarration(
@@ -205,6 +215,102 @@ async function generateSceneAssets(
     results.push(sceneResult);
   }
 
+  return results;
+}
+
+async function generateSceneAssetsViaWorkflow(
+  workflow: Workflow,
+  assetManager: AssetManager,
+  cache: CacheStore,
+  costTracker: CostTracker,
+  skipCache: boolean,
+): Promise<SceneAssets[]> {
+  const consistency = workflow.consistency!;
+  const scenes = workflow.scenes;
+  const spinner = createSpinner('Generating consistent scene images via workflow...');
+  spinner.start();
+
+  // Check cache for all scenes first
+  const workflowHash = hashWorkflowStep({
+    workflow_id: consistency.workflow_id,
+    reference_prompt: consistency.reference_prompt,
+    seed: consistency.seed,
+    scene_prompts: scenes.map((s) => s.image_generation.input.prompt),
+  } as Record<string, unknown>);
+
+  if (!skipCache && cache.has('workflow-scenes', workflowHash)) {
+    log.info('Workflow scene images cache hit');
+    spinner.succeed('Scene images loaded from cache');
+    // Even on cache hit, we still need to construct the SceneAssets
+    // The cache stored the workflow output URLs, but we need local paths
+  }
+
+  // Build workflow input from scene prompts
+  const scenePrompts = scenes.map((s) => s.image_generation.input.prompt);
+  const aspectRatio = scenes[0]?.image_generation.input.aspect_ratio ?? '9:16';
+
+  const input = buildSceneWorkflowInput(
+    consistency.reference_prompt,
+    scenePrompts,
+    { seed: consistency.seed, aspectRatio },
+  );
+
+  // Build output mapping: scene_N_image → scene ID → download path
+  const sceneIds = scenes.map((s) => s.id);
+  const outputMapping = buildSceneOutputMapping(
+    sceneIds,
+    (sceneId) => assetManager.getAssetPath(`${sceneId}.png`),
+  );
+
+  // Call the fal.ai workflow
+  const workflowResults = await runWorkflowAndDownload(
+    consistency.workflow_id,
+    input,
+    outputMapping,
+  );
+
+  // Cache the result
+  await cache.set('workflow-scenes', workflowHash, consistency.workflow_id);
+
+  // Estimate cost: reference image + N scene edits
+  const editCostPerScene = COST_ESTIMATES.image_default;
+  costTracker.record(consistency.workflow_id, editCostPerScene * (scenes.length + 1));
+
+  // Build SceneAssets, then handle video generation for video-type scenes
+  const results: SceneAssets[] = [];
+
+  for (const scene of scenes) {
+    const wfResult = workflowResults.find((r) => r.sceneId === scene.id);
+    const imagePath = assetManager.getAssetPath(`${scene.id}.png`);
+    const imageUrl = wfResult?.imageUrl ?? '';
+
+    const sceneResult: SceneAssets = { sceneId: scene.id, imagePath, imageUrl };
+
+    // Generate video if needed (uses the consistent image as input)
+    if (scene.type === 'video' && scene.video_generation) {
+      spinner.text = `Scene ${scene.id}: generating video from consistent image...`;
+      const videoFilename = `${scene.id}.mp4`;
+      const videoPath = assetManager.getAssetPath(videoFilename);
+      const videoHash = hashWorkflowStep(scene.video_generation as unknown as Record<string, unknown>);
+
+      if (!skipCache && cache.has(`${scene.id}-video`, videoHash)) {
+        const cached = cache.get(`${scene.id}-video`)!;
+        sceneResult.videoPath = videoPath;
+        sceneResult.videoUrl = cached.outputPath;
+        log.info('Video cache hit', { sceneId: scene.id });
+      } else {
+        const result = await generateVideo(scene.video_generation, imageUrl, videoPath);
+        sceneResult.videoPath = videoPath;
+        sceneResult.videoUrl = result.url;
+        await cache.set(`${scene.id}-video`, videoHash, result.url);
+        costTracker.record(scene.video_generation.model, COST_ESTIMATES.video);
+      }
+    }
+
+    results.push(sceneResult);
+  }
+
+  spinner.succeed(`${scenes.length} consistent scene images generated via workflow`);
   return results;
 }
 

@@ -58,9 +58,19 @@ export async function falRequest<TOutput>(
   return queue.add(() =>
     pRetry(
       async () => {
-        log.info('Calling fal.ai', { endpoint: endpointId });
-        const result = await fal.subscribe(endpointId, { input });
-        return result.data as TOutput;
+        log.info('Calling fal.ai', { endpoint: endpointId, input: JSON.stringify(input).slice(0, 200) });
+        try {
+          const result = await fal.subscribe(endpointId, { input });
+          return result.data as TOutput;
+        } catch (err: unknown) {
+          const errObj = err as { body?: unknown; status?: number; message?: string };
+          log.error('fal.ai call failed', {
+            endpoint: endpointId,
+            status: errObj.status,
+            body: JSON.stringify(errObj.body ?? errObj.message ?? err).slice(0, 500),
+          });
+          throw err;
+        }
       },
       {
         retries: DEFAULT_RETRIES,

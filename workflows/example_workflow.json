@@ -1,0 +1,167 @@
+{
+  "name": "clawvid-character",
+  "title": "ClawVid Character Sheet",
+  "contents": {
+    "name": "workflow",
+    "nodes": {
+      "node-ref": {
+        "type": "run",
+        "id": "node-ref",
+        "depends": ["input"],
+        "app": "fal-ai/nano-banana-pro",
+        "input": {
+          "prompt": "$input.character_prompt",
+          "num_images": 1,
+          "aspect_ratio": "3:4",
+          "resolution": "1K",
+          "output_format": "png",
+          "seed": "$input.seed"
+        },
+        "metadata": { "position": { "x": 600, "y": 0 } }
+      },
+      "node-front": {
+        "type": "run",
+        "id": "node-front",
+        "depends": ["node-ref"],
+        "app": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "$input.front_prompt",
+          "image_urls": ["$node-ref.images.0.url"],
+          "num_images": 1,
+          "aspect_ratio": "3:4",
+          "resolution": "1K",
+          "output_format": "png",
+          "seed": "$input.seed"
+        },
+        "metadata": { "position": { "x": 1400, "y": -300 } }
+      },
+      "node-side": {
+        "type": "run",
+        "id": "node-side",
+        "depends": ["node-ref"],
+        "app": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "$input.side_prompt",
+          "image_urls": ["$node-ref.images.0.url"],
+          "num_images": 1,
+          "aspect_ratio": "3:4",
+          "resolution": "1K",
+          "output_format": "png",
+          "seed": "$input.seed"
+        },
+        "metadata": { "position": { "x": 1400, "y": 0 } }
+      },
+      "node-body": {
+        "type": "run",
+        "id": "node-body",
+        "depends": ["node-ref"],
+        "app": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "$input.body_prompt",
+          "image_urls": ["$node-ref.images.0.url"],
+          "num_images": 1,
+          "aspect_ratio": "9:16",
+          "resolution": "1K",
+          "output_format": "png",
+          "seed": "$input.seed"
+        },
+        "metadata": { "position": { "x": 1400, "y": 300 } }
+      },
+      "node-bg-front": {
+        "type": "run",
+        "id": "node-bg-front",
+        "depends": ["node-front"],
+        "app": "fal-ai/bria/background/remove",
+        "input": { "image_url": "$node-front.images.0.url" },
+        "metadata": { "position": { "x": 2200, "y": -300 } }
+      },
+      "node-bg-side": {
+        "type": "run",
+        "id": "node-bg-side",
+        "depends": ["node-side"],
+        "app": "fal-ai/bria/background/remove",
+        "input": { "image_url": "$node-side.images.0.url" },
+        "metadata": { "position": { "x": 2200, "y": 0 } }
+      },
+      "node-bg-body": {
+        "type": "run",
+        "id": "node-bg-body",
+        "depends": ["node-body"],
+        "app": "fal-ai/bria/background/remove",
+        "input": { "image_url": "$node-body.images.0.url" },
+        "metadata": { "position": { "x": 2200, "y": 300 } }
+      },
+      "output": {
+        "type": "display",
+        "id": "output",
+        "depends": ["node-bg-front", "node-bg-side", "node-bg-body"],
+        "input": {},
+        "fields": {
+          "front_face": "$node-bg-front.image.url",
+          "side_profile": "$node-bg-side.image.url",
+          "full_body": "$node-bg-body.image.url"
+        },
+        "metadata": { "position": { "x": 3000, "y": 0 } }
+      }
+    },
+    "output": {
+      "front_face": "$node-bg-front.image.url",
+      "side_profile": "$node-bg-side.image.url",
+      "full_body": "$node-bg-body.image.url"
+    },
+    "schema": {
+      "input": {
+        "character_prompt": {
+          "name": "character_prompt",
+          "label": "Character Prompt",
+          "type": "string",
+          "description": "Base description of the character for reference generation",
+          "required": true,
+          "modelId": "node-ref"
+        },
+        "front_prompt": {
+          "name": "front_prompt",
+          "label": "Front Face Prompt",
+          "type": "string",
+          "description": "Front-facing portrait of the character",
+          "required": true,
+          "modelId": "node-front"
+        },
+        "side_prompt": {
+          "name": "side_prompt",
+          "label": "Side Profile Prompt",
+          "type": "string",
+          "description": "Side profile of the character",
+          "required": true,
+          "modelId": "node-side"
+        },
+        "body_prompt": {
+          "name": "body_prompt",
+          "label": "Full Body Prompt",
+          "type": "string",
+          "description": "Full body view of the character",
+          "required": true,
+          "modelId": "node-body"
+        },
+        "seed": {
+          "name": "seed",
+          "label": "Seed",
+          "type": "number",
+          "description": "Seed for reproducibility",
+          "required": false,
+          "modelId": "node-ref"
+        }
+      },
+      "output": {
+        "front_face": { "name": "front_face", "label": "Front Face", "type": "string" },
+        "side_profile": { "name": "side_profile", "label": "Side Profile", "type": "string" },
+        "full_body": { "name": "full_body", "label": "Full Body", "type": "string" }
+      }
+    },
+    "version": "1",
+    "metadata": {
+      "input": { "position": { "x": -200, "y": 0 } },
+      "description": "Generates consistent character reference sheets (front, side, full body) with background removal. Uses shared seed and image editing from a reference image for visual coherence."
+    }
+  }
+}

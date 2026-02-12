@@ -1,5 +1,6 @@
 import { join, resolve } from 'node:path';
-import { pathExists } from 'fs-extra';
+import fsExtra from 'fs-extra';
+const { pathExists } = fsExtra;
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('renderer');

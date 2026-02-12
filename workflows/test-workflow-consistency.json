@@ -1,0 +1,91 @@
+{
+  "name": "Workflow Consistency Test - 2 Scenes",
+  "template": "horror",
+  "duration_target_seconds": 10,
+
+  "consistency": {
+    "workflow_id": "workflows/neur0map/clawvid-scenes",
+    "reference_prompt": "A shadowy figure in a dark abandoned building, horror cinematic style, consistent character design",
+    "seed": 42
+  },
+
+  "scenes": [
+    {
+      "id": "scene_1",
+      "description": "Dark hallway with flickering light",
+      "type": "image",
+      "timing": { "start": 0, "duration": 5 },
+      "narration": "The door opened by itself.",
+
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Dark hallway with a single flickering light, the shadowy figure standing near a slightly ajar door, horror atmosphere, cinematic",
+          "aspect_ratio": "9:16"
+        }
+      },
+
+      "sound_effects": [
+        {
+          "prompt": "Creaky door slowly opening, wooden hinge squeaking",
+          "timing_offset": 1,
+          "duration": 3,
+          "volume": 0.7
+        }
+      ],
+
+      "effects": ["vignette", "grain"]
+    },
+    {
+      "id": "scene_2",
+      "description": "Shadow at end of hallway",
+      "type": "image",
+      "timing": { "start": 5, "duration": 5 },
+      "narration": "Something was waiting inside.",
+
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "The same shadowy figure now at the end of a long hallway, backlit, extremely dark, menacing pose, horror",
+          "aspect_ratio": "9:16"
+        }
+      },
+
+      "effects": ["kenburns_slow_zoom", "grain", "vignette"]
+    }
+  ],
+
+  "audio": {
+    "tts": {
+      "model": "fal-ai/qwen-3-tts/voice-design/1.7b",
+      "voice_prompt": "A deep, slow male voice with creepy undertones for horror narration",
+      "language": "en"
+    },
+    "music": {
+      "generate": true,
+      "prompt": "Dark ambient drone, low rumbling, unsettling horror atmosphere",
+      "duration": 10,
+      "volume": 0.2,
+      "fade_in": 1,
+      "fade_out": 1
+    }
+  },
+
+  "subtitles": {
+    "enabled": true,
+    "style": {
+      "font": "Impact",
+      "color": "#ffffff",
+      "stroke_color": "#000000",
+      "stroke_width": 2,
+      "position": "bottom"
+    }
+  },
+
+  "output": {
+    "filename": "test_workflow_consistency.mp4",
+    "fps": 30,
+    "format": "mp4",
+    "platforms": ["tiktok"]
+  }
+}

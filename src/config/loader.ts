@@ -1,4 +1,5 @@
-import { readJson, pathExists } from 'fs-extra';
+import fsExtra from 'fs-extra';
+const { readJson, pathExists } = fsExtra;
 import { join } from 'node:path';
 import { configSchema, type Config } from '../schemas/config.js';
 import { preferencesSchema, type Preferences } from '../schemas/preferences.js';

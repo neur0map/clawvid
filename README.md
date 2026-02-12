@@ -1,5 +1,7 @@
 # ClawVid
 
+> **Status: Alpha Testing** — Under active development. Not production-ready. API integrations, pipeline data flow, and rendering are being validated against real services. Do not use for production workloads.
+
 AI-powered short-form video generation CLI for [OpenClaw](https://github.com/neur0map/openclaw).
 
 Generate YouTube Shorts, TikToks, and Instagram Reels from text prompts. The OpenClaw agent orchestrates the entire pipeline — planning scenes, writing prompts, and generating a workflow JSON that ClawVid executes end-to-end.

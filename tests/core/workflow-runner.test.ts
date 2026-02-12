@@ -25,6 +25,18 @@ vi.mock('../../src/fal/music.js', () => ({
   generateMusic: vi.fn().mockResolvedValue({ url: 'https://fal.ai/music.wav', duration: 60 }),
 }));
 
+vi.mock('../../src/fal/workflow.js', () => ({
+  runWorkflowAndDownload: vi.fn().mockResolvedValue([
+    { sceneId: 'scene_1', imageUrl: 'https://fal.ai/wf-scene1.png', downloadPath: '/tmp/test-output/assets/scene_1.png' },
+    { sceneId: 'scene_2', imageUrl: 'https://fal.ai/wf-scene2.png', downloadPath: '/tmp/test-output/assets/scene_2.png' },
+  ]),
+  buildSceneWorkflowInput: vi.fn().mockReturnValue({ reference_prompt: 'test', scene_1_prompt: 'p1', scene_2_prompt: 'p2' }),
+  buildSceneOutputMapping: vi.fn().mockReturnValue([
+    { field: 'scene_1_image', sceneId: 'scene_1', downloadPath: '/tmp/test-output/assets/scene_1.png' },
+    { field: 'scene_2_image', sceneId: 'scene_2', downloadPath: '/tmp/test-output/assets/scene_2.png' },
+  ]),
+}));
+
 vi.mock('../../src/utils/progress.js', () => ({
   createSpinner: vi.fn(() => ({
     start: vi.fn(),
@@ -70,6 +82,7 @@ import { executeWorkflow } from '../../src/core/workflow-runner.js';
 import { generateImage } from '../../src/fal/image.js';
 import { generateVideo } from '../../src/fal/video.js';
 import { generateSpeech } from '../../src/fal/audio.js';
+import { runWorkflowAndDownload } from '../../src/fal/workflow.js';
 import { AssetManager } from '../../src/core/asset-manager.js';
 
 const config: AppConfig = { ...defaults };
@@ -168,6 +181,27 @@ describe('Core: workflow-runner', () => {
     expect(summary.count).toBeGreaterThanOrEqual(5);
     expect(summary.total).toBeGreaterThan(0);
     expect(summary.breakdown).toBeDefined();
+  });
+
+  it('should use workflow route when consistency is configured', async () => {
+    const workflow = makeWorkflow({
+      consistency: {
+        workflow_id: 'workflows/neur0map/clawvid-scenes',
+        reference_prompt: 'A dark figure in horror style',
+        seed: 42,
+      },
+    });
+    const assetManager = new AssetManager('/tmp/test-output', 'test');
+
+    const result = await executeWorkflow(workflow, config, assetManager, true);
+
+    // Should call the workflow route instead of individual image generation
+    expect(runWorkflowAndDownload).toHaveBeenCalledTimes(1);
+    // Should NOT call individual generateImage
+    expect(generateImage).not.toHaveBeenCalled();
+    // Video generation for scene_2 should still happen (from workflow image)
+    expect(generateVideo).toHaveBeenCalledTimes(1);
+    expect(result.sceneAssets).toHaveLength(2);
   });
 
   it('should handle step failures gracefully', async () => {

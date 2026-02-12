@@ -1,4 +1,5 @@
-import { writeFile } from 'fs-extra';
+import fsExtra from 'fs-extra';
+const { writeFile } = fsExtra;
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('subtitles');

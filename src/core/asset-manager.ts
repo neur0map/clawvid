@@ -1,4 +1,5 @@
-import { ensureDir } from 'fs-extra';
+import fsExtra from 'fs-extra';
+const { ensureDir } = fsExtra;
 import { join, resolve } from 'node:path';
 import { nanoid } from 'nanoid';
 import { createSlug } from '../utils/slug.js';

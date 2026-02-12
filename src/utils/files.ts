@@ -1,5 +1,7 @@
-import { readJson, writeJson, ensureDir, pathExists } from 'fs-extra';
+import fsExtra from 'fs-extra';
 import { dirname } from 'node:path';
+
+const { readJson, writeJson, ensureDir, pathExists } = fsExtra;
 
 export async function readJsonFile<T>(filePath: string): Promise<T> {
   return readJson(filePath) as Promise<T>;

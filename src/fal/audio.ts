@@ -33,11 +33,15 @@ export async function generateSpeech(
   if (ttsConfig.voice_reference) {
     input.ref_audio_url = ttsConfig.voice_reference;
   }
-  if (ttsConfig.speed) {
-    input.speed = ttsConfig.speed;
-  }
+  // Note: 'speed' is not supported by qwen-3-tts — omit it
+  // qwen-3-tts requires full language names, not ISO codes
+  const LANGUAGE_MAP: Record<string, string> = {
+    en: 'English', zh: 'Chinese', es: 'Spanish', fr: 'French',
+    de: 'German', it: 'Italian', ja: 'Japanese', ko: 'Korean',
+    pt: 'Portuguese', ru: 'Russian',
+  };
   if (ttsConfig.language) {
-    input.language = ttsConfig.language;
+    input.language = LANGUAGE_MAP[ttsConfig.language] ?? ttsConfig.language;
   }
   if (ttsConfig.temperature !== undefined) {
     input.temperature = ttsConfig.temperature;

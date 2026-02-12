@@ -33,6 +33,12 @@ export const analysisConfigSchema = z.object({
   verify_videos: z.boolean().optional(),
 });
 
+export const consistencyConfigSchema = z.object({
+  workflow_id: z.string(),
+  reference_prompt: z.string(),
+  seed: z.number().int().optional(),
+});
+
 export const subtitleStyleSchema = z.object({
   font: z.string().optional(),
   color: z.string().optional(),
@@ -65,6 +71,7 @@ export const workflowSchema = z.object({
   subtitles: subtitlesConfigSchema.optional(),
   output: outputConfigSchema.optional(),
   analysis: analysisConfigSchema.optional(),
+  consistency: consistencyConfigSchema.optional(),
 });
 
 export type Workflow = z.infer<typeof workflowSchema>;
@@ -72,5 +79,6 @@ export type TTSConfig = z.infer<typeof ttsConfigSchema>;
 export type MusicConfig = z.infer<typeof musicConfigSchema>;
 export type AudioConfig = z.infer<typeof audioConfigSchema>;
 export type AnalysisConfig = z.infer<typeof analysisConfigSchema>;
+export type ConsistencyConfig = z.infer<typeof consistencyConfigSchema>;
 export type SubtitlesConfig = z.infer<typeof subtitlesConfigSchema>;
 export type OutputConfig = z.infer<typeof outputConfigSchema>;
