@@ -6,6 +6,54 @@ You are the orchestrator. You plan scenes, write prompts, generate a workflow JS
 
 ---
 
+## ⚠️ CRITICAL: Execution Rules
+
+### Time Expectations
+
+**Before starting any generation, tell the user:**
+
+> "Video generation takes **20-25 minutes** for a typical 6-scene video. This includes:
+> - TTS narration (~1-2 min)
+> - Image generation (~3-5 min)
+> - Video clip generation (~8-12 min for 3 clips)
+> - Sound effects + music (~2-3 min)
+> - Transcription for subtitles (~2-3 min)
+> - Audio mixing + Remotion render (~3-5 min)
+> 
+> I'll keep you updated on progress. Ready to start?"
+
+### Process Management Rules
+
+**DO NOT set timeouts on clawvid commands.** The pipeline runs many sequential API calls and will complete on its own.
+
+When running `clawvid generate`:
+1. Start the process **without a timeout** (or use a very long one like 3600s)
+2. Use `process poll` to check status periodically
+3. Report progress to the user as phases complete
+4. Let the process finish naturally — do not kill it
+5. If the user wants to cancel, ask for explicit confirmation first
+
+**Example execution:**
+```bash
+# CORRECT - no timeout, let it run
+clawvid generate --workflow workflow.json
+
+# WRONG - timeout will kill the process mid-generation
+# timeout 600 clawvid generate --workflow workflow.json
+```
+
+### Cost Expectations
+
+| Quality | Video Clips | Estimated Cost |
+|---------|-------------|----------------|
+| budget | 1 clip | $1-2 |
+| balanced | 2-3 clips | $3-5 |
+| max_quality | 3+ clips (Kling/Vidu) | $8-15 |
+
+Premium video models (Kling 2.6 Pro, Vidu) cost significantly more but produce better motion.
+
+---
+
 ## How It Works
 
 1. You create a **workflow JSON** file describing every scene, prompt, model, timing, sound effects, and music.
@@ -46,9 +94,9 @@ What type of content do you mainly create?
 
 ```
 How should I balance quality vs cost?
-1. max_quality — Premium models, 3 video clips, 50 inference steps
-2. balanced — Default models, 2 video clips, 28 inference steps
-3. budget — Default models, 1 video clip, 20 inference steps
+1. max_quality — Premium models (Vidu/Kling), best motion, $8-15 per video
+2. balanced — Default models, 2-3 video clips, $3-5 per video
+3. budget — Fewer clips, faster generation, $1-2 per video
 ```
 
 ### Step 4: Visual Style
@@ -81,16 +129,16 @@ After setup, save to `preferences.json` (gitignored):
 
 ```json
 {
-  "platforms": ["youtube_shorts", "tiktok"],
+  "platforms": ["tiktok"],
   "template": "horror",
-  "quality_mode": "balanced",
+  "quality_mode": "max_quality",
   "voice": {
     "style": "ai_male_deep",
-    "pacing": 0.9
+    "pacing": 0.85
   },
-  "visual_style": "cinematic",
-  "created_at": "2026-02-11",
-  "updated_at": "2026-02-11"
+  "visual_style": "anime",
+  "created_at": "2026-02-13",
+  "updated_at": "2026-02-13"
 }
 ```
 
@@ -163,22 +211,24 @@ Present a scene breakdown before generating:
 "Here's my plan for 'The VHS Tape' (60s, horror):
 
 SCENES (6 total):
-1. [0-5s]   VIDEO — Dark attic, flashlight beam sweeping (hook)
-2. [5-15s]  IMAGE — Hand reaching for VHS tape (ken burns zoom)
-3. [15-25s] IMAGE — TV static, tape loading (flicker + grain)
-4. [25-35s] VIDEO — Footage plays: figure in darkness (climax)
-5. [35-50s] IMAGE — Writing on the wall (ken burns pan)
-6. [50-60s] VIDEO — Figure is now closer (closing)
+1. [0-8s]   VIDEO — Dark attic, flashlight beam sweeping (hook)
+2. [8-16s]  VIDEO — Hand reaching for VHS tape (dramatic moment)
+3. [16-24s] IMAGE — TV static, tape loading (flicker + grain)
+4. [24-36s] VIDEO — Footage plays: figure in darkness (climax)
+5. [36-48s] IMAGE — Writing on the wall (ken burns pan)
+6. [48-60s] VIDEO — Figure is now closer (closing)
 
 SOUND EFFECTS:
-- Scene 1: Wind howling (0s offset, 5s duration)
+- Scene 1: Wind howling (0s offset, 8s duration)
 - Scene 4: Door slam at climax (3s offset, 2s duration)
 - Scene 6: Heavy impact (5s offset, 3s duration)
 
-AUDIO: AI deep male voice, generated horror drone music, 0.9x pacing
-EFFECTS: vignette + grain on all scenes, glitch on scene 4
+AUDIO: AI deep male voice (0.85x pacing), generated horror drone music
+EFFECTS: vignette_heavy + grain on all scenes, glitch on scene 4
 
-Estimated: 3 images + 3 video clips + 1 TTS + 3 SFX + 1 music track
+Estimated: 6 images + 4 video clips + 6 TTS + 4 SFX + 1 music track
+Time: ~20-25 minutes
+Cost: ~$8-12 (using Vidu for video)
 
 Ready to proceed?"
 ```
@@ -187,115 +237,80 @@ Ready to proceed?"
 
 After approval, create the workflow JSON file and run it.
 
+**Remember:** Tell the user it will take 20-25 minutes before starting!
+
 ---
 
-## Workflow JSON Format
+## Production Workflow Example
 
-This is the exact schema ClawVid expects. Every field must match.
-
-### Complete Example
+For high-quality horror videos with visual consistency, use this structure (from `workflows/production-horror-frames.json`):
 
 ```json
 {
-  "name": "Haunted Library Horror Video",
+  "name": "The Watchers - Horror Production",
   "template": "horror",
-  "duration_target_seconds": 60,
+  "timing_mode": "tts_driven",
+  "scene_padding_seconds": 0.5,
+  "min_scene_duration_seconds": 5,
+
+  "consistency": {
+    "reference_prompt": "Full-body character design of a dark animated horror entity: a tall gaunt shadow creature standing at 8 feet tall with elongated skeletal limbs...",
+    "seed": 666,
+    "resolution": "2K"
+  },
 
   "scenes": [
     {
-      "id": "scene_1",
-      "description": "Opening — Exterior of old library at night",
+      "id": "frame_1",
+      "description": "Exterior - Abandoned mansion at night, establishing shot",
       "type": "video",
-      "timing": { "start": 0, "duration": 5 },
-      "narration": null,
+      "timing": {},
+      "narration": "They say the mansion on Ashwood Lane has been empty for forty years. But every night, the lights flicker on.",
 
       "image_generation": {
-        "model": "fal-ai/kling-image/v3/text-to-image",
+        "model": "fal-ai/nano-banana-pro/edit",
         "input": {
-          "prompt": "Ancient gothic library exterior at night, full moon behind clouds, dead trees, iron gate, horror atmosphere, cinematic lighting, 8k, photorealistic",
-          "negative_prompt": "bright, daytime, people, modern, cartoon",
-          "aspect_ratio": "9:16",
-          "resolution": "2K"
+          "prompt": "Wide establishing shot looking up at a massive three-story Victorian Gothic mansion at night...",
+          "aspect_ratio": "9:16"
         }
       },
 
       "video_generation": {
-        "model": "fal-ai/kandinsky5-pro/image-to-video",
+        "model": "fal-ai/vidu/q3/image-to-video",
         "input": {
-          "prompt": "Slow cinematic push toward library entrance, clouds moving past moon, leaves blowing",
-          "duration": "5s",
-          "resolution": "1024P"
+          "prompt": "Slow steady dolly push toward the mansion entrance from the gate...",
+          "duration": "8",
+          "resolution": "720p"
         }
       },
 
       "sound_effects": [
         {
-          "prompt": "Howling wind through dead trees, eerie atmosphere",
+          "prompt": "Howling wind gusting through dead tree branches at night...",
           "timing_offset": 0,
-          "duration": 5,
+          "duration": 8,
           "volume": 0.6
         }
       ],
 
-      "effects": ["vignette", "grain"]
-    },
-    {
-      "id": "scene_2",
-      "description": "Interior — Empty reading room",
-      "type": "image",
-      "timing": { "start": 5, "duration": 12 },
-      "narration": "The Blackwood Library had been abandoned for thirty years.",
-
-      "image_generation": {
-        "model": "fal-ai/kling-image/v3/text-to-image",
-        "input": {
-          "prompt": "Abandoned library interior, dust particles in moonlight beams, overturned chairs, cobwebs, single flickering lamp, horror atmosphere, extremely dark, cinematic",
-          "negative_prompt": "bright, clean, modern, people",
-          "aspect_ratio": "9:16"
-        }
-      },
-
-      "effects": ["kenburns_slow_zoom", "flicker", "grain"]
-    },
-    {
-      "id": "scene_7",
-      "description": "End card",
-      "type": "image",
-      "timing": { "start": 55, "duration": 5 },
-      "narration": null,
-
-      "image_generation": {
-        "model": "fal-ai/kling-image/v3/text-to-image",
-        "input": {
-          "prompt": "Pure black background with subtle fog, horror movie end screen",
-          "aspect_ratio": "9:16"
-        }
-      },
-
-      "text_overlay": {
-        "text": "To be continued...",
-        "style": "horror_typewriter",
-        "position": "center"
-      },
-
-      "effects": ["grain"]
+      "effects": ["vignette_heavy", "grain", "flicker_subtle"]
     }
   ],
 
   "audio": {
     "tts": {
       "model": "fal-ai/qwen-3-tts/voice-design/1.7b",
-      "voice_prompt": "A deep, slow, creepy male whispering voice for horror narration",
+      "voice_prompt": "A low raspy whispering male voice, speaking slowly with dread and tension, pausing between phrases, as if afraid to speak too loudly, horror narrator",
       "language": "en",
-      "speed": 0.9
+      "speed": 0.85
     },
     "music": {
       "generate": true,
-      "prompt": "Dark ambient horror drone, low rumbling, cinematic dread",
+      "prompt": "Dark ambient horror soundtrack, deep pulsing sub-bass drones in D minor, dissonant tremolo strings building slowly...",
       "duration": 60,
-      "volume": 0.25,
-      "fade_in": 2,
-      "fade_out": 3
+      "volume": 0.15,
+      "fade_in": 3,
+      "fade_out": 4
     }
   },
 
@@ -305,186 +320,27 @@ This is the exact schema ClawVid expects. Every field must match.
       "font": "Impact",
       "color": "#ffffff",
       "stroke_color": "#000000",
-      "stroke_width": 2,
-      "position": "bottom",
-      "animation": "word_by_word"
+      "stroke_width": 3,
+      "position": "center"
     }
   },
 
   "output": {
-    "filename": "haunted_library.mp4",
-    "resolution": "1080x1920",
+    "filename": "the_watchers_horror.mp4",
     "fps": 30,
-    "format": "mp4"
+    "format": "mp4",
+    "platforms": ["tiktok"]
   }
 }
 ```
 
-### Scene Schema Reference
+### Key Production Features
 
-Every scene requires:
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `id` | string | Yes | Unique scene ID (e.g. "scene_1") |
-| `description` | string | No | Human-readable description |
-| `type` | "image" \| "video" | Yes | Whether this scene has video motion |
-| `timing.start` | number >= 0 | Yes | Start time in seconds |
-| `timing.duration` | number > 0 | Yes | Duration in seconds |
-| `narration` | string \| null | No | Text for TTS narration (null = silent) |
-| `image_generation` | object | Yes | Always required (generates base image) |
-| `image_generation.model` | string | Yes | fal.ai model ID |
-| `image_generation.input.prompt` | string | Yes | Detailed image prompt |
-| `image_generation.input.negative_prompt` | string | No | What to avoid |
-| `image_generation.input.aspect_ratio` | string | No | e.g. "9:16", "16:9" |
-| `image_generation.input.resolution` | string | No | "1K" or "2K" |
-| `image_generation.input.output_format` | "png" \| "jpeg" | No | Image format |
-| `image_generation.input.seed` | number | No | For reproducibility |
-| `video_generation` | object \| null | No | Only for type: "video" scenes |
-| `video_generation.model` | string | Yes | fal.ai video model ID |
-| `video_generation.input.prompt` | string | Yes | Motion description |
-| `video_generation.input.duration` | string | No | e.g. "5s" |
-| `video_generation.input.resolution` | string | No | "512P" or "1024P" |
-| `video_generation.input.num_inference_steps` | number | No | Quality steps |
-| `video_generation.input.acceleration` | boolean | No | Speed up generation |
-| `sound_effects` | array | No | Sound effects for this scene |
-| `sound_effects[].prompt` | string | Yes | Description of the sound |
-| `sound_effects[].timing_offset` | number >= 0 | Yes | Seconds from scene start |
-| `sound_effects[].duration` | number (1-35) | Yes | SFX duration in seconds |
-| `sound_effects[].volume` | number (0-1) | No | Volume level (default 0.8) |
-| `text_overlay` | object | No | Text displayed on screen |
-| `text_overlay.text` | string | Yes | The text content |
-| `text_overlay.position` | "top" \| "center" \| "bottom" | No | Where to display |
-| `effects` | string[] | No | Effect names applied to this scene |
-
-### Audio Config
-
-```json
-{
-  "audio": {
-    "tts": {
-      "model": "fal-ai/qwen-3-tts/voice-design/1.7b",
-      "voice_prompt": "A deep male voice, slow and mysterious",
-      "language": "en",
-      "speed": 0.9,
-      "temperature": 0.7,
-      "top_k": 50,
-      "top_p": 0.9
-    },
-    "music": {
-      "generate": true,
-      "prompt": "Dark ambient horror drone, cinematic tension",
-      "duration": 60,
-      "volume": 0.25,
-      "fade_in": 2,
-      "fade_out": 3
-    }
-  }
-}
-```
-
-- `tts.model` is required.
-- `tts.voice_prompt` describes the voice characteristics (replaces voice_reference for AI voice design).
-- `tts.voice_reference` can still be used for voice cloning with an audio URL.
-- `music.generate: true` generates music via AI. Provide a `prompt` describing the mood.
-- `music.file` / `music.url` can still be used for pre-made music (when `generate` is false or omitted).
-
-### Sound Effects
-
-Sound effects are per-scene and positioned with `timing_offset` relative to scene start:
-
-```json
-{
-  "sound_effects": [
-    {
-      "prompt": "Heavy door slam echoing in empty library",
-      "timing_offset": 3,
-      "duration": 2,
-      "volume": 0.9
-    },
-    {
-      "prompt": "Creaky floorboard, slow footstep",
-      "timing_offset": 6,
-      "duration": 1,
-      "volume": 0.5
-    }
-  ]
-}
-```
-
-The pipeline generates each SFX via AI, then positions it at the exact timestamp using FFmpeg `adelay`. For scene starting at 27s with `timing_offset: 3`, the SFX plays at 30s absolute — synced to the visual.
-
-### Subtitles Config
-
-```json
-{
-  "subtitles": {
-    "enabled": true,
-    "style": {
-      "font": "Impact",
-      "color": "#ffffff",
-      "stroke_color": "#000000",
-      "stroke_width": 2,
-      "position": "bottom",
-      "animation": "word_by_word",
-      "font_size": 42
-    }
-  }
-}
-```
-
----
-
-## Available Effects
-
-Effects are applied per-scene via the `effects` array. Names are fuzzy-matched (underscores, hyphens, case don't matter). Intensity suffixes are supported.
-
-| Effect | Variants | Description |
-|--------|----------|-------------|
-| `vignette` | `vignette_subtle`, `vignette_heavy` | Dark edges, draws focus to center |
-| `grain` | `grain_subtle`, `grain_heavy` | Film grain noise (SVG feTurbulence) |
-| `ken_burns` | `kenburns_slow_zoom`, `kenburns_slow_pan`, `kenburns_zoom_out` | Zoom/pan motion on still images |
-| `flicker` | `flicker_subtle` | Light flickering effect |
-| `glitch` | `glitch_subtle`, `glitch_heavy` | RGB channel splitting, horizontal displacement |
-| `chromatic_aberration` | `chromatic_aberration_subtle` | Color fringing on edges |
-
-The template also applies its own `defaultEffects` to every scene. Per-scene effects stack on top.
-
----
-
-## Templates
-
-Templates are style presets that apply color grading, overlays, and default effects. The workflow `template` field selects one.
-
-### horror
-- **Color grading:** `saturate(0.6) brightness(0.85) contrast(1.15)`
-- **Overlay:** Cold blue-black (#0a0a1a) at 15% opacity
-- **Default effects:** vignette, grain
-- **Prompt keywords:** horror atmosphere, dark, ominous, cinematic shadows, extremely dark
-- **Negative prompts:** bright, cheerful, colorful, cartoon
-- **Voice:** Deep, slow (pacing 0.9)
-
-### motivation
-- **Color grading:** `saturate(1.1) brightness(1.05) sepia(0.12) contrast(1.05)`
-- **Overlay:** Warm gold (#2a1f00) at 8% opacity
-- **Default effects:** (none)
-- **Prompt keywords:** inspirational, warm lighting, golden hour, cinematic, professional
-- **Negative prompts:** dark, scary, cluttered
-- **Voice:** Warm, confident (pacing 1.0)
-
-### quiz
-- **Color grading:** `saturate(1.25) brightness(1.08) contrast(1.1)`
-- **Overlay:** Deep blue (#001133) at 6% opacity
-- **Default effects:** (none)
-- **Prompt keywords:** clean background, vibrant, engaging, game-show
-- **Voice:** Energetic, clear (pacing 1.1)
-
-### reddit
-- **Color grading:** `saturate(0.9) brightness(0.95)`
-- **Overlay:** Dark neutral (#1a1a1a) at 8% opacity
-- **Default effects:** (none)
-- **Prompt keywords:** Reddit post card, background, clean
-- **Voice:** Casual, conversational (pacing 1.0)
+1. **Scene consistency** — Use `consistency.reference_prompt` + `seed` to maintain character/setting appearance across scenes
+2. **Premium video model** — `fal-ai/vidu/q3/image-to-video` produces smoother, longer clips (8s) with better motion
+3. **Image editing model** — `fal-ai/nano-banana-pro/edit` for scene variations from reference
+4. **TTS-driven timing** — Let narration length determine scene duration (`timing_mode: "tts_driven"`)
+5. **Detailed prompts** — Long, specific prompts with camera angles, lighting, and atmosphere
 
 ---
 
@@ -494,31 +350,32 @@ All models are configured in `config.json` under the `fal` section. Use full fal
 
 ### Image Models
 
-| Model | When to Use | Notes |
-|-------|-------------|-------|
-| `fal-ai/kling-image/v3/text-to-image` | All scenes | Uses `aspect_ratio` (e.g. "9:16"), `resolution` ("1K"/"2K") |
+| Model | When to Use | Cost | Notes |
+|-------|-------------|------|-------|
+| `fal-ai/kling-image/v3/text-to-image` | Standard scenes | $0.03 | Uses `aspect_ratio` (e.g. "9:16") |
+| `fal-ai/nano-banana-pro` | Reference images | $0.15 | For consistency base |
+| `fal-ai/nano-banana-pro/edit` | Consistent scenes | $0.15 | Edit from reference |
 
 ### Video Models (Image-to-Video)
 
-| Model | When to Use | Notes |
-|-------|-------------|-------|
-| `fal-ai/kandinsky5-pro/image-to-video` | All video scenes | Fixed 5s clips, `duration: "5s"`, `resolution` ("512P"/"1024P") |
+| Model | Duration | Cost | Quality | Notes |
+|-------|----------|------|---------|-------|
+| `fal-ai/kandinsky5-pro/image-to-video` | 5s | $0.04-0.12 | Good | **Use `duration: "5s"`** (with "s" suffix!) |
+| `fal-ai/kling-video/v2.6/pro/image-to-video` | 5s | $0.35 | Better | Premium motion |
+| `fal-ai/vidu/q3/image-to-video` | 8s | $1.50+ | Best | Smoothest motion, longest clips |
+
+**⚠️ Duration format matters:**
+- kandinsky5-pro requires: `"duration": "5s"` (with "s" suffix)
+- Kling/Vidu use: `"duration": "5"` or `"duration": "8"` (number as string)
 
 ### Audio Models
 
-| Model | Purpose |
-|-------|---------|
-| `fal-ai/qwen-3-tts/voice-design/1.7b` | Voice-designed TTS narration |
-| `fal-ai/whisper` | Transcription for subtitle timing |
-| `beatoven/sound-effect-generation` | AI sound effect generation (1-35s) |
-| `beatoven/music-generation` | AI background music generation (5-150s) |
-
-### Analysis Models (Optional)
-
-| Model | Purpose |
-|-------|---------|
-| `fal-ai/got-ocr/v2` | Image analysis / quality verification |
-| `fal-ai/video-understanding` | Video analysis / quality verification |
+| Model | Purpose | Cost |
+|-------|---------|------|
+| `fal-ai/qwen-3-tts/voice-design/1.7b` | Voice-designed TTS narration | $0.09/1K chars |
+| `fal-ai/whisper` | Transcription for subtitle timing | $0.001/sec |
+| `beatoven/sound-effect-generation` | AI sound effect generation (1-35s) | $0.10/req |
+| `beatoven/music-generation` | AI background music generation (5-150s) | $0.10/req |
 
 ---
 
@@ -526,7 +383,7 @@ All models are configured in `config.json` under the `fal` section. Use full fal
 
 For a 60-second video:
 - **5-8 scenes** total
-- **2-3 video clips** (opening hook, climax, closing) — rest as images with Ken Burns
+- **3-6 video clips** for max_quality, 2-3 for balanced
 - Each scene **5-15 seconds**
 - Front-load video clips — the opening matters most
 - Use `type: "image"` with Ken Burns effects for narration-heavy scenes
@@ -537,7 +394,7 @@ For a 60-second video:
 
 | Type | When | Model |
 |------|------|-------|
-| `video` | Opening hook, dramatic climax, closing | kandinsky5-pro |
+| `video` | Opening hook, dramatic climax, closing | vidu or kling |
 | `image` | Narration scenes, transitions, descriptions | kling-image/v3 |
 | `image` + Ken Burns | Subtle motion without video cost | kling-image/v3 + `kenburns_slow_zoom` effect |
 
@@ -580,36 +437,71 @@ clawvid setup --reset
 ### Pipeline Flow (what `generate` does)
 
 ```
-1. Load config.json + preferences.json
-2. Validate workflow JSON against schema
-3. Create output directory: output/{date}-{slug}/
-4. Phase 1 — Generate scene assets:
-   - Images via fal.ai (kling-image/v3, with caching by content hash)
-   - Videos via fal.ai (kandinsky5-pro image-to-video)
-5. Phase 2 — Generate narration:
-   - TTS narration via fal.ai (qwen-3-tts)
-6. Phase 3 — Transcribe for subtitles:
-   - Whisper transcription for word timing
-7. Phase 4 — Generate sound effects:
-   - Per-scene SFX via beatoven/sound-effect-generation
-   - Each SFX gets absolute timestamp (scene.start + timing_offset)
-8. Phase 5 — Generate background music:
-   - If music.generate is true, generate via beatoven/music-generation
-9. Process audio:
-   - Trim silence from TTS
-   - Normalize to -14 LUFS
-   - Concatenate narration segments
-   - Mix narration + music (with fade) + positioned SFX (adelay)
-10. Generate subtitles:
-    - Write SRT/VTT files
-11. Render compositions:
-    - Landscape (16:9) for YouTube
-    - Portrait (9:16) for TikTok/Reels
-12. Post-process:
-    - Platform-specific encoding (bitrate, codec)
-    - Generate thumbnails
-13. Output cost summary
+Phase 1 (1-2 min): Load config, validate workflow, create output directory
+Phase 2 (2-4 min): Generate TTS narration for all scenes
+Phase 3 (3-5 min): Generate images (kling-image or nano-banana-pro)
+Phase 4 (8-12 min): Generate video clips (slowest phase)
+Phase 5 (1-2 min): Generate sound effects (beatoven)
+Phase 6 (1-2 min): Generate background music (beatoven)
+Phase 7 (2-3 min): Transcribe narration with Whisper (for word-level subtitles)
+Phase 8 (1-2 min): Mix audio (narration + music + SFX)
+Phase 9 (2-3 min): Render with Remotion + FFmpeg post-processing
+
+Total: ~20-25 minutes for a 6-scene video
 ```
+
+---
+
+## Available Effects
+
+Effects are applied per-scene via the `effects` array. Names are fuzzy-matched (underscores, hyphens, case don't matter). Intensity suffixes are supported.
+
+| Effect | Variants | Description |
+|--------|----------|-------------|
+| `vignette` | `vignette_subtle`, `vignette_heavy` | Dark edges, draws focus to center |
+| `grain` | `grain_subtle`, `grain_heavy` | Film grain noise (SVG feTurbulence) |
+| `ken_burns` | `kenburns_slow_zoom`, `kenburns_slow_pan`, `kenburns_zoom_out` | Zoom/pan motion on still images |
+| `flicker` | `flicker_subtle` | Light flickering effect |
+| `glitch` | `glitch_subtle`, `glitch_heavy` | RGB channel splitting, horizontal displacement |
+| `chromatic_aberration` | `chromatic_aberration_subtle` | Color fringing on edges |
+
+The template also applies its own `defaultEffects` to every scene. Per-scene effects stack on top.
+
+---
+
+## Templates
+
+Templates are style presets that apply color grading, overlays, and default effects. The workflow `template` field selects one.
+
+### horror
+- **Color grading:** `saturate(0.6) brightness(0.85) contrast(1.15)`
+- **Overlay:** Cold blue-black (#0a0a1a) at 15% opacity
+- **Default effects:** vignette, grain
+- **Prompt keywords:** horror atmosphere, dark, ominous, cinematic shadows, extremely dark
+- **Negative prompts:** bright, cheerful, colorful, cartoon
+- **Voice:** Deep, slow (pacing 0.85)
+
+### motivation
+- **Color grading:** `saturate(1.1) brightness(1.05) sepia(0.12) contrast(1.05)`
+- **Overlay:** Warm gold (#2a1f00) at 8% opacity
+- **Default effects:** (none)
+- **Prompt keywords:** inspirational, warm lighting, golden hour, cinematic, professional
+- **Negative prompts:** dark, scary, cluttered
+- **Voice:** Warm, confident (pacing 1.0)
+
+### quiz
+- **Color grading:** `saturate(1.25) brightness(1.08) contrast(1.1)`
+- **Overlay:** Deep blue (#001133) at 6% opacity
+- **Default effects:** (none)
+- **Prompt keywords:** clean background, vibrant, engaging, game-show
+- **Voice:** Energetic, clear (pacing 1.1)
+
+### reddit
+- **Color grading:** `saturate(0.9) brightness(0.95)`
+- **Overlay:** Dark neutral (#1a1a1a) at 8% opacity
+- **Default effects:** (none)
+- **Prompt keywords:** Reddit post card, background, clean
+- **Voice:** Casual, conversational (pacing 1.0)
 
 ---
 
@@ -690,10 +582,12 @@ Improved: "very slow cinematic dolly forward into corridor, subtle movement, cre
 2. GATHER REQUIREMENTS — Topic, format, template-specific questions
 3. BUILD PLAN — Present scene breakdown with SFX plan for approval
 4. GET APPROVAL — Wait for explicit "go" or adjustments
-5. GENERATE WORKFLOW — Create the workflow JSON
-6. EXECUTE — Run clawvid generate --workflow <file>
-7. REVIEW — Check outputs, regenerate if needed
-8. DELIVER — Provide output path, show cost summary
+5. WARN ABOUT TIME — "This will take 20-25 minutes. Ready?"
+6. GENERATE WORKFLOW — Create the workflow JSON
+7. EXECUTE — Run clawvid generate --workflow <file> (NO TIMEOUT!)
+8. MONITOR — Poll process and report progress to user
+9. REVIEW — Check outputs, regenerate if needed
+10. DELIVER — Provide output path, show cost summary
 ```
 
 ### Quick Create (Experienced Users)
@@ -703,14 +597,15 @@ User: "Horror video, 60s, haunted Polaroid camera. VHS style, slow burn,
        cliffhanger ending. Deep male voice. Go with your best judgment."
 
 You: [Skip most questions, present plan, ask for quick approval]
-"Here's my plan: [condensed breakdown]. Sound good?"
+"Here's my plan: [condensed breakdown]. 
+This will take ~20-25 minutes. Sound good?"
 ```
 
 ### Always Explain Decisions
 
 ```
 "Scene 3 needs video because it's the climax"
-"Using 2K resolution for the opening since it's the hook"
+"Using Vidu for video — smoother 8s clips, better for horror"
 "Adding door slam SFX at 30s to sync with the shadow reveal"
 "Generating dark ambient music to maintain tension throughout"
 "Regenerating scene 2 — the lighting was too bright for horror"
@@ -722,7 +617,7 @@ You: [Skip most questions, present plan, ask for quick approval]
 ## Tips
 
 - Front-load video clips (opening matters most for hooks)
-- Keep total video clips to 2-3 per 60s (cost management)
+- Use Vidu/Kling for max_quality, kandinsky5-pro for budget
 - Use Ken Burns on images for subtle motion without video cost
 - Add 3-4 sound effects per 60s video for immersion (don't overdo it)
 - Use `generate: true` for music when you don't have a pre-made track
@@ -731,3 +626,4 @@ You: [Skip most questions, present plan, ask for quick approval]
 - The cache skips regenerating scenes whose prompts haven't changed
 - Use `--skip-cache` to force full regeneration
 - Use `--all-platforms` on render to output YouTube + TikTok + Reels in one pass
+- **Never timeout the generate process** — let it complete naturally
