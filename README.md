@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="logo.png" alt="ClawVid Logo" width="200">
+</p>
+
 # ClawVid
 
 > **Status: Beta** — End-to-end pipeline working. TTS-driven timing (narration drives scene duration), voice consistency (voice cloning across scenes), subtitle sync, aspect-ratio-safe encoding, Kling 2.6 video, Remotion rendering, word-level subtitles, and multi-track audio. 97 tests passing. Edge cases and hardening still in progress.
