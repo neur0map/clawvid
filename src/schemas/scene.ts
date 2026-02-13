@@ -28,6 +28,8 @@ export const videoGenerationSchema = z.object({
     seed: z.number().int().optional(),
     style: z.enum(['anime', '3d_animation', 'clay', 'comic', 'cyberpunk']).optional(),
     aspect_ratio: z.string().optional(),
+    // Vidu movement control
+    movement_amplitude: z.enum(['auto', 'small', 'medium', 'large']).optional(),
   }),
 });
 

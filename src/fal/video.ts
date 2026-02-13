@@ -42,15 +42,27 @@ export async function generateVideo(
       input.cfg_scale = spec.input.cfg_scale;
     }
   } else if (isViduModel(spec.model)) {
-    // Vidu Q3 uses image_url, duration as integer seconds
+    // Vidu uses image_url, duration as integer seconds
     input.image_url = imageUrl;
     const rawDuration = spec.input.duration ?? '5';
     input.duration = parseInt(rawDuration.replace('s', ''), 10);
-    // Native audio generation (default true for Vidu)
+    // Native audio generation (default false to use our own audio)
     input.audio = spec.input.audio ?? false;
 
     if (spec.input.seed !== undefined) {
       input.seed = spec.input.seed;
+    }
+    // Q3 models support resolution
+    if (spec.input.resolution && spec.model.includes('q3')) {
+      input.resolution = spec.input.resolution;
+    }
+    // Q2/Q3 text-to-video support aspect_ratio
+    if (spec.input.aspect_ratio && !spec.model.includes('image-to-video')) {
+      input.resolution = spec.input.aspect_ratio;
+    }
+    // Movement amplitude for all Vidu models
+    if (spec.input.movement_amplitude) {
+      input.movement_amplitude = spec.input.movement_amplitude;
     }
   } else if (isPixVerseModel(spec.model)) {
     // PixVerse uses first_image_url, duration as string "5"/"8"/"10"

@@ -1,0 +1,228 @@
+{
+  "name": "Is The Super Bowl Scripted",
+  "template": "quiz",
+  "timing_mode": "tts_driven",
+  "scene_padding_seconds": 0.8,
+  "min_scene_duration_seconds": 6,
+
+  "scenes": [
+    {
+      "id": "scene_1",
+      "description": "Hook — Dramatic stadium reveal with suspense",
+      "type": "video",
+      "timing": {},
+      "narration": "What if I told you... the biggest game in America... might be completely scripted?",
+      "image_generation": {
+        "model": "fal-ai/kling-image/v3/text-to-image",
+        "input": {
+          "prompt": "Dramatic NFL stadium at night from aerial view, Super Bowl event, massive spotlights beaming into dark sky, packed crowd as tiny dots, fireworks frozen mid-explosion, cinematic blockbuster movie poster style, minimal clean aesthetic, bold graphic design, high contrast, vibrant stadium lights against dark blue night sky, 8K quality",
+          "negative_prompt": "blurry, low quality, cartoon, anime, cluttered",
+          "aspect_ratio": "9:16"
+        }
+      },
+      "video_generation": {
+        "model": "fal-ai/kandinsky5-pro/image-to-video",
+        "input": {
+          "prompt": "Slow dramatic aerial push toward stadium center, spotlights sweeping, fireworks bursting in slow motion, cinematic epic reveal",
+          "duration": "5s",
+          "resolution": "720p"
+        }
+      },
+      "sound_effects": [
+        {
+          "prompt": "Epic cinematic boom with deep bass hit and reverb tail, dramatic reveal sound",
+          "timing_offset": 0,
+          "duration": 3,
+          "volume": 0.7
+        }
+      ],
+      "effects": ["vignette"]
+    },
+    {
+      "id": "scene_2",
+      "description": "The entertainment classification reveal",
+      "type": "image",
+      "timing": {},
+      "narration": "The NFL is officially classified as entertainment. Not as a competitive sport. The same classification... as professional wrestling.",
+      "image_generation": {
+        "model": "fal-ai/kling-image/v3/text-to-image",
+        "input": {
+          "prompt": "Clean minimal split-screen infographic design, left side: NFL football helmet in bold red and blue, right side: WWE wrestling championship belt in gold, large bold text 'ENTERTAINMENT' stamped across both in official government document style, white background with subtle grid pattern, modern flat illustration style, corporate presentation aesthetic, bold sans-serif typography",
+          "negative_prompt": "photorealistic, dark, cluttered, 3D render",
+          "aspect_ratio": "9:16"
+        }
+      },
+      "sound_effects": [
+        {
+          "prompt": "Official stamp sound effect, paper stamping with authority",
+          "timing_offset": 2,
+          "duration": 1,
+          "volume": 0.6
+        }
+      ],
+      "effects": ["kenburns_slow_zoom"]
+    },
+    {
+      "id": "scene_3",
+      "description": "The 2017 lawsuit",
+      "type": "image",
+      "timing": {},
+      "narration": "In 2017, someone actually sued the NFL. The lawsuit claimed that because the league is classified as entertainment... they could legally script the outcomes of games. Including the Super Bowl.",
+      "image_generation": {
+        "model": "fal-ai/kling-image/v3/text-to-image",
+        "input": {
+          "prompt": "Dramatic courtroom scene illustration, wooden judge bench with gavel mid-strike, NFL shield logo on defendant podium, scattered legal documents flying through air, bold dramatic lighting from above, minimal clean illustration style with bold outlines, muted professional color palette of navy blue and warm wood tones, legal drama aesthetic, modern vector art style",
+          "negative_prompt": "photorealistic, cartoon, anime, busy, cluttered",
+          "aspect_ratio": "9:16"
+        }
+      },
+      "sound_effects": [
+        {
+          "prompt": "Wooden gavel striking sound block, courtroom dramatic hit with echo",
+          "timing_offset": 1,
+          "duration": 2,
+          "volume": 0.7
+        }
+      ],
+      "effects": ["kenburns_slow_pan"]
+    },
+    {
+      "id": "scene_4",
+      "description": "The implication — what this means",
+      "type": "video",
+      "timing": {},
+      "narration": "Think about that for a second. Every dramatic comeback. Every last-second field goal. Every underdog victory. All of it... could be planned in advance.",
+      "image_generation": {
+        "model": "fal-ai/kling-image/v3/text-to-image",
+        "input": {
+          "prompt": "Dramatic illustration of a TV screen showing football game with faint 'SCRIPT' watermark overlay, hand holding remote control in foreground, living room silhouette setting, mysterious atmosphere, bold graphic design style, high contrast lighting with TV glow illuminating the scene, minimal clean aesthetic, conspiracy documentary visual style",
+          "negative_prompt": "bright, happy, cluttered, photorealistic",
+          "aspect_ratio": "9:16"
+        }
+      },
+      "video_generation": {
+        "model": "fal-ai/kandinsky5-pro/image-to-video",
+        "input": {
+          "prompt": "TV screen flickers and glitches, SCRIPT text slowly fades in and pulses, dramatic slow zoom toward screen, mysterious reveal",
+          "duration": "5s",
+          "resolution": "720p"
+        }
+      },
+      "sound_effects": [
+        {
+          "prompt": "Deep suspenseful bass drone building tension, conspiracy reveal sound with subtle static",
+          "timing_offset": 0,
+          "duration": 5,
+          "volume": 0.5
+        }
+      ],
+      "effects": ["vignette", "chromatic_aberration_subtle"]
+    },
+    {
+      "id": "scene_5",
+      "description": "Case dismissed but...",
+      "type": "image",
+      "timing": {},
+      "narration": "Now, the lawsuit was dismissed. But here's the thing... the NFL's entertainment classification? That's still completely real. Still on the books. To this day.",
+      "image_generation": {
+        "model": "fal-ai/kling-image/v3/text-to-image",
+        "input": {
+          "prompt": "Clean minimal illustration of legal document with large red 'CASE DISMISSED' stamp, but underneath a glowing question mark emerges from shadows, NFL logo watermark in background, split lighting half bright half shadow, modern infographic style, bold typography, thought-provoking visual design",
+          "negative_prompt": "photorealistic, cluttered, dark, scary",
+          "aspect_ratio": "9:16"
+        }
+      },
+      "effects": ["kenburns_slow_zoom"]
+    },
+    {
+      "id": "scene_6",
+      "description": "The closing question",
+      "type": "video",
+      "timing": {},
+      "narration": "So next time you're watching the Super Bowl... ask yourself. Is this a sport? Or is this... entertainment?",
+      "image_generation": {
+        "model": "fal-ai/kling-image/v3/text-to-image",
+        "input": {
+          "prompt": "Dramatic illustration of American football floating in spotlight beam, multiple bold question marks orbiting around it in 3D space, dark gradient background transitioning from deep blue to black, minimal clean design, thought-provoking philosophical mood, modern graphic design aesthetic, bold shapes and typography ready",
+          "negative_prompt": "cluttered, busy, photorealistic, cartoon",
+          "aspect_ratio": "9:16"
+        }
+      },
+      "video_generation": {
+        "model": "fal-ai/kandinsky5-pro/image-to-video",
+        "input": {
+          "prompt": "Question marks slowly rotate and multiply around the football, spotlight pulses dramatically, slow cinematic zoom out revealing more questions, mysterious atmosphere",
+          "duration": "5s",
+          "resolution": "720p"
+        }
+      },
+      "sound_effects": [
+        {
+          "prompt": "Mysterious tension sound with subtle whoosh and deep reverb hit at end",
+          "timing_offset": 3,
+          "duration": 3,
+          "volume": 0.6
+        }
+      ],
+      "effects": ["vignette"]
+    },
+    {
+      "id": "scene_7",
+      "description": "End card with CTA",
+      "type": "image",
+      "timing": {},
+      "narration": null,
+      "image_generation": {
+        "model": "fal-ai/kling-image/v3/text-to-image",
+        "input": {
+          "prompt": "Clean minimal end card design, bright gradient background transitioning from electric blue to purple, abstract geometric shapes floating, modern social media aesthetic, space for text overlay, bold and inviting mood, influencer content style",
+          "negative_prompt": "dark, scary, cluttered, text",
+          "aspect_ratio": "9:16"
+        }
+      },
+      "text_overlay": {
+        "text": "Follow for more 🤯",
+        "style": "bold_modern",
+        "position": "center"
+      },
+      "effects": []
+    }
+  ],
+
+  "audio": {
+    "tts": {
+      "model": "fal-ai/qwen-3-tts/voice-design/1.7b",
+      "voice_prompt": "A confident, engaging male voice with a hint of mystery, clear enunciation, storytelling podcast host energy, dramatic pauses for emphasis, captivating and thought-provoking tone",
+      "language": "en",
+      "speed": 1.0
+    },
+    "music": {
+      "generate": true,
+      "prompt": "Mysterious investigative documentary background music, subtle electronic pulses, building intrigue, podcast true-crime style, moderate tempo, creates curiosity without being scary, clean modern production",
+      "duration": 65,
+      "volume": 0.18,
+      "fade_in": 2,
+      "fade_out": 3
+    }
+  },
+
+  "subtitles": {
+    "enabled": true,
+    "style": {
+      "font": "Impact",
+      "color": "#ffffff",
+      "stroke_color": "#000000",
+      "stroke_width": 3,
+      "position": "center",
+      "animation": "word_by_word",
+      "font_size": 52
+    }
+  },
+
+  "output": {
+    "filename": "nfl_superbowl_scripted.mp4",
+    "fps": 30,
+    "format": "mp4",
+    "platforms": ["tiktok"]
+  }
+}

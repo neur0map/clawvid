@@ -574,6 +574,148 @@ Created by `clawvid setup`. Stores user's default platforms, template, quality m
 
 ---
 
+## Prompt Engineering Best Practices
+
+### Be Specific — Avoid Ambiguity
+
+AI models are trained on global data. Generic terms get interpreted differently:
+
+| ❌ Ambiguous | ✅ Specific |
+|--------------|-------------|
+| "football" | "American football, NFL football, oval leather football" |
+| "football stadium" | "NFL stadium, American football field with goalposts" |
+| "chips" | "potato chips" (US) or "french fries" (UK) — be explicit |
+| "car" | "2024 BMW sedan, luxury sports car" |
+
+### Negative Prompt Strategy
+
+Use negative prompts to exclude unwanted elements:
+
+```json
+{
+  "image_generation": {
+    "model": "fal-ai/kling-image/v3/text-to-image",
+    "input": {
+      "prompt": "American NFL football on grass field, leather texture, red and white laces, stadium lights in background",
+      "negative_prompt": "soccer ball, round ball, black and white hexagons, european football",
+      "aspect_ratio": "9:16"
+    }
+  }
+}
+```
+
+### For Video Prompts (Vidu doesn't support negative_prompt)
+
+Since Vidu image-to-video doesn't support `negative_prompt`, bake exclusions into the positive prompt:
+
+```json
+{
+  "video_generation": {
+    "model": "fal-ai/vidu/image-to-video",
+    "input": {
+      "prompt": "American NFL football spinning slowly, NOT soccer ball, leather texture, stadium lighting, dramatic slow motion",
+      "duration": "4"
+    }
+  }
+}
+```
+
+### Template-Specific Prompt Additions
+
+Add template keywords to every prompt for consistency:
+
+| Template | Add to Prompts |
+|----------|---------------|
+| horror | "extremely dark, deep shadows, horror atmosphere, ominous, cinematic noir" |
+| motivation | "warm golden lighting, inspirational, clean composition" |
+| quiz | "vibrant, clean background, game show aesthetic, bold colors" |
+| reddit | "minimal background, focus on text, clean UI" |
+
+---
+
+## Subtitle Styling Guidelines
+
+Default subtitle settings are often too small for mobile. Recommended sizes:
+
+| Resolution | Font Size | Stroke Width |
+|------------|-----------|--------------|
+| 1080x1920 (9:16) | **72-80px** | 4-5 |
+| 1920x1080 (16:9) | 48-56px | 3 |
+| 1080x1080 (1:1) | 64-72px | 4 |
+
+### Recommended Style for Mobile (9:16)
+
+```json
+{
+  "subtitles": {
+    "enabled": true,
+    "style": {
+      "font": "Impact",
+      "color": "#ffffff",
+      "stroke_color": "#000000",
+      "stroke_width": 5,
+      "position": "center",
+      "animation": "word_by_word",
+      "font_size": 76,
+      "background_color": "#00000080"
+    }
+  }
+}
+```
+
+### Tips for Readability
+
+1. **Use high-contrast colors** — white text with black stroke, or black text with white stroke
+2. **Center position** is more visible than bottom (doesn't get covered by platform UI)
+3. **Word-by-word animation** keeps viewers engaged
+4. **Add background_color** with transparency (e.g., `#00000080`) for busy visuals
+
+---
+
+## Vidu Model Guide
+
+Vidu offers multiple model tiers. Choose based on quality needs:
+
+### Available Endpoints
+
+| Endpoint | Use Case | Duration | Cost | Notes |
+|----------|----------|----------|------|-------|
+| `/image-to-video` | Basic | 4s | $0.20 | No aspect_ratio (uses image AR) |
+| `/q3/image-to-video` | Best quality | 1-16s | $0.50-1.50 | Has `resolution` param |
+| `/q2/image-to-video/pro` | High quality | 2-8s | $0.40+ | Has `resolution`, `movement_amplitude` |
+| `/q2/image-to-video/turbo` | Fast | 2-8s | $0.30+ | Faster generation |
+
+### Vidu-Specific Parameters
+
+```json
+{
+  "video_generation": {
+    "model": "fal-ai/vidu/q3/image-to-video",
+    "input": {
+      "prompt": "Slow dramatic zoom into stadium",
+      "duration": "8",
+      "resolution": "1080p",
+      "movement_amplitude": "small"
+    }
+  }
+}
+```
+
+- **duration**: Integer as string, 1-16 seconds for Q3
+- **resolution**: "360p", "540p", "720p", "1080p" (Q3 only)
+- **movement_amplitude**: "auto", "small", "medium", "large" (all Vidu models)
+- **audio**: Set to `false` to use ClawVid's own audio (default)
+
+### Important: Aspect Ratio
+
+The `/image-to-video` endpoint **does not accept aspect_ratio** — it uses the input image's aspect ratio.
+
+**To get 9:16 portrait video:**
+1. Generate your image with `aspect_ratio: "9:16"` 
+2. The video will inherit that aspect ratio
+
+---
+
 ## Quality Checks
 
 After each generation step, verify:

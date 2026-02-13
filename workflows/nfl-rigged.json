@@ -1,0 +1,216 @@
+{
+  "name": "NFL Super Bowl Rigging Conspiracy",
+  "template": "quiz",
+  "timing_mode": "tts_driven",
+  "scene_padding_seconds": 0.3,
+
+  "scenes": [
+    {
+      "id": "scene_1",
+      "description": "Hook — Did You Know opening",
+      "type": "video",
+      "timing": {},
+      "narration": "Did you know... the Super Bowl might be legally allowed to be scripted?",
+      "image_generation": {
+        "model": "fal-ai/kling-image/v3/text-to-image",
+        "input": {
+          "prompt": "Animated cartoon style NFL football stadium at night, bright lights, dramatic atmosphere, Super Bowl logo glowing, vibrant colors, 2D animation style, clean vector art, bold outlines",
+          "negative_prompt": "photorealistic, dark, scary, 3D render",
+          "aspect_ratio": "9:16"
+        }
+      },
+      "video_generation": {
+        "model": "fal-ai/vidu/image-to-video",
+        "input": {
+          "prompt": "Slow dramatic zoom into stadium, lights flashing, crowd cheering animation style",
+          "duration": "4"
+        }
+      },
+      "sound_effects": [
+        {
+          "prompt": "Dramatic reveal sound effect, game show style sting",
+          "timing_offset": 0,
+          "duration": 2,
+          "volume": 0.7
+        }
+      ],
+      "effects": ["vignette"]
+    },
+    {
+      "id": "scene_2",
+      "description": "Entertainment Classification",
+      "type": "image",
+      "timing": {},
+      "narration": "The NFL is officially classified as entertainment, not as a competitive sport. Just like professional wrestling.",
+      "image_generation": {
+        "model": "fal-ai/kling-image/v3/text-to-image",
+        "input": {
+          "prompt": "Split screen cartoon illustration, left side NFL football helmet, right side WWE wrestling mask, both with ENTERTAINMENT stamp across them, bright colorful animated style, bold graphic design, 2D vector art",
+          "negative_prompt": "photorealistic, dark, muted colors",
+          "aspect_ratio": "9:16"
+        }
+      },
+      "effects": ["kenburns_slow_zoom"]
+    },
+    {
+      "id": "scene_3",
+      "description": "The 2017 Lawsuit",
+      "type": "image",
+      "timing": {},
+      "narration": "In 2017, a lawsuit was filed accusing the NFL of rigging games. The plaintiff argued that because the league is classified as entertainment, they can legally script the outcomes.",
+      "image_generation": {
+        "model": "fal-ai/kling-image/v3/text-to-image",
+        "input": {
+          "prompt": "Cartoon style courtroom scene, gavel slamming, legal documents flying, NFL shield logo on defendant table, dramatic cartoon lighting, animated illustration style, vibrant colors, comic book aesthetic",
+          "negative_prompt": "photorealistic, dark, muted",
+          "aspect_ratio": "9:16"
+        }
+      },
+      "sound_effects": [
+        {
+          "prompt": "Gavel slam in courtroom, dramatic legal sound",
+          "timing_offset": 1,
+          "duration": 2,
+          "volume": 0.8
+        }
+      ],
+      "effects": ["kenburns_slow_pan"]
+    },
+    {
+      "id": "scene_4",
+      "description": "The Implication",
+      "type": "video",
+      "timing": {},
+      "narration": "Think about it. If the NFL wanted to script a dramatic Super Bowl comeback for better ratings... they legally could.",
+      "image_generation": {
+        "model": "fal-ai/kling-image/v3/text-to-image",
+        "input": {
+          "prompt": "Cartoon animated hand holding TV remote, television showing football game with SCRIPT written on screen, suspicious eyes watching from shadows, bright saturated colors, 2D animated style, conspiracy theory aesthetic but fun and colorful",
+          "negative_prompt": "photorealistic, scary, dark horror",
+          "aspect_ratio": "9:16"
+        }
+      },
+      "video_generation": {
+        "model": "fal-ai/vidu/image-to-video",
+        "input": {
+          "prompt": "Hand pressing button on remote, TV screen glitches and reveals SCRIPTED text, dramatic zoom",
+          "duration": "4"
+        }
+      },
+      "sound_effects": [
+        {
+          "prompt": "Dramatic suspenseful bass drop, conspiracy reveal sound",
+          "timing_offset": 2,
+          "duration": 3,
+          "volume": 0.7
+        }
+      ],
+      "effects": ["chromatic_aberration_subtle"]
+    },
+    {
+      "id": "scene_5",
+      "description": "Case Dismissed But...",
+      "type": "image",
+      "timing": {},
+      "narration": "The lawsuit was dismissed. But the NFL's entertainment classification? Still on the books.",
+      "image_generation": {
+        "model": "fal-ai/kling-image/v3/text-to-image",
+        "input": {
+          "prompt": "Cartoon style CASE DISMISSED stamp on legal document, but underneath a glowing question mark, NFL logo in background looking suspicious, bright animated style, comic book aesthetic, vibrant colors",
+          "negative_prompt": "photorealistic, dark, muted",
+          "aspect_ratio": "9:16"
+        }
+      },
+      "sound_effects": [
+        {
+          "prompt": "Stamp sound effect, paper stamping",
+          "timing_offset": 0,
+          "duration": 1,
+          "volume": 0.6
+        }
+      ],
+      "effects": ["kenburns_slow_zoom"]
+    },
+    {
+      "id": "scene_6",
+      "description": "Closing question",
+      "type": "video",
+      "timing": {},
+      "narration": "So next time you watch the Super Bowl... is it real? Or is it entertainment?",
+      "image_generation": {
+        "model": "fal-ai/kling-image/v3/text-to-image",
+        "input": {
+          "prompt": "Cartoon football with question marks floating around it, spotlight from above, dramatic stage lighting, colorful animated style, bold graphic design, thinking emoji vibes, vibrant saturated colors",
+          "negative_prompt": "photorealistic, dark, scary",
+          "aspect_ratio": "9:16"
+        }
+      },
+      "video_generation": {
+        "model": "fal-ai/vidu/image-to-video",
+        "input": {
+          "prompt": "Question marks multiplying and spinning around football, dramatic slow zoom out reveal",
+          "duration": "4"
+        }
+      },
+      "effects": ["vignette"]
+    },
+    {
+      "id": "scene_7",
+      "description": "End card CTA",
+      "type": "image",
+      "timing": {},
+      "narration": null,
+      "image_generation": {
+        "model": "fal-ai/kling-image/v3/text-to-image",
+        "input": {
+          "prompt": "Bright colorful animated background, abstract shapes, social media style end card aesthetic, vibrant gradients, fun cartoon style, clean modern design",
+          "negative_prompt": "dark, scary, photorealistic",
+          "aspect_ratio": "9:16"
+        }
+      },
+      "text_overlay": {
+        "text": "Follow for more 🤯",
+        "style": "bold",
+        "position": "center"
+      },
+      "effects": []
+    }
+  ],
+
+  "audio": {
+    "tts": {
+      "model": "fal-ai/qwen-3-tts/voice-design/1.7b",
+      "voice_prompt": "A confident energetic male voice, clear and engaging, podcast host style, slightly dramatic for emphasis",
+      "language": "en",
+      "speed": 1.0
+    },
+    "music": {
+      "generate": true,
+      "prompt": "Upbeat mysterious electronic music, conspiracy documentary style, energetic but intriguing, modern podcast background music",
+      "duration": 60,
+      "volume": 0.2,
+      "fade_in": 1,
+      "fade_out": 2
+    }
+  },
+
+  "subtitles": {
+    "enabled": true,
+    "style": {
+      "font": "Impact",
+      "color": "#ffffff",
+      "stroke_color": "#000000",
+      "stroke_width": 3,
+      "position": "bottom",
+      "animation": "word_by_word",
+      "font_size": 48
+    }
+  },
+
+  "output": {
+    "filename": "nfl_rigged_conspiracy.mp4",
+    "resolution": "1080x1920",
+    "fps": 30,
+    "format": "mp4"
+  }
+}
