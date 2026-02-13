@@ -123,6 +123,45 @@ Voice Style:
 Pacing: 0.8 (slow) to 1.2 (fast), default 1.0
 ```
 
+### Step 6: AI Model Selection
+
+Ask the user which models to use for each generation type, or let them choose custom per-video:
+
+```
+Which AI models would you like to use? (or choose "custom" to pick per-video)
+
+📷 IMAGE GENERATION:
+1. fal-ai/kling-image/v3/text-to-image — Fast, good quality ($0.03)
+2. fal-ai/nano-banana-pro — Best for consistency/reference ($0.15)
+3. custom — Choose per video
+
+🎬 VIDEO GENERATION:
+1. fal-ai/kandinsky5-pro/image-to-video — Budget, 5s clips ($0.04-0.12)
+2. fal-ai/kling-video/v2.6/pro/image-to-video — Better motion, 5s ($0.35)
+3. fal-ai/vidu/q3/image-to-video — Best quality, 8s clips ($1.50+)
+4. custom — Choose per video
+
+🎵 MUSIC GENERATION:
+1. beatoven/music-generation — AI-generated background music ($0.10)
+2. none — I'll provide my own music files
+3. custom — Choose per video
+
+🔊 SOUND EFFECTS:
+1. beatoven/sound-effect-generation — AI-generated SFX ($0.10 each)
+2. none — No sound effects
+3. custom — Choose per video
+
+🗣️ TTS (Text-to-Speech):
+1. fal-ai/qwen-3-tts/voice-design/1.7b — AI voice design ($0.09/1K chars)
+2. none — I'll provide my own voice recordings
+3. custom — Choose per video
+
+📝 SUBTITLES:
+1. enabled — Word-by-word animated subtitles (uses Whisper for timing)
+2. disabled — No subtitles
+3. custom — Choose per video
+```
+
 ### Save Preferences
 
 After setup, save to `preferences.json` (gitignored):
@@ -137,6 +176,14 @@ After setup, save to `preferences.json` (gitignored):
     "pacing": 0.85
   },
   "visual_style": "anime",
+  "models": {
+    "image": "fal-ai/kling-image/v3/text-to-image",
+    "video": "fal-ai/vidu/q3/image-to-video",
+    "music": "beatoven/music-generation",
+    "sound_effects": "beatoven/sound-effect-generation",
+    "tts": "fal-ai/qwen-3-tts/voice-design/1.7b",
+    "subtitles": "enabled"
+  },
   "created_at": "2026-02-13",
   "updated_at": "2026-02-13"
 }
