@@ -30,8 +30,56 @@ This skill contains critical rules about:
 | `type: "image"` | Narration-heavy, descriptions, establishing shots | Ken Burns effects only |
 | `type: "video"` | Action moments, reveals, dramatic beats | AI video generation |
 | `type: "static"` | Real photos, maps, documents to SHOW as-is | None (displayed as-is) |
+| `type: "talking_head"` | AI presenter, character speaking | VEED Fabric lip-sync |
 
 **Key insight:** Each `type: "video"` scene generates an **independent 4-8s clip**. Without transitions, these clips are **hard-cut together**, causing jarring jumps.
+
+### 🆕 Talking Head Videos (VEED Fabric 1.0)
+
+Use `type: "talking_head"` to create **AI presenter videos** with lip-synced speech:
+
+```json
+{
+  "id": "intro",
+  "type": "talking_head",
+  "image_generation": {
+    "model": "fal-ai/nano-banana-pro",
+    "input": {
+      "prompt": "Friendly female news anchor, professional attire, neutral background, looking at camera",
+      "aspect_ratio": "9:16"
+    }
+  },
+  "talking_head": {
+    "model": "veed/fabric-1.0/text",
+    "input": {
+      "text": "Welcome to today's deep dive into one of history's greatest mysteries...",
+      "resolution": "720p",
+      "voice_description": "Confident female voice, American accent, news anchor style"
+    }
+  },
+  "timing": {}
+}
+```
+
+**How it works:**
+1. Image model generates the presenter/character face
+2. VEED Fabric creates lip-synced video from the face + speech text
+3. Video includes generated audio (no separate TTS needed)
+
+**Talking head fields:**
+- `text`: The speech to lip-sync (required)
+- `resolution`: `720p` or `480p` (default: 720p)
+- `voice_description`: Voice styling (e.g., "British accent", "Deep male voice")
+
+**When to use talking head:**
+- AI news anchor / presenter explaining topics
+- Character introductions or commentary
+- Educational content with a host
+- Any "person speaking to camera" format
+
+**Cost:** ~$0.50 per talking head clip
+
+**⚠️ Important:** Talking head scenes generate their own audio. Don't add separate narration in workflow — the `talking_head.input.text` IS the narration.
 
 ### 🆕 Static Images (Reference Photos, Maps, Documents)
 
@@ -790,6 +838,14 @@ All models are configured in `config.json` under the `fal` section. Use full fal
 **⚠️ Duration format matters:**
 - kandinsky5-pro requires: `"duration": "5s"` (with "s" suffix)
 - Kling/Vidu use: `"duration": "5"` or `"duration": "8"` (number as string)
+
+### Talking Head Models (Lip-Sync)
+
+| Model | Resolution | Cost | Notes |
+|-------|------------|------|-------|
+| `veed/fabric-1.0/text` | 720p, 480p | ~$0.50 | Best lip-sync, generates audio |
+
+**Use for:** AI presenters, news anchors, character dialogue, any "person speaking" content.
 
 ### Transition Models
 

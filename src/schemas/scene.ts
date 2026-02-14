@@ -33,6 +33,22 @@ export const videoGenerationSchema = z.object({
   }),
 });
 
+/**
+ * Talking head video generation (VEED Fabric 1.0)
+ * Creates lip-synced video from a face image and speech text.
+ */
+export const talkingHeadGenerationSchema = z.object({
+  model: z.string().default('veed/fabric-1.0/text'),
+  input: z.object({
+    /** The speech text to lip-sync */
+    text: z.string(),
+    /** Resolution: 720p or 480p */
+    resolution: z.enum(['720p', '480p']).optional().default('720p'),
+    /** Optional voice description (e.g., "British accent", "Confident male voice") */
+    voice_description: z.string().optional(),
+  }),
+});
+
 export const textOverlaySchema = z.object({
   text: z.string(),
   style: z.string().optional(),
@@ -80,7 +96,7 @@ export const staticImageSchema = z.object({
 export const sceneSchema = z.object({
   id: z.string(),
   description: z.string().optional(),
-  type: z.enum(['image', 'video', 'static']),
+  type: z.enum(['image', 'video', 'static', 'talking_head']),
   timing: timingSchema,
   narration: z.string().nullable().optional(),
   /** AI-generated image config (required for type: image/video, optional for static) */
@@ -88,6 +104,8 @@ export const sceneSchema = z.object({
   /** Static image to display as-is (for type: static, or as overlay) */
   static_image: staticImageSchema.nullable().optional(),
   video_generation: videoGenerationSchema.nullable().optional(),
+  /** Talking head video config (for type: talking_head) - uses VEED Fabric */
+  talking_head: talkingHeadGenerationSchema.nullable().optional(),
   transition: transitionSchema.nullable().optional(),
   text_overlay: textOverlaySchema.optional(),
   effects: z.array(z.string()).optional(),
@@ -99,6 +117,7 @@ export const sceneSchema = z.object({
 export type Scene = z.infer<typeof sceneSchema>;
 export type ImageGeneration = z.infer<typeof imageGenerationSchema>;
 export type VideoGeneration = z.infer<typeof videoGenerationSchema>;
+export type TalkingHeadGeneration = z.infer<typeof talkingHeadGenerationSchema>;
 export type Transition = z.infer<typeof transitionSchema>;
 export type TextOverlay = z.infer<typeof textOverlaySchema>;
 export type Timing = z.infer<typeof timingSchema>;

@@ -1,6 +1,6 @@
 import { falRequest, downloadFile } from './client.js';
-import type { VideoGeneration } from '../schemas/scene.js';
-import type { FalKandinskyVideoOutput } from './types.js';
+import type { VideoGeneration, TalkingHeadGeneration } from '../schemas/scene.js';
+import type { FalKandinskyVideoOutput, FalFabricVideoOutput } from './types.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('fal-video');
@@ -15,6 +15,10 @@ function isViduModel(model: string): boolean {
 
 function isPixVerseModel(model: string): boolean {
   return model.includes('pixverse');
+}
+
+function isFabricModel(model: string): boolean {
+  return model.includes('fabric');
 }
 
 export async function generateVideo(
@@ -165,4 +169,52 @@ export async function generateTransition(
   await downloadFile(result.video.url, outputPath);
 
   return { url: result.video.url };
+}
+
+/**
+ * Generate a talking head video using VEED Fabric 1.0.
+ * Creates lip-synced video from a face image and speech text.
+ * 
+ * @param spec - Talking head configuration
+ * @param imageUrl - URL of the face/character image
+ * @param outputPath - Where to save the video
+ * @returns Video URL and audio flag (Fabric generates audio)
+ */
+export async function generateTalkingHead(
+  spec: TalkingHeadGeneration,
+  imageUrl: string,
+  outputPath: string,
+): Promise<{ url: string; hasAudio: boolean }> {
+  log.info('Generating talking head video', {
+    model: spec.model,
+    textLength: spec.input.text.length,
+    resolution: spec.input.resolution,
+  });
+
+  const input: Record<string, unknown> = {
+    image_url: imageUrl,
+    text: spec.input.text,
+    resolution: spec.input.resolution ?? '720p',
+  };
+
+  // Optional voice description for styling
+  if (spec.input.voice_description) {
+    input.voice_description = spec.input.voice_description;
+  }
+
+  const result = await falRequest<FalFabricVideoOutput>(spec.model, input);
+
+  if (!result.video?.url) {
+    throw new Error('No talking head video returned from VEED Fabric');
+  }
+
+  await downloadFile(result.video.url, outputPath);
+
+  log.info('Talking head video generated', {
+    url: result.video.url.slice(0, 60),
+    contentType: result.video.content_type,
+  });
+
+  // Fabric generates audio embedded in video
+  return { url: result.video.url, hasAudio: true };
 }

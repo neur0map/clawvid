@@ -22,6 +22,16 @@ export interface FalKandinskyVideoOutput {
   video: { url: string };
 }
 
+// --- Talking Head: veed/fabric-1.0/text ---
+export interface FalFabricVideoOutput {
+  video: { 
+    url: string; 
+    content_type?: string;
+    file_name?: string;
+    file_size?: number;
+  };
+}
+
 // --- TTS: fal-ai/qwen-3-tts/voice-design/1.7b ---
 export interface FalQwenTTSOutput {
   audio: { url: string; duration: number };

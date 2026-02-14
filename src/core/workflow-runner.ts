@@ -3,7 +3,7 @@ import type { Scene } from '../schemas/scene.js';
 import type { AppConfig } from '../config/loader.js';
 import { AssetManager } from './asset-manager.js';
 import { generateImage } from '../fal/image.js';
-import { generateVideo, generateTransition } from '../fal/video.js';
+import { generateVideo, generateTransition, generateTalkingHead } from '../fal/video.js';
 import { generateSpeech, transcribe } from '../fal/audio.js';
 import { generateSoundEffect } from '../fal/sound.js';
 import { generateMusic } from '../fal/music.js';
@@ -32,6 +32,8 @@ const COST_ESTIMATES = {
   video_default: 0.35,
   transition_pixverse: 0.45,
   transition_vidu: 0.77,
+  // Talking head / lip-sync
+  talking_head_fabric: 0.50, // VEED Fabric 1.0 estimate
   tts: 0.09,
   transcription: 0.001,
   sound_effect: 0.10,
@@ -517,6 +519,36 @@ async function generateSceneAssets(
     }
 
     const sceneResult: SceneAssets = { sceneId: scene.id, imagePath, imageUrl };
+
+    // Handle talking head scenes (VEED Fabric)
+    if (scene.type === 'talking_head' && scene.talking_head) {
+      spinner.text = `Scene ${scene.id}: generating talking head video...`;
+      const videoFilename = `${scene.id}.mp4`;
+      const videoPath = assetManager.getAssetPath(videoFilename);
+
+      // Use narration text or talking_head.input.text
+      const speechText = scene.talking_head.input.text || scene.narration || '';
+      if (!speechText) {
+        log.warn('No speech text for talking head scene', { sceneId: scene.id });
+      }
+
+      const talkingHeadSpec = {
+        ...scene.talking_head,
+        input: {
+          ...scene.talking_head.input,
+          text: speechText,
+        },
+      };
+
+      const thResult = await generateTalkingHead(talkingHeadSpec, imageUrl, videoPath);
+      sceneResult.videoPath = videoPath;
+      sceneResult.videoUrl = thResult.url;
+      costTracker.record('veed/fabric-1.0/text', COST_ESTIMATES.talking_head_fabric);
+
+      spinner.succeed(`Scene ${scene.id}: talking head video ready`);
+      results.push(sceneResult);
+      continue;
+    }
 
     if (!skipVideos && scene.type === 'video' && scene.video_generation) {
       spinner.text = `Scene ${scene.id}: generating video...`;
