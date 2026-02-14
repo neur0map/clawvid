@@ -6,6 +6,174 @@ You are the orchestrator. You plan scenes, write prompts, generate a workflow JS
 
 ---
 
+## 🚨 MANDATORY: READ THIS SKILL EVERY TIME
+
+**Before creating ANY video workflow, you MUST read this entire SKILL.md file.**
+
+This skill contains critical rules about:
+- Workflow JSON structure and required fields
+- Transition system for smooth scene changes
+- When to use video vs image scenes
+- Model-specific parameters and limitations
+- Common mistakes to avoid
+
+**Do not rely on memory. Read this file fresh each time.**
+
+---
+
+## ⚠️ CRITICAL: Workflow Rules
+
+### Scene Type Rules
+
+| Scene Type | When to Use | Motion Source |
+|------------|-------------|---------------|
+| `type: "image"` | Narration-heavy, descriptions, establishing shots | Ken Burns effects only |
+| `type: "video"` | Action moments, reveals, dramatic beats | AI video generation |
+
+**Key insight:** Each `type: "video"` scene generates an **independent 4-8s clip**. Without transitions, these clips are **hard-cut together**, causing jarring jumps.
+
+### 🔴 TRANSITION RULES (CRITICAL FOR SMOOTH VIDEO)
+
+**Problem:** Video models generate isolated clips. Concatenating them creates jarring cuts with no motion continuity.
+
+**Solution:** Use the `transition` field to generate **interpolated videos** between scenes.
+
+#### How Transitions Work
+
+When a scene has a `transition` object:
+1. ClawVid takes the **previous scene's image** as the start frame
+2. ClawVid takes the **current scene's image** as the end frame
+3. The video model generates a **smooth morph/transition** between them
+4. Result: Seamless flow like ComfyUI/professional editing
+
+#### Transition Schema
+
+```json
+{
+  "id": "scene_2",
+  "transition": {
+    "model": "fal-ai/vidu/q3/image-to-video",
+    "duration": "4",
+    "prompt": "Smooth camera transition, continuous motion",
+    "style": "3d_animation"  // optional, for PixVerse
+  },
+  "type": "image",
+  ...
+}
+```
+
+**Supported models for transitions:**
+- `fal-ai/vidu/q3/image-to-video` — Best quality, smooth morphing ($0.50-1.50)
+- `fal-ai/pixverse/image-to-video` — Good quality, supports style ($0.45)
+
+#### When to Use Transitions
+
+| Scenario | Use Transition? | Notes |
+|----------|-----------------|-------|
+| Cooking show (fixed camera) | ✅ YES on every scene | Creates continuous "footage" feel |
+| Horror (jump cuts intentional) | ⚠️ SELECTIVE | Use on atmosphere scenes, skip for jump scares |
+| Talking head / tutorial | ✅ YES | Smooth presenter movements |
+| Fast-paced montage | ❌ NO | Hard cuts are stylistically appropriate |
+| Scene with dramatic reveal | ❌ NO | Hard cut adds impact |
+
+#### Example: Cooking Show with Transitions
+
+```json
+{
+  "scenes": [
+    {
+      "id": "scene_1",
+      "type": "video",
+      "narration": "Welcome to the show!",
+      "image_generation": { ... },
+      "video_generation": { ... }
+    },
+    {
+      "id": "scene_2",
+      "transition": {
+        "model": "fal-ai/vidu/q3/image-to-video",
+        "duration": "4",
+        "prompt": "Smooth transition, chef continues cooking, camera stays fixed"
+      },
+      "type": "image",
+      "narration": "First, gather your ingredients...",
+      "image_generation": { ... }
+    },
+    {
+      "id": "scene_3",
+      "transition": {
+        "model": "fal-ai/vidu/q3/image-to-video",
+        "duration": "4",
+        "prompt": "Smooth transition, chef mixing bowl, continuous motion"
+      },
+      "type": "video",
+      "narration": "Mix until smooth...",
+      "image_generation": { ... },
+      "video_generation": { ... }
+    }
+  ]
+}
+```
+
+**Note:** The first scene cannot have a transition (no previous scene to transition FROM).
+
+### Video Scene Best Practices
+
+When using `type: "video"`:
+
+1. **Keep motion minimal** — Use `"movement_amplitude": "small"` for stability
+2. **Static camera prompts** — Add "camera stays completely fixed and static, only subject moves"
+3. **NOT realistic** — Add "NOT realistic" to animated content prompts to maintain style
+4. **Match the image** — Video prompt should describe motion OF the image, not new content
+
+```json
+{
+  "video_generation": {
+    "model": "fal-ai/vidu/image-to-video",
+    "input": {
+      "prompt": "Chef whisks batter while camera stays completely fixed and static, only chef and whisk move, NOT realistic",
+      "duration": "4",
+      "movement_amplitude": "small"
+    }
+  }
+}
+```
+
+### Image Consistency Rules
+
+For consistent characters/settings across scenes:
+
+1. **Use reference image** — Set `consistency.reference_prompt` and `consistency.seed`
+2. **Use edit model** — `fal-ai/nano-banana-pro/edit` maintains reference style
+3. **Same seed** — All scene images use the same seed for consistency
+4. **Detailed base prompt** — Include character description in every scene prompt
+
+```json
+{
+  "consistency": {
+    "reference_prompt": "Cartoon French chef character, white hat, blue apron, kitchen background, Pixar style",
+    "seed": 55555555,
+    "model": "fal-ai/nano-banana-pro"
+  }
+}
+```
+
+### Fixed Camera Style (Cooking Shows, Tutorials)
+
+For content that should feel like "one continuous shot":
+
+1. **Same camera angle in ALL prompts** — "Fixed camera, medium wide angle, straight-on at chest height"
+2. **NO Ken Burns effects** — Remove all `effects: ["kenburns_*"]`
+3. **Transitions on EVERY scene** (except first) — Creates continuous footage feel
+4. **Consistent framing description** — Same composition text in every image prompt
+
+Example image prompt for fixed camera:
+```
+"Fixed camera cooking show shot, medium wide angle view, cute cartoon chef behind kitchen counter, same TV studio kitchen set, bright even studio lighting, static straight-on camera angle at chest height, [SCENE SPECIFIC ACTION], Pixar Disney 3D animation style"
+```
+
+---
+
 ## ⚠️ CRITICAL: Execution Rules
 
 ### Time Expectations
@@ -15,7 +183,8 @@ You are the orchestrator. You plan scenes, write prompts, generate a workflow JS
 > "Video generation takes **20-25 minutes** for a typical 6-scene video. This includes:
 > - TTS narration (~1-2 min)
 > - Image generation (~3-5 min)
-> - Video clip generation (~8-12 min for 3 clips)
+> - Video clip generation (~8-12 min)
+> - Transition generation (~3-5 min if using transitions)
 > - Sound effects + music (~2-3 min)
 > - Transcription for subtitles (~2-3 min)
 > - Audio mixing + Remotion render (~3-5 min)
@@ -44,19 +213,20 @@ clawvid generate --workflow workflow.json
 
 ### Cost Expectations
 
-| Quality | Video Clips | Estimated Cost |
-|---------|-------------|----------------|
-| budget | 1 clip | $1-2 |
-| balanced | 2-3 clips | $3-5 |
-| max_quality | 3+ clips (Kling/Vidu) | $8-15 |
+| Quality | Video Clips | Transitions | Estimated Cost |
+|---------|-------------|-------------|----------------|
+| budget | 1 clip | 0 | $1-2 |
+| balanced | 2-3 clips | 0 | $3-5 |
+| balanced + transitions | 2-3 clips | 4-6 | $6-10 |
+| max_quality | 3+ clips (Vidu) | 5-7 | $12-20 |
 
-Premium video models (Kling 2.6 Pro, Vidu) cost significantly more but produce better motion.
+Premium video models (Kling 2.6 Pro, Vidu Q3) and transitions cost more but produce much smoother results.
 
 ---
 
 ## How It Works
 
-1. You create a **workflow JSON** file describing every scene, prompt, model, timing, sound effects, and music.
+1. You create a **workflow JSON** file describing every scene, prompt, model, timing, transitions, sound effects, and music.
 2. You call `clawvid generate --workflow workflow.json` to execute it.
 3. ClawVid handles all fal.ai API calls, audio processing, sound effect generation, music generation, Remotion rendering, and FFmpeg post-production.
 4. Output: finished videos in `output/{date}-{slug}/` for each platform.
@@ -287,7 +457,7 @@ Or should I generate without a reference?"
 message action=send filePath=/path/to/video.mp4 caption="Here's your video!"
 ```
 
-### Phase 2: Confirm Format
+### Phase 2: Confirm Format & Style
 
 ```
 "Your defaults are 9:16, 60 seconds, horror template. Want to keep these or adjust?
@@ -295,6 +465,16 @@ message action=send filePath=/path/to/video.mp4 caption="Here's your video!"
 - Change duration (30s / 90s)
 - Different template
 - Different visual style"
+```
+
+**For content requiring smooth motion (cooking shows, tutorials, presentations):**
+```
+"This type of content works best with:
+- Fixed camera angle (same framing every scene)
+- Transitions between scenes (smooth interpolation)
+- Minimal video motion (prevents jarring clips)
+
+This adds ~$4-6 for transitions but looks much more professional. Enable transitions?"
 ```
 
 ### Phase 3: Template-Specific Questions
@@ -318,32 +498,43 @@ message action=send filePath=/path/to/video.mp4 caption="Here's your video!"
 - Subreddit style: nosleep / AITA / TIFU / confession
 - Include username/votes display?
 
+**Cooking Show / Tutorial:**
+- Fixed camera or dynamic angles?
+- One host or multiple characters?
+- Transitions enabled? (RECOMMENDED)
+- Voice style: professional, friendly, enthusiastic?
+
 ### Phase 4: Build the Plan
 
 Present a scene breakdown before generating:
 
 ```
-"Here's my plan for 'The VHS Tape' (60s, horror):
+"Here's my plan for 'Chef Pierre's Kitchen' (60s, cooking show):
 
-SCENES (6 total):
-1. [0-8s]   VIDEO — Dark attic, flashlight beam sweeping (hook)
-2. [8-16s]  VIDEO — Hand reaching for VHS tape (dramatic moment)
-3. [16-24s] IMAGE — TV static, tape loading (flicker + grain)
-4. [24-36s] VIDEO — Footage plays: figure in darkness (climax)
-5. [36-48s] IMAGE — Writing on the wall (ken burns pan)
-6. [48-60s] VIDEO — Figure is now closer (closing)
+SCENES (7 total):
+1. [0-10s]  VIDEO — Chef intro, arms wide (NO transition - first scene)
+2. [10-25s] IMAGE — Ingredient reveal (TRANSITION from scene 1)
+3. [25-35s] VIDEO — Mixing batter (TRANSITION from scene 2)
+4. [35-46s] IMAGE — Secret tip moment (TRANSITION from scene 3)
+5. [46-56s] VIDEO — Pan swirl technique (TRANSITION from scene 4)
+6. [56-65s] VIDEO — The flip! (TRANSITION from scene 5)
+7. [65-78s] VIDEO — Final presentation (TRANSITION from scene 6)
+
+TRANSITIONS: 6 (smooth interpolation between all scenes)
+CAMERA: Fixed, medium-wide, straight-on
 
 SOUND EFFECTS:
-- Scene 1: Wind howling (0s offset, 8s duration)
-- Scene 4: Door slam at climax (3s offset, 2s duration)
-- Scene 6: Heavy impact (5s offset, 3s duration)
+- Scene 1: Applause (0s offset, 4s duration)
+- Scene 3: Whisking sounds (0s offset, 5s duration)
+- Scene 5: Sizzling pan (1s offset, 4s duration)
+- Scene 7: Applause + outro fanfare (3s offset, 4s duration)
 
-AUDIO: AI deep male voice (0.85x pacing), generated horror drone music
-EFFECTS: vignette_heavy + grain on all scenes, glitch on scene 4
+AUDIO: French-accented male host voice, upbeat cooking show music
+EFFECTS: None (fixed camera style)
 
-Estimated: 6 images + 4 video clips + 6 TTS + 4 SFX + 1 music track
-Time: ~20-25 minutes
-Cost: ~$8-12 (using Vidu for video)
+Estimated: 7 images + 5 video clips + 6 transitions + 7 TTS + 4 SFX + 1 music track
+Time: ~25-30 minutes
+Cost: ~$10-14 (using Vidu Q3 for transitions)
 
 Ready to proceed?"
 ```
@@ -352,13 +543,102 @@ Ready to proceed?"
 
 After approval, create the workflow JSON file and run it.
 
-**Remember:** Tell the user it will take 20-25 minutes before starting!
+**Remember:** Tell the user it will take 20-30 minutes before starting!
+
+---
+
+## Complete Workflow JSON Schema
+
+### Required Top-Level Fields
+
+```json
+{
+  "name": "Video Title",
+  "template": "quiz",
+  "timing_mode": "tts_driven",
+  "scene_padding_seconds": 0.3,
+
+  "consistency": {
+    "reference_prompt": "Character/setting description for consistency",
+    "seed": 12345678,
+    "model": "fal-ai/nano-banana-pro"
+  },
+
+  "scenes": [ ... ],
+
+  "audio": {
+    "tts": { ... },
+    "music": { ... }
+  },
+
+  "subtitles": {
+    "enabled": true,
+    "style": { ... }
+  },
+
+  "output": {
+    "filename": "output_name.mp4",
+    "resolution": "1080x1920",
+    "fps": 30,
+    "format": "mp4"
+  }
+}
+```
+
+### Scene Schema
+
+```json
+{
+  "id": "scene_1",
+  "description": "Human-readable description",
+  "type": "video",  // or "image"
+  "timing": {},
+
+  "transition": {  // OPTIONAL - only on scenes 2+
+    "model": "fal-ai/vidu/q3/image-to-video",
+    "duration": "4",
+    "prompt": "Smooth transition description"
+  },
+
+  "narration": "What the voice says for this scene",
+
+  "image_generation": {
+    "model": "fal-ai/nano-banana-pro/edit",
+    "input": {
+      "prompt": "Detailed visual description",
+      "negative_prompt": "Things to avoid",
+      "aspect_ratio": "9:16",
+      "seed": 12345678
+    }
+  },
+
+  "video_generation": {  // Only for type: "video"
+    "model": "fal-ai/vidu/image-to-video",
+    "input": {
+      "prompt": "Motion description, camera stays fixed, only subject moves",
+      "duration": "4",
+      "movement_amplitude": "small"
+    }
+  },
+
+  "sound_effects": [
+    {
+      "prompt": "Sound description",
+      "timing_offset": 0,
+      "duration": 4,
+      "volume": 0.6
+    }
+  ],
+
+  "effects": []  // Ken Burns, vignette, grain, etc.
+}
+```
 
 ---
 
 ## Production Workflow Example
 
-For high-quality horror videos with visual consistency, use this structure (from `workflows/production-horror-frames.json`):
+For high-quality horror videos with visual consistency, use this structure:
 
 ```json
 {
@@ -369,7 +649,7 @@ For high-quality horror videos with visual consistency, use this structure (from
   "min_scene_duration_seconds": 5,
 
   "consistency": {
-    "reference_prompt": "Full-body character design of a dark animated horror entity: a tall gaunt shadow creature standing at 8 feet tall with elongated skeletal limbs...",
+    "reference_prompt": "Full-body character design of a dark animated horror entity...",
     "seed": 666,
     "resolution": "2K"
   },
@@ -380,7 +660,7 @@ For high-quality horror videos with visual consistency, use this structure (from
       "description": "Exterior - Abandoned mansion at night, establishing shot",
       "type": "video",
       "timing": {},
-      "narration": "They say the mansion on Ashwood Lane has been empty for forty years. But every night, the lights flicker on.",
+      "narration": "They say the mansion on Ashwood Lane has been empty for forty years...",
 
       "image_generation": {
         "model": "fal-ai/nano-banana-pro/edit",
@@ -415,13 +695,13 @@ For high-quality horror videos with visual consistency, use this structure (from
   "audio": {
     "tts": {
       "model": "fal-ai/qwen-3-tts/voice-design/1.7b",
-      "voice_prompt": "A low raspy whispering male voice, speaking slowly with dread and tension, pausing between phrases, as if afraid to speak too loudly, horror narrator",
+      "voice_prompt": "A low raspy whispering male voice, speaking slowly with dread...",
       "language": "en",
       "speed": 0.85
     },
     "music": {
       "generate": true,
-      "prompt": "Dark ambient horror soundtrack, deep pulsing sub-bass drones in D minor, dissonant tremolo strings building slowly...",
+      "prompt": "Dark ambient horror soundtrack, deep pulsing sub-bass drones in D minor...",
       "duration": 60,
       "volume": 0.15,
       "fade_in": 3,
@@ -435,8 +715,10 @@ For high-quality horror videos with visual consistency, use this structure (from
       "font": "Impact",
       "color": "#ffffff",
       "stroke_color": "#000000",
-      "stroke_width": 3,
-      "position": "center"
+      "stroke_width": 5,
+      "position": "center",
+      "animation": "word_by_word",
+      "font_size": 72
     }
   },
 
@@ -448,14 +730,6 @@ For high-quality horror videos with visual consistency, use this structure (from
   }
 }
 ```
-
-### Key Production Features
-
-1. **Scene consistency** — Use `consistency.reference_prompt` + `seed` to maintain character/setting appearance across scenes
-2. **Premium video model** — `fal-ai/vidu/q3/image-to-video` produces smoother, longer clips (8s) with better motion
-3. **Image editing model** — `fal-ai/nano-banana-pro/edit` for scene variations from reference
-4. **TTS-driven timing** — Let narration length determine scene duration (`timing_mode: "tts_driven"`)
-5. **Detailed prompts** — Long, specific prompts with camera angles, lighting, and atmosphere
 
 ---
 
@@ -477,11 +751,19 @@ All models are configured in `config.json` under the `fal` section. Use full fal
 |-------|----------|------|---------|-------|
 | `fal-ai/kandinsky5-pro/image-to-video` | 5s | $0.04-0.12 | Good | **Use `duration: "5s"`** (with "s" suffix!) |
 | `fal-ai/kling-video/v2.6/pro/image-to-video` | 5s | $0.35 | Better | Premium motion |
-| `fal-ai/vidu/q3/image-to-video` | 8s | $1.50+ | Best | Smoothest motion, longest clips |
+| `fal-ai/vidu/image-to-video` | 4s | $0.20 | Good | Basic Vidu |
+| `fal-ai/vidu/q3/image-to-video` | 1-16s | $0.50-1.50 | Best | Smoothest motion, transitions |
 
 **⚠️ Duration format matters:**
 - kandinsky5-pro requires: `"duration": "5s"` (with "s" suffix)
 - Kling/Vidu use: `"duration": "5"` or `"duration": "8"` (number as string)
+
+### Transition Models
+
+| Model | Cost | Quality | Notes |
+|-------|------|---------|-------|
+| `fal-ai/vidu/q3/image-to-video` | $0.50-1.50 | Best | Smooth morphing between keyframes |
+| `fal-ai/pixverse/image-to-video` | $0.45 | Good | Supports style parameter |
 
 ### Audio Models
 
@@ -503,24 +785,35 @@ For a 60-second video:
 - Front-load video clips — the opening matters most
 - Use `type: "image"` with Ken Burns effects for narration-heavy scenes
 - Use `type: "video"` for dramatic moments that need motion
-- Add **sound effects** to 3-4 key scenes for immersion (impacts, ambient, transitions)
+- **Add transitions** for smooth continuous footage (cooking shows, tutorials, presentations)
+- Add **sound effects** to 3-4 key scenes for immersion
 
-### When to Use Each Type
+### Decision Tree: Video vs Image vs Transition
 
-| Type | When | Model |
-|------|------|-------|
-| `video` | Opening hook, dramatic climax, closing | vidu or kling |
-| `image` | Narration scenes, transitions, descriptions | kling-image/v3 |
-| `image` + Ken Burns | Subtle motion without video cost | kling-image/v3 + `kenburns_slow_zoom` effect |
+```
+Is this the first scene?
+├── YES → type: "video" (strong hook), NO transition
+└── NO → Does this scene need motion?
+    ├── YES → type: "video"
+    │   └── Should it flow smoothly from previous scene?
+    │       ├── YES → ADD transition
+    │       └── NO (jump cut is intentional) → NO transition
+    └── NO → type: "image"
+        └── Should it flow smoothly from previous scene?
+            ├── YES → ADD transition
+            └── NO → NO transition, use Ken Burns for subtle motion
+```
 
-### Sound Effect Guidelines
+### Content Type Recommendations
 
-| Type | Example Prompts | Good For |
-|------|----------------|----------|
-| Ambient | "Wind howling through trees", "Rain on window" | Scene-setting, atmosphere |
-| Impact | "Door slam", "Thunder crack", "Glass breaking" | Dramatic moments, jump scares |
-| Transition | "Whoosh", "Deep bass drop" | Scene changes |
-| Subtle | "Paper rustling", "Footsteps on wood floor" | Building tension |
+| Content Type | Video Scenes | Transitions | Effects |
+|--------------|--------------|-------------|---------|
+| Horror | 3-4 | Selective | vignette, grain, flicker |
+| Cooking Show | 4-5 | ALL (except first) | None (clean look) |
+| Tutorial | 3-4 | ALL (except first) | None or minimal |
+| Motivation | 2-3 | Optional | kenburns on images |
+| Quiz/Trivia | 2-3 | None | Clean, vibrant |
+| Fast montage | 3-5 | None (hard cuts) | Template-dependent |
 
 ---
 
@@ -556,276 +849,116 @@ Phase 1 (1-2 min): Load config, validate workflow, create output directory
 Phase 2 (2-4 min): Generate TTS narration for all scenes
 Phase 3 (3-5 min): Generate images (kling-image or nano-banana-pro)
 Phase 4 (8-12 min): Generate video clips (slowest phase)
-Phase 5 (1-2 min): Generate sound effects (beatoven)
-Phase 6 (1-2 min): Generate background music (beatoven)
-Phase 7 (2-3 min): Transcribe narration with Whisper (for word-level subtitles)
-Phase 8 (1-2 min): Mix audio (narration + music + SFX)
-Phase 9 (2-3 min): Render with Remotion + FFmpeg post-processing
+Phase 5 (3-5 min): Generate transitions (if any scenes have transition field)
+Phase 6 (1-2 min): Generate sound effects (beatoven)
+Phase 7 (1-2 min): Generate background music (beatoven)
+Phase 8 (2-3 min): Transcribe narration with Whisper (for word-level subtitles)
+Phase 9 (1-2 min): Mix audio (narration + music + SFX)
+Phase 10 (2-3 min): Render with Remotion + FFmpeg post-processing
 
-Total: ~20-25 minutes for a 6-scene video
+Total: ~20-30 minutes for a 6-scene video with transitions
 ```
 
 ---
 
 ## Available Effects
 
-Effects are applied per-scene via the `effects` array. Names are fuzzy-matched (underscores, hyphens, case don't matter). Intensity suffixes are supported.
+Effects are applied per-scene via the `effects` array. Names are fuzzy-matched.
 
 | Effect | Variants | Description |
 |--------|----------|-------------|
-| `vignette` | `vignette_subtle`, `vignette_heavy` | Dark edges, draws focus to center |
-| `grain` | `grain_subtle`, `grain_heavy` | Film grain noise (SVG feTurbulence) |
-| `ken_burns` | `kenburns_slow_zoom`, `kenburns_slow_pan`, `kenburns_zoom_out` | Zoom/pan motion on still images |
-| `flicker` | `flicker_subtle` | Light flickering effect |
-| `glitch` | `glitch_subtle`, `glitch_heavy` | RGB channel splitting, horizontal displacement |
-| `chromatic_aberration` | `chromatic_aberration_subtle` | Color fringing on edges |
+| `vignette` | `vignette_subtle`, `vignette_heavy` | Dark edges |
+| `grain` | `grain_subtle`, `grain_heavy` | Film grain noise |
+| `ken_burns` | `kenburns_slow_zoom`, `kenburns_slow_pan`, `kenburns_zoom_out` | Zoom/pan on images |
+| `flicker` | `flicker_subtle` | Light flickering |
+| `glitch` | `glitch_subtle`, `glitch_heavy` | RGB splitting |
+| `chromatic_aberration` | `chromatic_aberration_subtle` | Color fringing |
 
-The template also applies its own `defaultEffects` to every scene. Per-scene effects stack on top.
+**Note:** For fixed-camera content (cooking shows), do NOT use Ken Burns effects.
 
 ---
 
 ## Templates
 
-Templates are style presets that apply color grading, overlays, and default effects. The workflow `template` field selects one.
+Templates apply color grading, overlays, and default effects.
 
 ### horror
 - **Color grading:** `saturate(0.6) brightness(0.85) contrast(1.15)`
-- **Overlay:** Cold blue-black (#0a0a1a) at 15% opacity
 - **Default effects:** vignette, grain
-- **Prompt keywords:** horror atmosphere, dark, ominous, cinematic shadows, extremely dark
-- **Negative prompts:** bright, cheerful, colorful, cartoon
 - **Voice:** Deep, slow (pacing 0.85)
 
 ### motivation
-- **Color grading:** `saturate(1.1) brightness(1.05) sepia(0.12) contrast(1.05)`
-- **Overlay:** Warm gold (#2a1f00) at 8% opacity
+- **Color grading:** `saturate(1.1) brightness(1.05) sepia(0.12)`
 - **Default effects:** (none)
-- **Prompt keywords:** inspirational, warm lighting, golden hour, cinematic, professional
-- **Negative prompts:** dark, scary, cluttered
 - **Voice:** Warm, confident (pacing 1.0)
 
 ### quiz
 - **Color grading:** `saturate(1.25) brightness(1.08) contrast(1.1)`
-- **Overlay:** Deep blue (#001133) at 6% opacity
 - **Default effects:** (none)
-- **Prompt keywords:** clean background, vibrant, engaging, game-show
 - **Voice:** Energetic, clear (pacing 1.1)
 
 ### reddit
 - **Color grading:** `saturate(0.9) brightness(0.95)`
-- **Overlay:** Dark neutral (#1a1a1a) at 8% opacity
 - **Default effects:** (none)
-- **Prompt keywords:** Reddit post card, background, clean
 - **Voice:** Casual, conversational (pacing 1.0)
 
 ---
 
-## Configuration Files
+## Common Mistakes to Avoid
 
-### config.json (checked into git)
-
-Central settings file. Change models, templates, quality presets, or platform specs here.
-
-Key sections:
-- `fal.image` / `fal.video` / `fal.audio` / `fal.analysis` — model ID aliases
-- `fal.audio.sound_effects` — sound effect generation model
-- `fal.audio.music_generation` — music generation model
-- `defaults` — aspect ratio, resolution, fps, duration, max video clips
-- `templates` — per-template model preferences, effects, voice style, pacing
-- `quality` — three presets (max_quality, balanced, budget) with model/steps/clip counts
-- `platforms` — YouTube, TikTok, Instagram Reels specs (resolution, codec, bitrate)
-- `output` — directory, format, naming pattern
-
-### preferences.json (gitignored, per-user)
-
-Created by `clawvid setup`. Stores user's default platforms, template, quality mode, voice, and visual style. Merged with config.json at runtime.
-
----
-
-## Prompt Engineering Best Practices
-
-### Be Specific — Avoid Ambiguity
-
-AI models are trained on global data. Generic terms get interpreted differently:
-
-| ❌ Ambiguous | ✅ Specific |
-|--------------|-------------|
-| "football" | "American football, NFL football, oval leather football" |
-| "football stadium" | "NFL stadium, American football field with goalposts" |
-| "chips" | "potato chips" (US) or "french fries" (UK) — be explicit |
-| "car" | "2024 BMW sedan, luxury sports car" |
-
-### Negative Prompt Strategy
-
-Use negative prompts to exclude unwanted elements:
-
+### ❌ Mistake: No transitions on continuous content
 ```json
-{
-  "image_generation": {
-    "model": "fal-ai/kling-image/v3/text-to-image",
-    "input": {
-      "prompt": "American NFL football on grass field, leather texture, red and white laces, stadium lights in background",
-      "negative_prompt": "soccer ball, round ball, black and white hexagons, european football",
-      "aspect_ratio": "9:16"
-    }
-  }
-}
+// WRONG - cooking show with hard cuts
+{ "id": "scene_2", "type": "video", ... }
+{ "id": "scene_3", "type": "video", ... }
 ```
-
-### For Video Prompts (Vidu doesn't support negative_prompt)
-
-Since Vidu image-to-video doesn't support `negative_prompt`, bake exclusions into the positive prompt:
-
 ```json
-{
-  "video_generation": {
-    "model": "fal-ai/vidu/image-to-video",
-    "input": {
-      "prompt": "American NFL football spinning slowly, NOT soccer ball, leather texture, stadium lighting, dramatic slow motion",
-      "duration": "4"
-    }
-  }
-}
+// CORRECT - smooth flow
+{ "id": "scene_2", "transition": { "model": "fal-ai/vidu/q3/image-to-video", "duration": "4", "prompt": "..." }, "type": "video", ... }
 ```
 
-### Template-Specific Prompt Additions
-
-Add template keywords to every prompt for consistency:
-
-| Template | Add to Prompts |
-|----------|---------------|
-| horror | "extremely dark, deep shadows, horror atmosphere, ominous, cinematic noir" |
-| motivation | "warm golden lighting, inspirational, clean composition" |
-| quiz | "vibrant, clean background, game show aesthetic, bold colors" |
-| reddit | "minimal background, focus on text, clean UI" |
-
----
-
-## Subtitle Styling Guidelines
-
-Default subtitle settings are often too small for mobile. Recommended sizes:
-
-| Resolution | Font Size | Stroke Width |
-|------------|-----------|--------------|
-| 1080x1920 (9:16) | **72-80px** | 4-5 |
-| 1920x1080 (16:9) | 48-56px | 3 |
-| 1080x1080 (1:1) | 64-72px | 4 |
-
-### Recommended Style for Mobile (9:16)
-
+### ❌ Mistake: Transition on first scene
 ```json
-{
-  "subtitles": {
-    "enabled": true,
-    "style": {
-      "font": "Impact",
-      "color": "#ffffff",
-      "stroke_color": "#000000",
-      "stroke_width": 5,
-      "position": "center",
-      "animation": "word_by_word",
-      "font_size": 76,
-      "background_color": "#00000080"
-    }
-  }
-}
+// WRONG - no previous scene to transition from
+{ "id": "scene_1", "transition": { ... }, ... }
 ```
-
-### Tips for Readability
-
-1. **Use high-contrast colors** — white text with black stroke, or black text with white stroke
-2. **Center position** is more visible than bottom (doesn't get covered by platform UI)
-3. **Word-by-word animation** keeps viewers engaged
-4. **Add background_color** with transparency (e.g., `#00000080`) for busy visuals
-
----
-
-## Vidu Model Guide
-
-Vidu offers multiple model tiers. Choose based on quality needs:
-
-### Available Endpoints
-
-| Endpoint | Use Case | Duration | Cost | Notes |
-|----------|----------|----------|------|-------|
-| `/image-to-video` | Basic | 4s | $0.20 | No aspect_ratio (uses image AR) |
-| `/q3/image-to-video` | Best quality | 1-16s | $0.50-1.50 | Has `resolution` param |
-| `/q2/image-to-video/pro` | High quality | 2-8s | $0.40+ | Has `resolution`, `movement_amplitude` |
-| `/q2/image-to-video/turbo` | Fast | 2-8s | $0.30+ | Faster generation |
-
-### Vidu-Specific Parameters
-
 ```json
-{
-  "video_generation": {
-    "model": "fal-ai/vidu/q3/image-to-video",
-    "input": {
-      "prompt": "Slow dramatic zoom into stadium",
-      "duration": "8",
-      "resolution": "1080p",
-      "movement_amplitude": "small"
-    }
-  }
-}
+// CORRECT - first scene has no transition
+{ "id": "scene_1", "type": "video", ... }
 ```
 
-- **duration**: Integer as string, 1-16 seconds for Q3
-- **resolution**: "360p", "540p", "720p", "1080p" (Q3 only)
-- **movement_amplitude**: "auto", "small", "medium", "large" (all Vidu models)
-- **audio**: Set to `false` to use ClawVid's own audio (default)
-
-### Important: Aspect Ratio
-
-The `/image-to-video` endpoint **does not accept aspect_ratio** — it uses the input image's aspect ratio.
-
-**To get 9:16 portrait video:**
-1. Generate your image with `aspect_ratio: "9:16"` 
-2. The video will inherit that aspect ratio
-
----
-
-## Quality Checks
-
-After each generation step, verify:
-
-### Images
-- Matches scene description and mood
-- Correct atmosphere for template
-- No artifacts or weird elements
-- Consistent style with other scenes
-
-### Videos
-- Smooth motion, no flickering
-- Subject stays coherent throughout
-- Matches the source image
-
-### Audio
-- Clear pronunciation
-- Correct pacing matches `speed` setting
-- No artifacts or clipping
-
-### Sound Effects
-- Matches the prompt description
-- Duration is appropriate for the scene moment
-- Volume level doesn't overpower narration
-
-### Music
-- Matches the mood/template
-- Doesn't clash with narration
-- Fades in/out smoothly
-
-If any check fails, regenerate with an improved prompt. Common fixes:
-
-**Image too bright for horror:**
+### ❌ Mistake: Video prompt doesn't match image
+```json
+// WRONG - video describes new content
+"image_prompt": "Chef standing at counter"
+"video_prompt": "Chef running through kitchen"
 ```
-Original: "abandoned hospital corridor, flickering lights"
-Improved: "extremely dark abandoned hospital corridor, single flickering light source, deep shadows, horror movie lighting, underexposed, noir atmosphere"
+```json
+// CORRECT - video describes motion OF the image
+"image_prompt": "Chef standing at counter"
+"video_prompt": "Chef gestures while standing at counter, camera fixed"
 ```
 
-**Video motion too fast:**
+### ❌ Mistake: Ken Burns on fixed-camera content
+```json
+// WRONG - breaks the "fixed camera" illusion
+"effects": ["kenburns_slow_zoom"]
 ```
-Original: "camera zooms into corridor"
-Improved: "very slow cinematic dolly forward into corridor, subtle movement, creeping pace"
+```json
+// CORRECT - no camera movement effects
+"effects": []
+```
+
+### ❌ Mistake: Inconsistent camera descriptions
+```json
+// WRONG - different angles break continuity
+"scene_1 prompt": "...wide angle shot..."
+"scene_2 prompt": "...close-up shot..."
+"scene_3 prompt": "...overhead view..."
+```
+```json
+// CORRECT - same angle throughout
+"All prompts": "Fixed camera cooking show shot, medium wide angle view, straight-on at chest height, ..."
 ```
 
 ---
@@ -835,71 +968,75 @@ Improved: "very slow cinematic dolly forward into corridor, subtle movement, cre
 ### Full Flow
 
 ```
-1. CHECK PREFERENCES — Load preferences.json or run setup
-2. GATHER REQUIREMENTS — Topic, format, template-specific questions
-3. BUILD PLAN — Present scene breakdown with SFX plan for approval
-4. GET APPROVAL — Wait for explicit "go" or adjustments
-5. WARN ABOUT TIME — "This will take 20-25 minutes. Ready?"
-6. GENERATE WORKFLOW — Create the workflow JSON
-7. EXECUTE — Run clawvid generate --workflow <file> (NO TIMEOUT!)
-8. MONITOR — Poll process and report progress to user
-9. REVIEW — Check outputs, regenerate if needed
-10. DELIVER — **Send final video to user chat**, provide output path, show cost summary
+1. READ THIS SKILL — Every time, fresh
+2. CHECK PREFERENCES — Load preferences.json or run setup
+3. GATHER REQUIREMENTS — Topic, format, style questions
+4. DECIDE ON TRANSITIONS — For continuous content, recommend transitions
+5. BUILD PLAN — Present scene breakdown with transition plan
+6. GET APPROVAL — Wait for explicit "go"
+7. WARN ABOUT TIME — "This will take 20-30 minutes. Ready?"
+8. GENERATE WORKFLOW — Create the workflow JSON (following ALL rules above)
+9. EXECUTE — Run clawvid generate --workflow <file> (NO TIMEOUT!)
+10. MONITOR — Poll process and report progress
+11. REVIEW — Check outputs
+12. DELIVER — Compress, send video to chat, show cost summary
 ```
 
 ### Delivery Checklist
 
 When generation completes:
-1. **Compress video** for chat delivery (ffmpeg H.264, CRF 26, ~15-20MB target)
+1. **Compress video** for chat delivery (ffmpeg H.264, CRF 26-28, ~15-20MB target)
 2. **Send video to user** via `message` tool with filePath
 3. **Show cost summary** and output location
 4. **Ask for feedback** — any scenes to regenerate?
 
 ```bash
 # Compress for chat delivery
-ffmpeg -i output/.../tiktok/final.mp4 \
-  -c:v libx264 -preset medium -crf 26 -profile:v high \
-  -c:a aac -b:a 128k -movflags +faststart \
+ffmpeg -y -i output/.../tiktok/final.mp4 \
+  -c:v libx264 -preset fast -crf 28 \
+  -c:a aac -b:a 128k \
   output/.../tiktok/playable.mp4
 
 # Send to user
 message action=send filePath=/path/to/playable.mp4 caption="🎬 Your video is ready!"
 ```
 
-### Quick Create (Experienced Users)
+---
 
-```
-User: "Horror video, 60s, haunted Polaroid camera. VHS style, slow burn,
-       cliffhanger ending. Deep male voice. Go with your best judgment."
+## Quality Checks
 
-You: [Skip most questions, present plan, ask for quick approval]
-"Here's my plan: [condensed breakdown]. 
-This will take ~20-25 minutes. Sound good?"
-```
+After each generation step, verify:
 
-### Always Explain Decisions
+### Images
+- Matches scene description and mood
+- Consistent style with other scenes (same character, same setting)
+- Correct camera angle if using fixed-camera style
 
-```
-"Scene 3 needs video because it's the climax"
-"Using Vidu for video — smoother 8s clips, better for horror"
-"Adding door slam SFX at 30s to sync with the shadow reveal"
-"Generating dark ambient music to maintain tension throughout"
-"Regenerating scene 2 — the lighting was too bright for horror"
-"Keeping this as image + Ken Burns to stay within budget"
-```
+### Videos
+- Smooth motion, no flickering
+- Subject stays coherent throughout
+- Camera movement matches prompt (or stays fixed if specified)
+
+### Transitions
+- Smooth morph between scenes
+- No jarring jumps in character position
+- Consistent lighting/style throughout
+
+### Audio
+- Clear pronunciation
+- Correct pacing
+- Music doesn't overpower narration
 
 ---
 
 ## Tips
 
-- Front-load video clips (opening matters most for hooks)
-- Use Vidu/Kling for max_quality, kandinsky5-pro for budget
-- Use Ken Burns on images for subtle motion without video cost
-- Add 3-4 sound effects per 60s video for immersion (don't overdo it)
-- Use `generate: true` for music when you don't have a pre-made track
-- All effects are name-matched: `vignette`, `vignette_heavy`, `vignette-heavy` all work
-- Templates apply their own default effects — per-scene effects stack on top
-- The cache skips regenerating scenes whose prompts haven't changed
-- Use `--skip-cache` to force full regeneration
-- Use `--all-platforms` on render to output YouTube + TikTok + Reels in one pass
+- **Always read this SKILL.md before creating a workflow**
+- Front-load video clips (opening matters most)
+- Use transitions for professional, continuous content
+- Add `"movement_amplitude": "small"` for stable video clips
+- Include "camera stays fixed" in video prompts for cooking/tutorial content
+- Add "NOT realistic" to animated content video prompts
+- Use same seed across all scene images for character consistency
 - **Never timeout the generate process** — let it complete naturally
+- Compress output before sending to chat (telegram limit ~50MB)
