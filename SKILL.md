@@ -219,6 +219,74 @@ You: "Perfect premise. Let me confirm:
 3. Ending: Resolved, cliffhanger, or ambiguous?"
 ```
 
+### Phase 1.5: Research & Reference Gathering
+
+**CRITICAL: Before building the workflow, gather accurate information and reference images.**
+
+#### When to Research (use `web_search` + `web_fetch`):
+
+| Scenario | Action |
+|----------|--------|
+| Vague topic without details | Research to find interesting angles/facts |
+| "Did you know" / quiz / trivia | Verify facts, find accurate stats |
+| How-to / recipe / tutorial | Search for accurate steps and details |
+| Historical / scientific claims | Fact-check before including in narration |
+| Trending topics | Search for latest info and context |
+| User provides no source | Research authoritative sources |
+
+**Example research flow:**
+```
+User: "Make a video about how to boil the perfect egg"
+
+You: [uses web_search for "perfect boiled egg timing methods"]
+     [uses web_fetch on top cooking sites]
+
+"Did some research! Here's what I found:
+- Soft boil: 6-7 min
+- Medium: 9-10 min  
+- Hard boil: 12-13 min
+- Pro tip: Ice bath immediately after
+
+Want me to use these timings in the video?"
+```
+
+#### Reference Image Gathering:
+
+When visual consistency matters or the user needs specific imagery:
+
+1. **Search for reference images** related to the topic/style
+2. **Send options to user chat** — always show what you found
+3. **Get explicit confirmation** before using any image
+4. **Download approved images** and use as `reference_image` in workflow
+
+```
+User: "Make a video about ancient Tartarian architecture"
+
+You: [searches for reference images]
+     [sends 3-4 options to chat]
+
+"Found some reference images for the Tartarian aesthetic:
+[image 1] - Ornate domed building
+[image 2] - Victorian exhibition hall
+[image 3] - Old sepia photograph style
+
+Which style should I use as the reference for consistent visuals?
+Or should I generate without a reference?"
+```
+
+#### Media Sharing Rules:
+
+**ALWAYS send to user chat:**
+- ✅ All reference images gathered from web (before using)
+- ✅ Research summaries with sources
+- ✅ Generated sample images (if doing test generations)
+- ✅ **Final rendered video** — send via message tool when complete
+
+**Use the `message` tool to send media:**
+```
+message action=send filePath=/path/to/video.mp4 caption="Here's your video!"
+```
+
 ### Phase 2: Confirm Format
 
 ```
@@ -776,7 +844,26 @@ Improved: "very slow cinematic dolly forward into corridor, subtle movement, cre
 7. EXECUTE — Run clawvid generate --workflow <file> (NO TIMEOUT!)
 8. MONITOR — Poll process and report progress to user
 9. REVIEW — Check outputs, regenerate if needed
-10. DELIVER — Provide output path, show cost summary
+10. DELIVER — **Send final video to user chat**, provide output path, show cost summary
+```
+
+### Delivery Checklist
+
+When generation completes:
+1. **Compress video** for chat delivery (ffmpeg H.264, CRF 26, ~15-20MB target)
+2. **Send video to user** via `message` tool with filePath
+3. **Show cost summary** and output location
+4. **Ask for feedback** — any scenes to regenerate?
+
+```bash
+# Compress for chat delivery
+ffmpeg -i output/.../tiktok/final.mp4 \
+  -c:v libx264 -preset medium -crf 26 -profile:v high \
+  -c:a aac -b:a 128k -movflags +faststart \
+  output/.../tiktok/playable.mp4
+
+# Send to user
+message action=send filePath=/path/to/playable.mp4 caption="🎬 Your video is ready!"
 ```
 
 ### Quick Create (Experienced Users)
