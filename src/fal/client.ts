@@ -86,6 +86,29 @@ export async function falRequest<TOutput>(
   ) as Promise<TOutput>;
 }
 
+/**
+ * Upload a local file to fal.ai storage and return the URL.
+ * Used for providing local images to fal.ai endpoints.
+ */
+export async function uploadToFal(filePath: string): Promise<string> {
+  ensureInitialized();
+  
+  const { readFile } = await import('node:fs/promises');
+  const { basename } = await import('node:path');
+  
+  log.info('Uploading to fal.ai storage', { path: filePath });
+  
+  const fileData = await readFile(filePath);
+  const fileName = basename(filePath);
+  const blob = new Blob([fileData]);
+  
+  // fal.storage.upload accepts a Blob or File
+  const url = await fal.storage.upload(blob);
+  
+  log.info('Upload complete', { url: url.slice(0, 80) });
+  return url;
+}
+
 export async function downloadFile(url: string, destPath: string): Promise<void> {
   validateDownloadUrl(url);
   log.info('Downloading asset', { url: url.slice(0, 80), dest: destPath });

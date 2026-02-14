@@ -14,6 +14,7 @@ import { hashWorkflowStep } from '../cache/hash.js';
 import { CostTracker } from '../fal/cost.js';
 import { createLogger } from '../utils/logger.js';
 import { createSpinner } from '../utils/progress.js';
+import { extractLastFrame } from '../utils/video.js';
 
 const log = createLogger('workflow-runner');
 
@@ -699,69 +700,126 @@ async function generateSceneAssetsViaWorkflow(
       costTracker.record(consistency.edit_model ?? 'fal-ai/nano-banana-pro/edit', COST_ESTIMATES.image_nano_edit);
     }
 
-    const sceneAsset: SceneAssets = { sceneId: scene.id, imagePath, imageUrl };
-
-    // Generate video if needed (uses the consistent image as input)
-    if (scene.type === 'video' && scene.video_generation) {
-      spinner.text = `Scene ${scene.id}: generating video from consistent image...`;
-      const videoFilename = `${scene.id}.mp4`;
-      const videoPath = assetManager.getAssetPath(videoFilename);
-      const videoHash = hashWorkflowStep(scene.video_generation as unknown as Record<string, unknown>);
-
-      if (!skipCache && cache.has(`${scene.id}-video`, videoHash)) {
-        const cached = cache.get(`${scene.id}-video`)!;
-        sceneAsset.videoPath = videoPath;
-        sceneAsset.videoUrl = cached.outputPath;
-        log.info('Video cache hit', { sceneId: scene.id });
-      } else {
-        const result = await generateVideo(scene.video_generation, imageUrl, videoPath);
-        sceneAsset.videoPath = videoPath;
-        sceneAsset.videoUrl = result.url;
-        await cache.set(`${scene.id}-video`, videoHash, result.url);
-        costTracker.record(scene.video_generation.model, estimateVideoCost(scene.video_generation.model));
-      }
-    }
-
-    results.push(sceneAsset);
+    results.push({ sceneId: scene.id, imagePath, imageUrl });
   }
 
-  // Step 3: Generate transitions between consecutive scenes
-  for (let i = 1; i < scenes.length; i++) {
+  // Step 3: Generate videos (with optional frame chaining)
+  const chainFrames = workflow.video_settings?.chain_frames ?? false;
+  let previousEndFrameUrl: string | null = null;
+
+  for (let i = 0; i < scenes.length; i++) {
     const scene = scenes[i];
-    if (!scene.transition) continue;
+    const sceneAsset = results[i];
 
-    const prevAsset = results[i - 1];
-    const currAsset = results[i];
-    if (!prevAsset?.imageUrl || !currAsset?.imageUrl) continue;
+    // Skip non-video scenes
+    if (scene.type !== 'video' || !scene.video_generation) continue;
+    if (!sceneAsset?.imageUrl) continue;
 
-    spinner.text = `Generating transition ${scenes[i - 1].id} → ${scene.id}...`;
-    const transFilename = `transition-${scenes[i - 1].id}-${scene.id}.mp4`;
-    const transPath = assetManager.getAssetPath(transFilename);
+    spinner.text = `Scene ${scene.id}: generating video${chainFrames && i > 0 ? ' (chained)' : ''}...`;
+    const videoFilename = `${scene.id}.mp4`;
+    const videoPath = assetManager.getAssetPath(videoFilename);
 
-    try {
-      const transResult = await generateTransition(
-        scene.transition.model,
-        prevAsset.imageUrl,
-        currAsset.imageUrl,
-        scene.transition.prompt ?? `Smooth transition between scenes`,
-        transPath,
-        {
-          duration: scene.transition.duration,
-          style: scene.transition.style,
-        },
-      );
-      currAsset.transitionPath = transPath;
-      currAsset.transitionUrl = transResult.url;
-      const transCost = scene.transition.model.includes('pixverse')
-        ? COST_ESTIMATES.transition_pixverse
-        : COST_ESTIMATES.transition_vidu;
-      costTracker.record(scene.transition.model, transCost);
-    } catch (err) {
-      log.warn('Transition generation failed, skipping', {
-        from: scenes[i - 1].id,
-        to: scene.id,
-        error: String(err),
+    // Build cache hash including chaining info
+    const videoHashData: Record<string, unknown> = {
+      ...scene.video_generation as unknown as Record<string, unknown>,
+      chain_frames: chainFrames,
+      prev_end_frame: previousEndFrameUrl ? 'chained' : null,
+    };
+    const videoHash = hashWorkflowStep(videoHashData);
+
+    if (!skipCache && cache.has(`${scene.id}-video`, videoHash)) {
+      const cached = cache.get(`${scene.id}-video`)!;
+      sceneAsset.videoPath = videoPath;
+      sceneAsset.videoUrl = cached.outputPath;
+      log.info('Video cache hit', { sceneId: scene.id });
+    } else if (chainFrames && previousEndFrameUrl && i > 0) {
+      // Frame chaining: use previous scene's end frame as start, current image as end
+      const chainModel = workflow.video_settings?.chain_model ?? scene.video_generation.model;
+      const chainDuration = workflow.video_settings?.chain_duration ?? scene.video_generation.input.duration ?? '5s';
+
+      log.info('Generating chained video', {
+        sceneId: scene.id,
+        startFrame: 'previous_end_frame',
+        endFrame: scene.id,
       });
+
+      const result = await generateTransition(
+        chainModel,
+        previousEndFrameUrl,
+        sceneAsset.imageUrl,
+        scene.video_generation.input.prompt,
+        videoPath,
+        { duration: chainDuration },
+      );
+      sceneAsset.videoPath = videoPath;
+      sceneAsset.videoUrl = result.url;
+      await cache.set(`${scene.id}-video`, videoHash, result.url);
+      costTracker.record(chainModel, estimateVideoCost(chainModel));
+    } else {
+      // Standard video generation (first scene or chain disabled)
+      const result = await generateVideo(scene.video_generation, sceneAsset.imageUrl, videoPath);
+      sceneAsset.videoPath = videoPath;
+      sceneAsset.videoUrl = result.url;
+      await cache.set(`${scene.id}-video`, videoHash, result.url);
+      costTracker.record(scene.video_generation.model, estimateVideoCost(scene.video_generation.model));
+    }
+
+    // Extract end frame for next scene (if chaining enabled)
+    if (chainFrames && sceneAsset.videoPath) {
+      const endFramePath = assetManager.getAssetPath(`${scene.id}_endframe.jpg`);
+      try {
+        await extractLastFrame(sceneAsset.videoPath, endFramePath);
+        // Upload end frame to get URL for next scene
+        const { uploadToFal } = await import('../fal/client.js');
+        previousEndFrameUrl = await uploadToFal(endFramePath);
+        log.info('End frame extracted', { sceneId: scene.id, endFramePath });
+      } catch (err) {
+        log.warn('Failed to extract end frame, breaking chain', { sceneId: scene.id, error: String(err) });
+        previousEndFrameUrl = null;
+      }
+    }
+  }
+
+  // Step 4: Generate transitions between consecutive scenes (if not using frame chaining)
+  // When chain_frames is enabled, transitions are built into the chained videos
+  if (!chainFrames) {
+    for (let i = 1; i < scenes.length; i++) {
+      const scene = scenes[i];
+      if (!scene.transition) continue;
+
+      const prevAsset = results[i - 1];
+      const currAsset = results[i];
+      if (!prevAsset?.imageUrl || !currAsset?.imageUrl) continue;
+
+      spinner.text = `Generating transition ${scenes[i - 1].id} → ${scene.id}...`;
+      const transFilename = `transition-${scenes[i - 1].id}-${scene.id}.mp4`;
+      const transPath = assetManager.getAssetPath(transFilename);
+
+      try {
+        const transResult = await generateTransition(
+          scene.transition.model,
+          prevAsset.imageUrl,
+          currAsset.imageUrl,
+          scene.transition.prompt ?? `Smooth transition between scenes`,
+          transPath,
+          {
+            duration: scene.transition.duration,
+            style: scene.transition.style,
+          },
+        );
+        currAsset.transitionPath = transPath;
+        currAsset.transitionUrl = transResult.url;
+        const transCost = scene.transition.model.includes('pixverse')
+          ? COST_ESTIMATES.transition_pixverse
+          : COST_ESTIMATES.transition_vidu;
+        costTracker.record(scene.transition.model, transCost);
+      } catch (err) {
+        log.warn('Transition generation failed, skipping', {
+          from: scenes[i - 1].id,
+          to: scene.id,
+          error: String(err),
+        });
+      }
     }
   }
 

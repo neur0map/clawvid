@@ -64,6 +64,15 @@ export const outputConfigSchema = z.object({
   platforms: z.array(z.string()).optional(),
 });
 
+export const videoSettingsSchema = z.object({
+  /** Chain end frames: use previous scene's end frame as next scene's start frame */
+  chain_frames: z.boolean().optional(),
+  /** Model to use for chained frame interpolation (default: same as scene video model) */
+  chain_model: z.string().optional(),
+  /** Default duration for chained videos */
+  chain_duration: z.string().optional(),
+});
+
 export const workflowSchema = z.object({
   name: z.string(),
   template: z.string(),
@@ -77,6 +86,8 @@ export const workflowSchema = z.object({
   output: outputConfigSchema.optional(),
   analysis: analysisConfigSchema.optional(),
   consistency: consistencyConfigSchema.optional(),
+  /** Video generation settings */
+  video_settings: videoSettingsSchema.optional(),
 });
 
 export type Workflow = z.infer<typeof workflowSchema>;
@@ -87,3 +98,4 @@ export type AnalysisConfig = z.infer<typeof analysisConfigSchema>;
 export type ConsistencyConfig = z.infer<typeof consistencyConfigSchema>;
 export type SubtitlesConfig = z.infer<typeof subtitlesConfigSchema>;
 export type OutputConfig = z.infer<typeof outputConfigSchema>;
+export type VideoSettings = z.infer<typeof videoSettingsSchema>;
