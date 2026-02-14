@@ -253,6 +253,57 @@ Example image prompt for fixed camera:
 "Fixed camera cooking show shot, medium wide angle view, cute cartoon chef behind kitchen counter, same TV studio kitchen set, bright even studio lighting, static straight-on camera angle at chest height, [SCENE SPECIFIC ACTION], Pixar Disney 3D animation style"
 ```
 
+### 🆕 Frame Chaining (Seamless Video Continuity)
+
+For **butter-smooth scene transitions**, enable frame chaining. This extracts the last frame of each video and uses it as the start frame for the next scene.
+
+#### How Frame Chaining Works
+
+1. Scene 1: Generate image → generate video → **extract end frame**
+2. Scene 2: Use Scene 1's **end frame as start** + Scene 2's **image as end** → interpolate video
+3. Scene 3: Use Scene 2's **end frame as start** + Scene 3's **image as end** → interpolate video
+4. Repeat...
+
+This creates videos that **literally pick up exactly where the previous scene ended**.
+
+#### Enable Frame Chaining
+
+Add `video_settings` to your workflow:
+
+```json
+{
+  "name": "My Video",
+  "video_settings": {
+    "chain_frames": true,
+    "chain_model": "fal-ai/vidu/q3/image-to-video",  // optional, defaults to scene model
+    "chain_duration": "5"  // optional
+  },
+  "scenes": [ ... ]
+}
+```
+
+#### Frame Chaining vs Transitions
+
+| Feature | Transitions | Frame Chaining |
+|---------|-------------|----------------|
+| **Input** | Two scene images | Previous video's end frame + current image |
+| **Continuity** | Good (image → image morph) | **Best** (actual frame continuity) |
+| **Use case** | Style morphs, location changes | Same character/scene evolving |
+| **Cost** | +1 video per transition | Same (replaces standard video gen) |
+
+**When to use frame chaining:**
+- Cooking shows (continuous action)
+- Character following (same subject through scenes)
+- Talking head videos
+- Any content where motion should flow seamlessly
+
+**When to use transitions instead:**
+- Location jumps (kitchen → outdoor → store)
+- Style changes (realistic → animated)
+- When hard cuts are intentionally dramatic
+
+**Note:** When `chain_frames` is enabled, the `transition` field on scenes is ignored (chaining provides better continuity).
+
 ---
 
 ## ⚠️ CRITICAL: Execution Rules
