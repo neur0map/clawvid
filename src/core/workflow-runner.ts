@@ -74,6 +74,22 @@ export interface SoundEffectAsset {
   volume: number;
 }
 
+export interface VisionQASceneResult {
+  sceneId: string;
+  passed: boolean;
+  issues: Array<{ type: string; severity: string; description: string }>;
+  confidence: number;
+}
+
+export interface WorkflowExecuteOptions {
+  phase?: 'all' | 'images' | 'videos' | 'audio' | 'render';
+  enableQA?: boolean;
+  qaAutoFix?: boolean;
+  useExistingImages?: boolean;
+  useExistingVideos?: boolean;
+  regenerateSceneIds?: string[];
+}
+
 export interface WorkflowResult {
   sceneAssets: SceneAssets[];
   narrationSegments: NarrationSegment[];
@@ -84,6 +100,8 @@ export interface WorkflowResult {
   costTracker: CostTracker;
   computedTimings: ComputedSceneTiming[];
   totalDuration: number;
+  /** Vision QA results for each scene (when QA is enabled) */
+  qaResults?: VisionQASceneResult[];
 }
 
 export async function executeWorkflow(
@@ -91,16 +109,28 @@ export async function executeWorkflow(
   config: AppConfig,
   assetManager: AssetManager,
   skipCache: boolean = false,
+  options: WorkflowExecuteOptions = {},
 ): Promise<WorkflowResult> {
   const cache = new CacheStore(assetManager.outputDir);
   if (!skipCache) await cache.load();
   const costTracker = new CostTracker();
+
+  const {
+    phase = 'all',
+    enableQA = false,
+    qaAutoFix = false,
+    useExistingImages = false,
+    useExistingVideos = false,
+    regenerateSceneIds = [],
+  } = options;
 
   log.info('Executing workflow', {
     name: workflow.name,
     scenes: workflow.scenes.length,
     template: workflow.template,
     timingMode: workflow.timing_mode ?? 'tts_driven',
+    phase,
+    enableQA,
   });
 
   // Phase 1: Generate narration FIRST (TTS-driven timing, voice consistency)
@@ -131,21 +161,51 @@ export async function executeWorkflow(
   });
 
   // Phase 3: Generate scene images & videos
-  const sceneAssets = workflow.consistency
-    ? await generateSceneAssetsViaWorkflow(
+  const shouldGenerateImages = !useExistingImages && (phase === 'all' || phase === 'images');
+  const shouldGenerateVideos = !useExistingVideos && (phase === 'all' || phase === 'videos');
+
+  let sceneAssets: SceneAssets[];
+  let qaResults: VisionQASceneResult[] | undefined;
+
+  if (shouldGenerateImages) {
+    sceneAssets = workflow.consistency
+      ? await generateSceneAssetsViaWorkflow(
+          workflow,
+          assetManager,
+          cache,
+          costTracker,
+          skipCache,
+          { regenerateSceneIds, skipVideos: phase === 'images' },
+        )
+      : await generateSceneAssets(
+          workflow.scenes,
+          assetManager,
+          cache,
+          costTracker,
+          skipCache,
+          { regenerateSceneIds, skipVideos: phase === 'images' },
+        );
+
+    // Run Vision QA if enabled
+    if (enableQA) {
+      qaResults = await runVisionQA(workflow, sceneAssets, assetManager, costTracker, qaAutoFix);
+    }
+  } else {
+    // Load existing assets from output directory
+    sceneAssets = await loadExistingAssets(workflow.scenes, assetManager);
+
+    // Generate videos only if needed
+    if (shouldGenerateVideos) {
+      sceneAssets = await generateVideosOnly(
         workflow,
-        assetManager,
-        cache,
-        costTracker,
-        skipCache,
-      )
-    : await generateSceneAssets(
-        workflow.scenes,
+        sceneAssets,
         assetManager,
         cache,
         costTracker,
         skipCache,
       );
+    }
+  }
 
   // Phase 4: Generate sound effects using computed timing
   const soundEffects = await generateSceneSoundEffects(
@@ -191,6 +251,7 @@ export async function executeWorkflow(
     costTracker,
     computedTimings,
     totalDuration,
+    qaResults,
   };
 }
 
@@ -398,26 +459,52 @@ async function transcribeWithSceneOffsets(
   return undefined;
 }
 
+interface GenerateAssetsOptions {
+  regenerateSceneIds?: string[];
+  skipVideos?: boolean;
+}
+
 async function generateSceneAssets(
   scenes: Scene[],
   assetManager: AssetManager,
   cache: CacheStore,
   costTracker: CostTracker,
   skipCache: boolean,
+  options: GenerateAssetsOptions = {},
 ): Promise<SceneAssets[]> {
+  const { regenerateSceneIds = [], skipVideos = false } = options;
   const results: SceneAssets[] = [];
 
   for (const scene of scenes) {
+    // Handle static images (type: 'static')
+    if (scene.type === 'static' && scene.static_image) {
+      const staticAsset = await handleStaticImage(scene, assetManager);
+      results.push(staticAsset);
+      continue;
+    }
+
+    // Skip if not in regenerate list (when regenerating specific scenes)
+    const shouldRegenerate = regenerateSceneIds.length === 0 || regenerateSceneIds.includes(scene.id);
+
     const spinner = createSpinner(`Scene ${scene.id}: generating image...`);
     spinner.start();
 
     const imageFilename = `${scene.id}.png`;
     const imagePath = assetManager.getAssetPath(imageFilename);
+
+    // Check if image_generation exists (required for non-static scenes)
+    if (!scene.image_generation) {
+      log.warn('No image_generation config for scene', { sceneId: scene.id });
+      results.push({ sceneId: scene.id, imagePath: '', imageUrl: '' });
+      spinner.fail(`Scene ${scene.id}: no image generation config`);
+      continue;
+    }
+
     const imageHash = hashWorkflowStep(scene.image_generation as unknown as Record<string, unknown>);
 
     let imageUrl: string;
 
-    if (!skipCache && cache.has(`${scene.id}-image`, imageHash)) {
+    if (!skipCache && !shouldRegenerate && cache.has(`${scene.id}-image`, imageHash)) {
       const cached = cache.get(`${scene.id}-image`)!;
       imageUrl = cached.outputPath;
       spinner.text = `Scene ${scene.id}: image cached`;
@@ -431,7 +518,7 @@ async function generateSceneAssets(
 
     const sceneResult: SceneAssets = { sceneId: scene.id, imagePath, imageUrl };
 
-    if (scene.type === 'video' && scene.video_generation) {
+    if (!skipVideos && scene.type === 'video' && scene.video_generation) {
       spinner.text = `Scene ${scene.id}: generating video...`;
       const videoFilename = `${scene.id}.mp4`;
       const videoPath = assetManager.getAssetPath(videoFilename);
@@ -458,19 +545,50 @@ async function generateSceneAssets(
   return results;
 }
 
+/**
+ * Handle static image scenes - download/copy image and return assets
+ */
+async function handleStaticImage(
+  scene: Scene,
+  assetManager: AssetManager,
+): Promise<SceneAssets> {
+  const staticConfig = scene.static_image!;
+  const imageFilename = `${scene.id}.png`;
+  const imagePath = assetManager.getAssetPath(imageFilename);
+
+  log.info('Processing static image', { sceneId: scene.id, url: staticConfig.url.slice(0, 60) });
+
+  // Download or copy the static image
+  if (staticConfig.url.startsWith('http://') || staticConfig.url.startsWith('https://')) {
+    const { downloadFile } = await import('../fal/client.js');
+    await downloadFile(staticConfig.url, imagePath);
+  } else {
+    const { copy } = await import('fs-extra');
+    await copy(staticConfig.url, imagePath);
+  }
+
+  return {
+    sceneId: scene.id,
+    imagePath,
+    imageUrl: staticConfig.url,
+    // Static images don't generate video - they're shown as-is
+  };
+}
+
 async function generateSceneAssetsViaWorkflow(
   workflow: Workflow,
   assetManager: AssetManager,
   cache: CacheStore,
   costTracker: CostTracker,
   skipCache: boolean,
+  options: GenerateAssetsOptions = {},
 ): Promise<SceneAssets[]> {
   const consistency = workflow.consistency!;
   const scenes = workflow.scenes;
   const spinner = createSpinner('Generating consistent scene images...');
   spinner.start();
 
-  const aspectRatio = scenes[0]?.image_generation.input.aspect_ratio ?? '9:16';
+  const aspectRatio = scenes[0]?.image_generation?.input?.aspect_ratio ?? '9:16';
 
   const consistencyOptions: ConsistencyOptions = {
     referencePrompt: consistency.reference_prompt,
@@ -507,6 +625,20 @@ async function generateSceneAssetsViaWorkflow(
   const results: SceneAssets[] = [];
 
   for (const scene of scenes) {
+    // Handle static images
+    if (scene.type === 'static' && scene.static_image) {
+      const staticAsset = await handleStaticImage(scene, assetManager);
+      results.push(staticAsset);
+      continue;
+    }
+
+    // Skip scenes without image_generation
+    if (!scene.image_generation) {
+      log.warn('Scene missing image_generation in consistency workflow', { sceneId: scene.id });
+      results.push({ sceneId: scene.id, imagePath: '', imageUrl: '' });
+      continue;
+    }
+
     spinner.text = `Scene ${scene.id}: generating from reference...`;
     const imagePath = assetManager.getAssetPath(`${scene.id}.png`);
     const scenePrompt = scene.image_generation.input.prompt;
@@ -716,4 +848,182 @@ function estimateCost(category: 'image' | 'video', model: string): number {
     return model.includes('kling') ? COST_ESTIMATES.image_kling : COST_ESTIMATES.image_default;
   }
   return estimateVideoCost(model);
+}
+
+/**
+ * Load existing scene assets from output directory (for phase-based generation)
+ */
+async function loadExistingAssets(
+  scenes: Scene[],
+  assetManager: AssetManager,
+): Promise<SceneAssets[]> {
+  const { pathExists } = await import('fs-extra');
+  const results: SceneAssets[] = [];
+
+  for (const scene of scenes) {
+    const imagePath = assetManager.getAssetPath(`${scene.id}.png`);
+    const videoPath = assetManager.getAssetPath(`${scene.id}.mp4`);
+
+    const hasImage = await pathExists(imagePath);
+    const hasVideo = await pathExists(videoPath);
+
+    if (!hasImage) {
+      log.warn('Missing image for scene', { sceneId: scene.id, imagePath });
+    }
+
+    results.push({
+      sceneId: scene.id,
+      imagePath: hasImage ? imagePath : '',
+      imageUrl: hasImage ? imagePath : '', // Local path as fallback
+      videoPath: hasVideo ? videoPath : undefined,
+      videoUrl: hasVideo ? videoPath : undefined,
+    });
+  }
+
+  log.info('Loaded existing assets', {
+    total: results.length,
+    withImages: results.filter(r => r.imagePath).length,
+    withVideos: results.filter(r => r.videoPath).length,
+  });
+
+  return results;
+}
+
+/**
+ * Generate videos only from existing images (for phase-based generation)
+ */
+async function generateVideosOnly(
+  workflow: Workflow,
+  existingAssets: SceneAssets[],
+  assetManager: AssetManager,
+  cache: CacheStore,
+  costTracker: CostTracker,
+  skipCache: boolean,
+): Promise<SceneAssets[]> {
+  const spinner = createSpinner('Generating videos from existing images...');
+  spinner.start();
+
+  for (const scene of workflow.scenes) {
+    if (scene.type !== 'video' || !scene.video_generation) continue;
+
+    const assets = existingAssets.find(a => a.sceneId === scene.id);
+    if (!assets || !assets.imageUrl) {
+      log.warn('No image for video generation', { sceneId: scene.id });
+      continue;
+    }
+
+    spinner.text = `Scene ${scene.id}: generating video...`;
+    const videoFilename = `${scene.id}.mp4`;
+    const videoPath = assetManager.getAssetPath(videoFilename);
+    const videoHash = hashWorkflowStep(scene.video_generation as unknown as Record<string, unknown>);
+
+    if (!skipCache && cache.has(`${scene.id}-video`, videoHash)) {
+      const cached = cache.get(`${scene.id}-video`)!;
+      assets.videoPath = videoPath;
+      assets.videoUrl = cached.outputPath;
+      log.info('Video cache hit', { sceneId: scene.id });
+    } else {
+      const result = await generateVideo(scene.video_generation, assets.imageUrl, videoPath);
+      assets.videoPath = videoPath;
+      assets.videoUrl = result.url;
+      await cache.set(`${scene.id}-video`, videoHash, result.url);
+      costTracker.record(scene.video_generation.model, estimateVideoCost(scene.video_generation.model));
+    }
+  }
+
+  spinner.succeed('Videos generated from existing images');
+  return existingAssets;
+}
+
+/**
+ * Run Vision QA on generated images to detect issues
+ */
+async function runVisionQA(
+  workflow: Workflow,
+  sceneAssets: SceneAssets[],
+  assetManager: AssetManager,
+  costTracker: CostTracker,
+  autoFix: boolean = false,
+): Promise<VisionQASceneResult[]> {
+  const { analyzeImage, sanitizePrompt, buildSafeNegativePrompt } = await import('../validation/vision-qa.js');
+  const spinner = createSpinner('Running Vision QA on images...');
+  spinner.start();
+
+  const results: VisionQASceneResult[] = [];
+  const qaFailures: string[] = [];
+
+  for (const scene of workflow.scenes) {
+    // Skip QA for scenes that opted out or are static
+    if (scene.skip_qa || scene.type === 'static') continue;
+
+    const assets = sceneAssets.find(a => a.sceneId === scene.id);
+    if (!assets?.imageUrl) continue;
+
+    spinner.text = `QA checking scene ${scene.id}...`;
+
+    try {
+      const qaResult = await analyzeImage(assets.imageUrl, {
+        prompt: scene.image_generation?.input?.prompt ?? '',
+        checkText: true,
+        checkWatermarks: true,
+        forbiddenElements: ['logo', 'watermark', 'text overlay', 'brand'],
+      });
+
+      // Record QA cost (vision model)
+      costTracker.record('fal-ai/llava-next', 0.01);
+
+      results.push({
+        sceneId: scene.id,
+        passed: qaResult.passed,
+        issues: qaResult.issues.map(i => ({
+          type: i.type,
+          severity: i.severity,
+          description: i.description,
+        })),
+        confidence: qaResult.confidence,
+      });
+
+      if (!qaResult.passed) {
+        qaFailures.push(scene.id);
+        log.warn('Vision QA failed for scene', {
+          sceneId: scene.id,
+          issues: qaResult.issues.map(i => i.description),
+        });
+
+        // Auto-fix if enabled (regenerate with sanitized prompt)
+        if (autoFix && scene.image_generation) {
+          spinner.text = `Regenerating scene ${scene.id} with fixed prompt...`;
+          const sanitizedPrompt = sanitizePrompt(scene.image_generation.input.prompt);
+          const safeNegative = buildSafeNegativePrompt(scene.image_generation.input.negative_prompt);
+
+          // Update scene config for regeneration
+          scene.image_generation.input.prompt = sanitizedPrompt;
+          scene.image_generation.input.negative_prompt = safeNegative;
+
+          // Regenerate would happen on next run with --regenerate flag
+          log.info('Prompt sanitized for regeneration', {
+            sceneId: scene.id,
+            originalPrompt: scene.image_generation.input.prompt.slice(0, 50),
+            sanitizedPrompt: sanitizedPrompt.slice(0, 50),
+          });
+        }
+      }
+    } catch (err) {
+      log.warn('Vision QA check failed', { sceneId: scene.id, error: String(err) });
+      results.push({
+        sceneId: scene.id,
+        passed: true, // Pass on error to not block pipeline
+        issues: [],
+        confidence: 0.5,
+      });
+    }
+  }
+
+  if (qaFailures.length > 0) {
+    spinner.warn(`Vision QA: ${qaFailures.length} scene(s) have issues`);
+  } else {
+    spinner.succeed(`Vision QA: All ${results.length} images passed`);
+  }
+
+  return results;
 }

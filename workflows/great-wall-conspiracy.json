@@ -1,0 +1,285 @@
+{
+  "name": "The Great Wall Conspiracy",
+  "template": "quiz",
+  "timing_mode": "tts_driven",
+  "scene_padding_seconds": 0.4,
+  "min_scene_duration_seconds": 5,
+
+  "consistency": {
+    "reference_prompt": "Dark cinematic documentary style, moody lighting, dramatic shadows, History Channel conspiracy aesthetic, blue and orange color grading, film grain texture",
+    "seed": 77777777,
+    "model": "fal-ai/nano-banana-pro"
+  },
+
+  "scenes": [
+    {
+      "id": "scene_1",
+      "description": "Dramatic aerial establishing shot of the Great Wall",
+      "type": "video",
+      "timing": {},
+      "narration": "What if everything you know about the Great Wall of China... is a lie?",
+
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Dramatic aerial cinematic shot of the Great Wall of China snaking through misty mountains at dusk, moody orange and blue lighting, fog rolling through valleys, ancient watchtowers silhouetted against dramatic sky, History Channel documentary style, film grain, cinematic color grading, 8K quality",
+          "negative_prompt": "cartoon, anime, bright colors, cheerful, text, watermark",
+          "aspect_ratio": "9:16",
+          "seed": 77777777
+        }
+      },
+
+      "video_generation": {
+        "model": "fal-ai/vidu/image-to-video",
+        "input": {
+          "prompt": "Slow dramatic drone push forward along the Great Wall, fog drifting through mountains, cinematic camera movement, moody atmosphere, documentary style",
+          "duration": "4",
+          "movement_amplitude": "small"
+        }
+      },
+
+      "sound_effects": [
+        {
+          "prompt": "Deep dramatic orchestral hit followed by tension drone, cinematic impact sound",
+          "timing_offset": 0,
+          "duration": 4,
+          "volume": 0.7
+        }
+      ],
+
+      "effects": ["vignette_subtle", "grain_subtle"]
+    },
+    {
+      "id": "scene_2",
+      "description": "Reveal of old 1706 Tartaria map from Library of Congress",
+      "type": "image",
+      "timing": {},
+      "narration": "These aren't conspiracy theories. These are real maps. From the Library of Congress. Dated seventeen oh six.",
+
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Close-up of an authentic antique map from 1706 showing 'Great Tartary' labeled across Asia, yellowed parchment texture, ornate cartography with sea monsters and decorative borders, the Great Wall of China clearly marked as a border line, Latin text labels, aged paper with fold creases, dramatic spotlight lighting on the map, documentary photography style, museum exhibit lighting",
+          "negative_prompt": "modern, digital, cartoon, clean, new",
+          "aspect_ratio": "9:16",
+          "seed": 77777777
+        }
+      },
+
+      "sound_effects": [
+        {
+          "prompt": "Paper unfolding and rustling sound, old document being revealed",
+          "timing_offset": 0,
+          "duration": 3,
+          "volume": 0.5
+        }
+      ],
+
+      "effects": ["kenburns_slow_zoom", "vignette_subtle", "grain"]
+    },
+    {
+      "id": "scene_3",
+      "description": "Close-up of wall watchtowers facing inward",
+      "type": "video",
+      "timing": {},
+      "narration": "Look closely at the watchtowers. The defensive features, the arrow slits, the steep drops. They all face inward. Toward China.",
+
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Dramatic close-up photograph of Great Wall watchtower architecture showing defensive features, arrow slits and battlements visible, steep drop on the China-facing side emphasized, moody overcast lighting, architectural detail shot, documentary investigation style, blue hour lighting, cinematic film look",
+          "negative_prompt": "cartoon, anime, bright sunny, tourists, people",
+          "aspect_ratio": "9:16",
+          "seed": 77777777
+        }
+      },
+
+      "video_generation": {
+        "model": "fal-ai/vidu/image-to-video",
+        "input": {
+          "prompt": "Slow cinematic pan across watchtower details, camera reveals defensive features and arrow slits, dramatic documentary investigation style, moody lighting",
+          "duration": "4",
+          "movement_amplitude": "small"
+        }
+      },
+
+      "sound_effects": [
+        {
+          "prompt": "Wind howling through ancient stone ruins, eerie atmospheric wind",
+          "timing_offset": 0,
+          "duration": 5,
+          "volume": 0.4
+        }
+      ],
+
+      "effects": ["vignette_subtle", "grain_subtle"]
+    },
+    {
+      "id": "scene_4",
+      "description": "Diagram showing wall defensive features direction",
+      "type": "image",
+      "timing": {},
+      "narration": "The steep drop. The firing positions. The fortifications. All pointing the wrong way. Built to keep something IN. Not out.",
+
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Technical cross-section diagram of the Great Wall of China showing defensive architecture, red arrows pointing inward toward China side, annotated blueprint style illustration showing steep drop on south side and gentle slope on north side, dark background with illuminated diagram, conspiracy documentary infographic style, professional technical illustration",
+          "negative_prompt": "photo, realistic, cartoon characters, messy",
+          "aspect_ratio": "9:16",
+          "seed": 77777777
+        }
+      },
+
+      "sound_effects": [
+        {
+          "prompt": "Tense revelation sound effect, documentary dramatic sting",
+          "timing_offset": 0,
+          "duration": 3,
+          "volume": 0.6
+        }
+      ],
+
+      "effects": ["kenburns_slow_zoom", "vignette_subtle"]
+    },
+    {
+      "id": "scene_5",
+      "description": "1570 Ortelius map showing massive Tartaria empire",
+      "type": "video",
+      "timing": {},
+      "narration": "In fifteen seventy, THIS is what the world looked like. Tartaria. An empire stretching from Russia to the Pacific. Bigger than China and Russia combined.",
+
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Dramatic reveal of the 1570 Abraham Ortelius antique map showing 'TARTARIA' labeled across massive territory of Asia, ornate Renaissance cartography style, illustrated Great Khan seated in tent, decorative border with mythical creatures, aged yellowed parchment, Latin inscriptions, dramatic museum spotlight lighting, documentary cinematography",
+          "negative_prompt": "modern, digital, clean, cartoon",
+          "aspect_ratio": "9:16",
+          "seed": 77777777
+        }
+      },
+
+      "video_generation": {
+        "model": "fal-ai/vidu/image-to-video",
+        "input": {
+          "prompt": "Slow dramatic zoom into the word TARTARIA on ancient map, camera pushes in revealing details of the massive empire territory, documentary reveal style",
+          "duration": "4",
+          "movement_amplitude": "small"
+        }
+      },
+
+      "sound_effects": [
+        {
+          "prompt": "Deep dramatic revelation orchestral swell, epic discovery moment",
+          "timing_offset": 0,
+          "duration": 4,
+          "volume": 0.6
+        }
+      ],
+
+      "effects": ["vignette_subtle", "grain"]
+    },
+    {
+      "id": "scene_6",
+      "description": "Map showing Great Wall as the exact border of Tartaria",
+      "type": "image",
+      "timing": {},
+      "narration": "And the Great Wall? Look where it sits. Exactly at Tartaria's southern border. A perfect dividing line between two empires.",
+
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Antique map of Asia with the Great Wall of China highlighted and glowing as a border line between 'TARTARIA' to the north and 'CHINA' to the south, dramatic red highlight tracing the wall, old cartography style with modern highlighting overlay, conspiracy documentary evidence reveal style, split lighting, dramatic presentation",
+          "negative_prompt": "cartoon, modern digital map, bright colors",
+          "aspect_ratio": "9:16",
+          "seed": 77777777
+        }
+      },
+
+      "sound_effects": [
+        {
+          "prompt": "Dramatic bass drop and tension building drone, revelation impact",
+          "timing_offset": 0,
+          "duration": 4,
+          "volume": 0.6
+        }
+      ],
+
+      "effects": ["kenburns_slow_zoom", "vignette_subtle", "grain_subtle"]
+    },
+    {
+      "id": "scene_7",
+      "description": "Final dramatic question - modern wall with mystery overlay",
+      "type": "video",
+      "timing": {},
+      "narration": "So who really built the Great Wall? And why has the truth been hidden for centuries? What else don't they want you to know?",
+
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Dramatic wide shot of the Great Wall of China at twilight with mysterious fog, question mark shadow cast over the landscape, conspiracy documentary finale shot, dramatic orange and teal color grading, ancient mystery atmosphere, cinematic epic wide angle, moody and thought-provoking composition",
+          "negative_prompt": "cartoon, bright, cheerful, tourists, text overlay",
+          "aspect_ratio": "9:16",
+          "seed": 77777777
+        }
+      },
+
+      "video_generation": {
+        "model": "fal-ai/vidu/image-to-video",
+        "input": {
+          "prompt": "Slow dramatic pull back revealing the massive scale of the Great Wall disappearing into fog and mystery, cinematic documentary finale, atmospheric and haunting",
+          "duration": "4",
+          "movement_amplitude": "small"
+        }
+      },
+
+      "sound_effects": [
+        {
+          "prompt": "Deep dramatic orchestral finale with unresolved tension, conspiracy mystery ending",
+          "timing_offset": 0,
+          "duration": 5,
+          "volume": 0.7
+        }
+      ],
+
+      "effects": ["vignette_heavy", "grain_subtle"]
+    }
+  ],
+
+  "audio": {
+    "tts": {
+      "model": "fal-ai/qwen-3-tts/voice-design/1.7b",
+      "voice_prompt": "A deep authoritative male voice, speaking slowly and dramatically like a History Channel documentary narrator, mysterious and compelling tone, slight gravitas",
+      "language": "en",
+      "speed": 0.85
+    },
+    "music": {
+      "generate": true,
+      "prompt": "Dark cinematic documentary soundtrack, tense investigation music with deep sub-bass drones and subtle orchestral tension, mysterious and conspiratorial atmosphere, History Channel style underscore in D minor, building suspense throughout",
+      "duration": 80,
+      "volume": 0.18,
+      "fade_in": 2,
+      "fade_out": 4
+    }
+  },
+
+  "subtitles": {
+    "enabled": true,
+    "style": {
+      "font": "Impact",
+      "color": "#ffffff",
+      "stroke_color": "#000000",
+      "stroke_width": 5,
+      "position": "center",
+      "animation": "word_by_word",
+      "font_size": 68
+    }
+  },
+
+  "output": {
+    "filename": "great_wall_conspiracy.mp4",
+    "fps": 30,
+    "format": "mp4",
+    "platforms": ["tiktok"]
+  }
+}

@@ -61,18 +61,39 @@ export const transitionSchema = z.object({
   style: z.enum(['anime', '3d_animation', 'clay', 'comic', 'cyberpunk']).optional(),
 });
 
+/**
+ * Static image configuration for displaying existing images
+ * (e.g., reference photos, maps, documents) without AI generation.
+ * These are SHOWN in the video but NOT used for image-to-video.
+ */
+export const staticImageSchema = z.object({
+  /** URL or local path to the static image */
+  url: z.string(),
+  /** Alt text for accessibility */
+  alt: z.string().optional(),
+  /** How to fit the image: contain (letterbox), cover (crop), or fill (stretch) */
+  fit: z.enum(['contain', 'cover', 'fill']).optional().default('contain'),
+  /** Background color for letterboxing (default: black) */
+  background: z.string().optional(),
+});
+
 export const sceneSchema = z.object({
   id: z.string(),
   description: z.string().optional(),
-  type: z.enum(['image', 'video']),
+  type: z.enum(['image', 'video', 'static']),
   timing: timingSchema,
   narration: z.string().nullable().optional(),
-  image_generation: imageGenerationSchema,
+  /** AI-generated image config (required for type: image/video, optional for static) */
+  image_generation: imageGenerationSchema.optional(),
+  /** Static image to display as-is (for type: static, or as overlay) */
+  static_image: staticImageSchema.nullable().optional(),
   video_generation: videoGenerationSchema.nullable().optional(),
   transition: transitionSchema.nullable().optional(),
   text_overlay: textOverlaySchema.optional(),
   effects: z.array(z.string()).optional(),
   sound_effects: z.array(soundEffectSchema).optional(),
+  /** Skip Vision QA for this scene (default: false) */
+  skip_qa: z.boolean().optional(),
 });
 
 export type Scene = z.infer<typeof sceneSchema>;
@@ -82,3 +103,4 @@ export type Transition = z.infer<typeof transitionSchema>;
 export type TextOverlay = z.infer<typeof textOverlaySchema>;
 export type Timing = z.infer<typeof timingSchema>;
 export type SoundEffect = z.infer<typeof soundEffectSchema>;
+export type StaticImage = z.infer<typeof staticImageSchema>;

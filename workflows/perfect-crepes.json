@@ -1,0 +1,259 @@
+{
+  "name": "Chef Pierre's Kitchen - Perfect Crepes",
+  "template": "quiz",
+  "timing_mode": "tts_driven",
+  "scene_padding_seconds": 0.3,
+
+  "consistency": {
+    "reference_prompt": "Fixed camera cooking show shot, medium wide angle, cute cartoon French chef behind kitchen counter, professional TV studio kitchen set, bright studio lighting, camera straight on at chest height, static composition, Pixar Disney 3D animation style",
+    "seed": 55555555,
+    "model": "fal-ai/nano-banana-pro"
+  },
+
+  "scenes": [
+    {
+      "id": "scene_1",
+      "description": "Cooking show intro",
+      "type": "video",
+      "timing": {},
+      "narration": "Welcome to Chef Pierre's Kitchen! Today on the show, I'm going to teach you how to make the most perfect, delicious French crepes you've ever tasted! Let's get cooking!",
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Fixed camera cooking show shot, medium wide angle view, cute cartoon French chef with tall white hat standing behind kitchen counter, professional TV studio kitchen set with pots pans and ingredients visible, bright even studio lighting, chef facing camera with arms open in welcome gesture, static straight-on camera angle at chest height, Pixar Disney 3D animation style",
+          "negative_prompt": "realistic, photo, dark, tilted camera, close-up, aerial view",
+          "aspect_ratio": "9:16",
+          "seed": 55555555
+        }
+      },
+      "video_generation": {
+        "model": "fal-ai/vidu/image-to-video",
+        "input": {
+          "prompt": "Chef gestures enthusiastically while camera stays completely fixed and static, only the chef moves, cooking show style, NOT realistic",
+          "duration": "4",
+          "movement_amplitude": "small"
+        }
+      },
+      "sound_effects": [
+        {
+          "prompt": "Cooking show theme music fanfare, studio audience applause, upbeat TV intro",
+          "timing_offset": 0,
+          "duration": 4,
+          "volume": 0.6
+        }
+      ],
+      "effects": []
+    },
+    {
+      "id": "scene_2",
+      "description": "Ingredient reveal",
+      "type": "image",
+      "timing": {},
+      "narration": "First, let me show you what you'll need! One cup of flour, two beautiful eggs, half cup milk, half cup water, a tiny pinch of salt, and two tablespoons of melted butter. Simple ingredients, amazing results!",
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Fixed camera cooking show shot, medium wide angle view, cute cartoon chef gesturing to ingredients laid out on counter, flour bowl eggs milk butter salt all visible on counter, same TV studio kitchen set, bright even studio lighting, static straight-on camera angle at chest height, chef presenting ingredients to camera, Pixar Disney 3D animation style",
+          "negative_prompt": "realistic, photo, dark, tilted camera, close-up, top-down view, moving camera",
+          "aspect_ratio": "9:16",
+          "seed": 55555555
+        }
+      },
+      "effects": []
+    },
+    {
+      "id": "scene_3",
+      "description": "Mixing demonstration",
+      "type": "video",
+      "timing": {},
+      "narration": "Now watch this! We mix everything together until it's perfectly smooth. Look at that beautiful batter! But here's the secret that most people don't know...",
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Fixed camera cooking show shot, medium wide angle view, cute cartoon chef whisking batter in large glass bowl on counter, same TV studio kitchen set, bright even studio lighting, static straight-on camera angle at chest height, chef looking at camera while mixing, bowl visible on counter, Pixar Disney 3D animation style",
+          "negative_prompt": "realistic, photo, dark, tilted camera, extreme close-up, moving camera",
+          "aspect_ratio": "9:16",
+          "seed": 55555555
+        }
+      },
+      "video_generation": {
+        "model": "fal-ai/vidu/image-to-video",
+        "input": {
+          "prompt": "Chef whisks batter while camera remains completely fixed and static, only chef and whisk move, cooking show demonstration, NOT realistic",
+          "duration": "4",
+          "movement_amplitude": "small"
+        }
+      },
+      "sound_effects": [
+        {
+          "prompt": "Whisking sound in bowl, smooth mixing kitchen sounds",
+          "timing_offset": 0,
+          "duration": 5,
+          "volume": 0.5
+        }
+      ],
+      "effects": []
+    },
+    {
+      "id": "scene_4",
+      "description": "Secret tip reveal",
+      "type": "image",
+      "timing": {},
+      "narration": "You must let it rest for thirty minutes! This is the secret! The gluten relaxes, and your crepes will be thin, delicate, and absolutely perfect. Trust me on this one!",
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Fixed camera cooking show shot, medium wide angle view, cute cartoon chef holding up one finger with knowing smile sharing secret tip, covered bowl on counter, same TV studio kitchen set, bright even studio lighting, static straight-on camera angle at chest height, chef speaking directly to camera, Pixar Disney 3D animation style",
+          "negative_prompt": "realistic, photo, dark, tilted camera, close-up, moving camera",
+          "aspect_ratio": "9:16",
+          "seed": 55555555
+        }
+      },
+      "sound_effects": [
+        {
+          "prompt": "Dramatic reveal ding sound, cooking show tip chime",
+          "timing_offset": 0,
+          "duration": 2,
+          "volume": 0.5
+        }
+      ],
+      "effects": []
+    },
+    {
+      "id": "scene_5",
+      "description": "Pan technique",
+      "type": "video",
+      "timing": {},
+      "narration": "Alright! Heat your pan to medium high, add just a little butter, pour the batter, and here's the key, swirl it quickly! Like this! Round and round!",
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Fixed camera cooking show shot, medium wide angle view, cute cartoon chef holding pan and swirling crepe batter, steam rising from hot pan, same TV studio kitchen set with stovetop visible, bright even studio lighting, static straight-on camera angle at chest height, chef demonstrating technique to camera, Pixar Disney 3D animation style",
+          "negative_prompt": "realistic, photo, dark, tilted camera, extreme close-up, moving camera, burnt",
+          "aspect_ratio": "9:16",
+          "seed": 55555555
+        }
+      },
+      "video_generation": {
+        "model": "fal-ai/vidu/image-to-video",
+        "input": {
+          "prompt": "Chef swirls pan in circular motion while camera stays completely fixed, only chef hands and pan move, steam rises, cooking show style, NOT realistic",
+          "duration": "4",
+          "movement_amplitude": "small"
+        }
+      },
+      "sound_effects": [
+        {
+          "prompt": "Hot pan sizzling, butter melting, crepe batter cooking sounds",
+          "timing_offset": 1,
+          "duration": 4,
+          "volume": 0.7
+        }
+      ],
+      "effects": []
+    },
+    {
+      "id": "scene_6",
+      "description": "The flip",
+      "type": "video",
+      "timing": {},
+      "narration": "When the edges start to lift and the bottom is golden brown, about one minute, it's time for the flip! Ready? One, two, three! Beautiful!",
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Fixed camera cooking show shot, medium wide angle view, cute cartoon chef flipping golden crepe in pan with confident smile, crepe mid-air above pan, same TV studio kitchen set, bright even studio lighting, static straight-on camera angle at chest height, chef performing flip for camera, Pixar Disney 3D animation style",
+          "negative_prompt": "realistic, photo, dark, tilted camera, close-up, moving camera, burnt, failed flip",
+          "aspect_ratio": "9:16",
+          "seed": 55555555
+        }
+      },
+      "video_generation": {
+        "model": "fal-ai/vidu/image-to-video",
+        "input": {
+          "prompt": "Chef flips crepe upward and catches it while camera remains completely fixed and static, only chef and crepe move, triumphant expression, NOT realistic",
+          "duration": "4",
+          "movement_amplitude": "small"
+        }
+      },
+      "sound_effects": [
+        {
+          "prompt": "Whoosh flip sound, pan catch sound, brief applause",
+          "timing_offset": 2,
+          "duration": 2,
+          "volume": 0.6
+        }
+      ],
+      "effects": []
+    },
+    {
+      "id": "scene_7",
+      "description": "Final presentation",
+      "type": "video",
+      "timing": {},
+      "narration": "And there you have it! Perfect French crepes! Add your favorite toppings, strawberries, Nutella, whatever you love! Thanks for watching Chef Pierre's Kitchen! See you next time!",
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Fixed camera cooking show shot, medium wide angle view, cute cartoon chef proudly presenting plate of beautiful golden crepes with strawberries and toppings, same TV studio kitchen set, bright even studio lighting, static straight-on camera angle at chest height, chef smiling and waving goodbye to camera, Pixar Disney 3D animation style",
+          "negative_prompt": "realistic, photo, dark, tilted camera, close-up, moving camera, ugly food",
+          "aspect_ratio": "9:16",
+          "seed": 55555555
+        }
+      },
+      "video_generation": {
+        "model": "fal-ai/vidu/image-to-video",
+        "input": {
+          "prompt": "Chef presents dish then waves goodbye while camera stays completely fixed and static, only chef moves, cooking show finale, NOT realistic",
+          "duration": "4",
+          "movement_amplitude": "small"
+        }
+      },
+      "sound_effects": [
+        {
+          "prompt": "Studio audience applause and cheering, cooking show outro music",
+          "timing_offset": 3,
+          "duration": 4,
+          "volume": 0.6
+        }
+      ],
+      "effects": []
+    }
+  ],
+
+  "audio": {
+    "tts": {
+      "model": "fal-ai/qwen-3-tts/voice-design/1.7b",
+      "voice_prompt": "An enthusiastic TV cooking show host voice with a charming French accent, warm and energetic like a celebrity chef, confident and engaging, speaks directly to the audience with charisma and excitement",
+      "language": "en",
+      "speed": 1.0
+    },
+    "music": {
+      "generate": true,
+      "prompt": "Upbeat cooking show theme music, bright and cheerful, French cafe acoustic guitar meets TV show production, feel-good energetic background music, professional cooking show soundtrack",
+      "duration": 75,
+      "volume": 0.15,
+      "fade_in": 1,
+      "fade_out": 3
+    }
+  },
+
+  "subtitles": {
+    "enabled": true,
+    "style": {
+      "font": "Impact",
+      "color": "#ffffff",
+      "stroke_color": "#000000",
+      "stroke_width": 5,
+      "position": "center",
+      "animation": "word_by_word",
+      "font_size": 72
+    }
+  },
+
+  "output": {
+    "filename": "chef_pierres_kitchen_crepes.mp4",
+    "resolution": "1080x1920",
+    "fps": 30,
+    "format": "mp4"
+  }
+}

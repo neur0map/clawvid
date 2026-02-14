@@ -1,0 +1,233 @@
+{
+  "name": "Tartaria - The Hidden Civilization",
+  "template": "quiz",
+  "timing_mode": "tts_driven",
+  "scene_padding_seconds": 0.3,
+
+  "consistency": {
+    "reference_prompt": "Ornate grand 19th century architecture, massive domed buildings with intricate carvings, mudflood theory aesthetic, sepia toned historical photograph style, weathered stonework, impossible scale structures, forgotten civilization vibes",
+    "seed": 42424242,
+    "model": "fal-ai/nano-banana-pro"
+  },
+
+  "scenes": [
+    {
+      "id": "scene_1",
+      "description": "Hook - Did You Know opening",
+      "type": "video",
+      "timing": {},
+      "narration": "Did you know... an entire advanced civilization may have been erased from history?",
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro",
+        "input": {
+          "prompt": "Massive ornate domed building rising from mud and debris, 19th century sepia photograph style, impossible scale architecture with intricate carvings, forgotten civilization, dramatic lighting through clouds, Tartarian architecture aesthetic, weathered stonework, epic wide shot",
+          "negative_prompt": "modern, cartoon, anime, blurry, low quality, text, watermark",
+          "aspect_ratio": "9:16",
+          "seed": 42424242
+        }
+      },
+      "video_generation": {
+        "model": "fal-ai/vidu/image-to-video",
+        "input": {
+          "prompt": "Slow dramatic reveal, camera slowly panning up the massive building, dust particles floating in sunlight, cinematic, NOT modern NOT cartoon",
+          "duration": "4",
+          "movement_amplitude": "small"
+        }
+      },
+      "sound_effects": [
+        {
+          "prompt": "Deep dramatic bass drone, mysterious revelation sound, documentary style tension",
+          "timing_offset": 0,
+          "duration": 3,
+          "volume": 0.7
+        }
+      ],
+      "effects": ["vignette"]
+    },
+    {
+      "id": "scene_2",
+      "description": "Tartaria Introduction",
+      "type": "image",
+      "timing": {},
+      "narration": "They call it Tartaria. An empire so vast it supposedly spanned from Europe to the Pacific. But you won't find it in any modern textbook.",
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Ancient world map showing massive Tartarian Empire across Eurasia, ornate cartography style, sepia parchment texture, Latin text labels, compass rose, sea monsters in oceans, historical document aesthetic, 19th century map illustration",
+          "negative_prompt": "modern, digital, cartoon, blurry, low quality",
+          "aspect_ratio": "9:16",
+          "seed": 42424242
+        }
+      },
+      "effects": ["kenburns_slow_pan"]
+    },
+    {
+      "id": "scene_3",
+      "description": "The Evidence - Old Photos",
+      "type": "image",
+      "timing": {},
+      "narration": "Look at these old photographs. Buildings so elaborate, so massive, they supposedly took decades to construct. But the records show they were built in just months.",
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Vintage sepia photograph of impossibly ornate World's Fair exhibition building with massive glass domes and intricate ironwork, crowds of Victorian-era people looking tiny beside the structure, 1890s photography style, aged photograph with slight damage and scratches",
+          "negative_prompt": "modern, color, digital, cartoon, clean, new",
+          "aspect_ratio": "9:16",
+          "seed": 42424242
+        }
+      },
+      "sound_effects": [
+        {
+          "prompt": "Old film projector clicking and whirring, vintage mechanical sound",
+          "timing_offset": 0,
+          "duration": 4,
+          "volume": 0.4
+        }
+      ],
+      "effects": ["grain", "kenburns_slow_zoom"]
+    },
+    {
+      "id": "scene_4",
+      "description": "The Mudflood Theory",
+      "type": "video",
+      "timing": {},
+      "narration": "Believers say a catastrophic mudflood buried the first floors of these ancient buildings. That's why so many old structures have windows at ground level that look like they should be higher up.",
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Cross-section diagram showing ornate historical building partially buried in mud and earth, exposed basement windows at street level, underground floors visible beneath the soil, educational infographic style, sepia and brown tones, architectural blueprint aesthetic",
+          "negative_prompt": "modern, cartoon, anime, bright colors, digital art style",
+          "aspect_ratio": "9:16",
+          "seed": 42424242
+        }
+      },
+      "video_generation": {
+        "model": "fal-ai/vidu/image-to-video",
+        "input": {
+          "prompt": "Camera slowly pans down to reveal buried lower floors, animated cross-section, educational documentary style, NOT cartoon NOT anime",
+          "duration": "4",
+          "movement_amplitude": "small"
+        }
+      },
+      "sound_effects": [
+        {
+          "prompt": "Deep rumbling earth movement, geological shifting sound, low frequency",
+          "timing_offset": 2,
+          "duration": 3,
+          "volume": 0.6
+        }
+      ],
+      "effects": ["vignette"]
+    },
+    {
+      "id": "scene_5",
+      "description": "The Reset Theory",
+      "type": "image",
+      "timing": {},
+      "narration": "The theory claims there was a great reset. A catastrophe that wiped out this advanced civilization, and the survivors rewrote history to hide the truth.",
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Dramatic scene of old books and historical documents being burned in a fireplace, shadowy figures in Victorian clothing destroying evidence, dark moody lighting, conspiracy atmosphere, sepia and orange tones, dramatic shadows",
+          "negative_prompt": "bright, cheerful, cartoon, modern, colorful",
+          "aspect_ratio": "9:16",
+          "seed": 42424242
+        }
+      },
+      "sound_effects": [
+        {
+          "prompt": "Fire crackling intensely, papers burning, dramatic tension",
+          "timing_offset": 1,
+          "duration": 4,
+          "volume": 0.5
+        }
+      ],
+      "effects": ["vignette", "grain", "kenburns_slow_zoom"]
+    },
+    {
+      "id": "scene_6",
+      "description": "Closing Question",
+      "type": "video",
+      "timing": {},
+      "narration": "So next time you see an old building with strange proportions... ask yourself: what's really buried beneath our feet?",
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Mysterious ornate building facade at twilight with glowing windows, question mark subtly formed in the clouds above, dramatic lighting, conspiracy documentary style, sepia tones transitioning to blue hour, cinematic composition",
+          "negative_prompt": "cartoon, anime, bright, cheerful, modern architecture",
+          "aspect_ratio": "9:16",
+          "seed": 42424242
+        }
+      },
+      "video_generation": {
+        "model": "fal-ai/vidu/image-to-video",
+        "input": {
+          "prompt": "Slow dramatic zoom out revealing the full mysterious building, clouds moving ominously, twilight atmosphere, documentary finale style, NOT cartoon",
+          "duration": "4",
+          "movement_amplitude": "small"
+        }
+      },
+      "effects": ["vignette"]
+    },
+    {
+      "id": "scene_7",
+      "description": "End Card CTA",
+      "type": "image",
+      "timing": { "duration": 3 },
+      "narration": null,
+      "image_generation": {
+        "model": "fal-ai/nano-banana-pro/edit",
+        "input": {
+          "prompt": "Elegant vintage parchment background with ornate border design, aged paper texture, Victorian decorative elements, warm sepia tones, clean center space for text overlay",
+          "negative_prompt": "modern, digital, cartoon, text, watermark",
+          "aspect_ratio": "9:16",
+          "seed": 42424242
+        }
+      },
+      "text_overlay": {
+        "text": "Follow for more hidden history 🏛️",
+        "style": "bold",
+        "position": "center",
+        "font_size": 72
+      },
+      "effects": []
+    }
+  ],
+
+  "audio": {
+    "tts": {
+      "model": "fal-ai/qwen-3-tts/voice-design/1.7b",
+      "voice_prompt": "A confident deep male voice, documentary narrator style, slightly mysterious and intriguing, clear enunciation, measured pacing with dramatic pauses",
+      "language": "en",
+      "speed": 0.95
+    },
+    "music": {
+      "generate": true,
+      "prompt": "Mysterious documentary background music, deep ambient drones, subtle tension, conspiracy theory atmosphere, cinematic underscore, minor key, building suspense",
+      "duration": 60,
+      "volume": 0.18,
+      "fade_in": 2,
+      "fade_out": 3
+    }
+  },
+
+  "subtitles": {
+    "enabled": true,
+    "style": {
+      "font": "Impact",
+      "color": "#ffffff",
+      "stroke_color": "#000000",
+      "stroke_width": 5,
+      "position": "center",
+      "animation": "word_by_word",
+      "font_size": 76
+    }
+  },
+
+  "output": {
+    "filename": "tartaria_hidden_civilization.mp4",
+    "resolution": "1080x1920",
+    "fps": 30,
+    "format": "mp4"
+  }
+}

@@ -29,8 +29,41 @@ This skill contains critical rules about:
 |------------|-------------|---------------|
 | `type: "image"` | Narration-heavy, descriptions, establishing shots | Ken Burns effects only |
 | `type: "video"` | Action moments, reveals, dramatic beats | AI video generation |
+| `type: "static"` | Real photos, maps, documents to SHOW as-is | None (displayed as-is) |
 
 **Key insight:** Each `type: "video"` scene generates an **independent 4-8s clip**. Without transitions, these clips are **hard-cut together**, causing jarring jumps.
+
+### 🆕 Static Images (Reference Photos, Maps, Documents)
+
+Use `type: "static"` when you want to **display an existing image** without AI generation:
+
+```json
+{
+  "id": "scene_3",
+  "type": "static",
+  "static_image": {
+    "url": "https://example.com/historical-map.jpg",
+    "fit": "contain",
+    "background": "#000000"
+  },
+  "narration": "This map from 1706 shows...",
+  "timing": { "duration": 10 },
+  "effects": ["kenburns_slow_zoom"]
+}
+```
+
+**When to use static images:**
+- Historical photographs or maps (Library of Congress, archives)
+- Reference images the user provides
+- Screenshots or documents
+- Any real-world image that should NOT be AI-regenerated
+
+**Static image fields:**
+- `url`: URL or local path to the image
+- `fit`: `contain` (letterbox), `cover` (crop), or `fill` (stretch)
+- `background`: Background color for letterboxing (default: black)
+
+**⚠️ Static images are SHOWN, not used for image-to-video generation.**
 
 ### 🔴 TRANSITION RULES (CRITICAL FOR SMOOTH VIDEO)
 
@@ -825,6 +858,20 @@ clawvid generate --workflow workflow.json
 clawvid generate --workflow workflow.json --quality max_quality
 clawvid generate --workflow workflow.json --template horror --skip-cache
 
+# PHASED GENERATION - Generate in stages with review
+clawvid generate --workflow workflow.json --phase images      # Images only, pause for review
+clawvid generate --workflow workflow.json --phase videos      # Videos only (uses existing images)
+clawvid generate --workflow workflow.json --phase audio       # Audio only
+clawvid generate --workflow workflow.json --phase render      # Render only
+
+# VISION QA - Check images for issues before continuing
+clawvid generate --workflow workflow.json --qa                # Enable QA checks
+clawvid generate --workflow workflow.json --qa-auto-fix       # Auto-regenerate failed images
+
+# SELECTIVE REGENERATION - Fix specific scenes
+clawvid generate --workflow workflow.json --regenerate scene_5,scene_6
+clawvid generate --workflow workflow.json --use-existing-images --regenerate scene_3
+
 # Re-render from a previous run's assets
 clawvid render --run output/2026-02-11-haunted-library/
 clawvid render --run output/2026-02-11-haunted-library/ --all-platforms
@@ -904,6 +951,84 @@ Templates apply color grading, overlays, and default effects.
 
 ---
 
+## 🔍 Vision QA: Detecting Image Issues
+
+ClawVid includes Vision QA to automatically detect common issues in AI-generated images.
+
+### What Vision QA Checks For
+
+| Issue Type | Severity | Example |
+|------------|----------|---------|
+| `hallucinated_text` | Error | "PROJECT: MIDNIGHT ECHO" appearing in image |
+| `unwanted_logo` | Error | History Channel logo, stock watermarks |
+| `stock_image` | Warning | Generic stock photo look |
+| `style_drift` | Warning | Image style differs from reference |
+| `missing_element` | Warning | Requested subject not visible |
+
+### Common Hallucinations to Watch For
+
+Image models often hallucinate text/logos when prompted with certain terms:
+
+**Trigger words that cause issues:**
+- "History Channel style" → Adds History logo
+- "documentary" → Adds fake title cards
+- "professional" → Adds stock watermarks
+- "news" → Adds news tickers/logos
+- "Netflix/HBO style" → Adds streaming logos
+
+**Safe alternatives:**
+- "cinematic" instead of "History Channel style"
+- "film grain, moody lighting" instead of "documentary"
+- "high quality, detailed" instead of "professional"
+
+### Using Vision QA
+
+```bash
+# Check images after generation
+clawvid generate --workflow x.json --qa
+
+# Auto-fix by regenerating with sanitized prompts
+clawvid generate --workflow x.json --qa-auto-fix
+```
+
+### Preventing Issues in Prompts
+
+Always include in `negative_prompt`:
+```
+"negative_prompt": "text, watermark, logo, brand, copyright, title card, news ticker, TV graphics, stock photo"
+```
+
+### Phased Generation for Manual Review
+
+For critical projects, generate images first and review:
+
+```bash
+# Step 1: Generate images only
+clawvid generate --workflow x.json --phase images
+
+# Step 2: Review images in output folder
+# Step 3: Fix problematic scenes
+clawvid generate --workflow x.json --regenerate scene_5,scene_6
+
+# Step 4: Continue with videos
+clawvid generate --workflow x.json --phase videos --use-existing-images
+```
+
+### Skip QA for Specific Scenes
+
+Add `skip_qa: true` to scenes that should bypass checking:
+
+```json
+{
+  "id": "scene_3",
+  "type": "static",
+  "skip_qa": true,
+  "static_image": { "url": "..." }
+}
+```
+
+---
+
 ## Common Mistakes to Avoid
 
 ### ❌ Mistake: No transitions on continuous content
@@ -947,6 +1072,17 @@ Templates apply color grading, overlays, and default effects.
 ```json
 // CORRECT - no camera movement effects
 "effects": []
+```
+
+### ❌ Mistake: Prompts that trigger hallucinated text/logos
+```json
+// WRONG - triggers History Channel branding
+"prompt": "Dark cinematic documentary style, History Channel conspiracy aesthetic..."
+```
+```json
+// CORRECT - same style without brand references
+"prompt": "Dark cinematic film style, moody lighting, dramatic shadows, blue and orange color grading, film grain texture...",
+"negative_prompt": "text, watermark, logo, brand, title card, TV graphics"
 ```
 
 ### ❌ Mistake: Inconsistent camera descriptions

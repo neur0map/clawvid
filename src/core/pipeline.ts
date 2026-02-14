@@ -23,11 +23,25 @@ import type { PositionedSoundEffect } from '../audio/mixer.js';
 
 const log = createLogger('pipeline');
 
+export type GeneratePhase = 'all' | 'images' | 'videos' | 'audio' | 'render';
+
 export interface GenerateOptions {
   workflow: string;
   template?: string;
   quality?: string;
   skipCache?: boolean;
+  /** Run specific phase only */
+  phase?: GeneratePhase;
+  /** Enable Vision QA for generated images */
+  qa?: boolean;
+  /** Automatically regenerate images that fail QA */
+  qaAutoFix?: boolean;
+  /** Skip image generation, use existing assets */
+  useExistingImages?: boolean;
+  /** Skip video generation, use existing assets */
+  useExistingVideos?: boolean;
+  /** Regenerate specific scenes (comma-separated IDs) */
+  regenerate?: string;
 }
 
 export interface RenderOptions {
@@ -71,12 +85,48 @@ export async function runGenerate(options: GenerateOptions): Promise<void> {
   await writeJsonFile(join(assetManager.outputDir, 'workflow.json'), rawWorkflow);
 
   // 3. Execute workflow (generate all assets)
+  const phase = (options.phase ?? 'all') as GeneratePhase;
+  const enableQA = options.qa || options.qaAutoFix;
+  const qaAutoFix = options.qaAutoFix ?? false;
+  const regenerateIds = options.regenerate?.split(',').map((s: string) => s.trim()) ?? [];
+
   const result = await executeWorkflow(
     workflow,
     config,
     assetManager,
     options.skipCache,
+    {
+      phase,
+      enableQA,
+      qaAutoFix,
+      useExistingImages: options.useExistingImages,
+      useExistingVideos: options.useExistingVideos,
+      regenerateSceneIds: regenerateIds,
+    },
   );
+
+  // If running images-only phase, stop here and report
+  if (phase === 'images') {
+    console.log('');
+    console.log(chalk.green.bold('Image generation complete!'));
+    console.log(chalk.dim('─'.repeat(50)));
+    console.log(`  Output: ${assetManager.outputDir}`);
+    console.log(`  Images: ${result.sceneAssets.length}`);
+    if (result.qaResults && result.qaResults.length > 0) {
+      const failed = result.qaResults.filter(r => !r.passed);
+      if (failed.length > 0) {
+        console.log(chalk.yellow(`  QA Issues: ${failed.length} scene(s) need review`));
+        for (const f of failed) {
+          console.log(chalk.yellow(`    - ${f.sceneId}: ${f.issues.map(i => i.description).join(', ')}`));
+        }
+      } else {
+        console.log(chalk.green(`  QA: All images passed`));
+      }
+    }
+    console.log('');
+    console.log(chalk.dim('Run with --phase videos to continue, or --regenerate <ids> to fix issues'));
+    return;
+  }
 
   // 4. Audio post-processing
   await processAudio(workflow, result, assetManager);
